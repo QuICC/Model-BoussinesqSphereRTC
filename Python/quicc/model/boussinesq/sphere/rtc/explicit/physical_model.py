@@ -1,4 +1,4 @@
-"""Module provides the functions to generate the Boussinesq rotating thermal convection in a sphere with Chebyshev expansion (Toroidal/Poloidal formulation) without field coupling (standard implementation)"""
+"""Module provides the functions to generate the Boussinesq rotating thermal convection in a sphere with Worland expansion (Toroidal/Poloidal formulation) without field coupling (standard implementation)"""
 
 from __future__ import division
 from __future__ import unicode_literals
@@ -7,13 +7,13 @@ import numpy as np
 import scipy.sparse as spsp
 
 import quicc.base.utils as utils
-import quicc.geometry.spherical.sphere_radius_chebyshev as geo
+import quicc.geometry.spherical.sphere_radius_worland as geo
 import quicc.base.base_model as base_model
-from quicc.geometry.spherical.sphere_radius_boundary_chebyshev import no_bc
+from quicc.geometry.spherical.sphere_radius_boundary_worland import no_bc
 
 
-class BoussinesqRTCSphereStd(base_model.BaseModel):
-    """Class to setup the Boussinesq rotating thermal convection in a sphere with Chebyshev expansion (Toroidal/Poloidal formulation) without field coupling (standard implementation)"""
+class PhysicalModel(base_model.BaseModel):
+    """Class to setup the Boussinesq rotating thermal convection in a sphere with Worland expansion (Toroidal/Poloidal formulation) without field coupling (standard implementation)"""
 
     def periodicity(self):
         """Get the domain periodicity"""
@@ -23,7 +23,17 @@ class BoussinesqRTCSphereStd(base_model.BaseModel):
     def nondimensional_parameters(self):
         """Get the list of nondimensional parameters"""
 
-        return ["taylor", "prandtl", "rayleigh"]
+        return ["ekman", "prandtl", "rayleigh"]
+
+    def automatic_parameters(self, eq_params):
+        """Extend parameters with automatically computable values"""
+
+        E = eq_params['ekman']
+        d = {
+                "cfl_inertial":0.1*E
+            }
+
+        return d
 
     def config_fields(self):
         """Get the list of fields that need a configuration entry"""
@@ -32,7 +42,7 @@ class BoussinesqRTCSphereStd(base_model.BaseModel):
 
     def implicit_fields(self, field_row):
         """Get the list of coupled fields in solve"""
-    
+
         fields = [field_row]
 
         return fields
@@ -51,7 +61,10 @@ class BoussinesqRTCSphereStd(base_model.BaseModel):
 
         # Explicit nonlinear terms
         elif timing == self.EXPLICIT_NONLINEAR:
-            fields = [field_row]
+            if field_row == ("temperature",""):
+                fields = [("temperature","")]
+            else:
+                fields = []
 
         # Explicit update terms for next step
         elif timing == self.EXPLICIT_NEXTSTEP:
@@ -64,7 +77,7 @@ class BoussinesqRTCSphereStd(base_model.BaseModel):
 
         tau_n = res[0]
         if self.use_galerkin:
-            if field_row == ("velocity","tor") or field_row == ("temperature",""):
+            if field_row in [("velocity","tor"), ("temperature","")]:
                 shift_r = 1
             elif field_row == ("velocity","pol"):
                 shift_r = 2
@@ -82,7 +95,7 @@ class BoussinesqRTCSphereStd(base_model.BaseModel):
 
     def stencil(self, res, eq_params, eigs, bcs, field_row, make_square):
         """Create the galerkin stencil"""
-        
+
         assert(eigs[0].is_integer())
         l = eigs[0]
 
@@ -143,11 +156,11 @@ class BoussinesqRTCSphereStd(base_model.BaseModel):
                         bc = {0:-21, 'rt':0}
 
                 else:
-                    if field_row == ("velocity","tor") and field_col == ("velocity","tor"):
+                    if field_row == ("velocity","tor") and field_col == field_row:
                             bc = {0:12}
-                    elif field_row == ("velocity","pol") and field_col == ("velocity","pol"):
+                    elif field_row == ("velocity","pol") and field_col == field_row:
                             bc = {0:21}
-            
+
             # Set LHS galerkin restriction
             if self.use_galerkin:
                 if field_row == ("velocity","tor"):
@@ -174,7 +187,7 @@ class BoussinesqRTCSphereStd(base_model.BaseModel):
                         bc = {0:-12, 'rt':1}
                     elif field_col == ("velocity","pol"):
                         bc = {0:-21, 'rt':2}
-        
+
         # Field values to RHS:
         elif bcs["bcType"] == self.FIELD_TO_RHS:
             bc = no_bc()
@@ -198,15 +211,15 @@ class BoussinesqRTCSphereStd(base_model.BaseModel):
         l = eigs[0]
 
         Ra = eq_params['rayleigh']
-        T = eq_params['taylor']**0.5
+        T = 1.0/eq_params['ekman']
 
         mat = None
         bc = self.convert_bc(eq_params,eigs,bcs,field_row,field_col)
         if field_row == ("velocity","pol") and field_col == ("temperature",""):
-            mat = geo.i4r4(res[0], l, bc, Ra*T*l*(l+1.0))
+            mat = geo.i4(res[0], l, bc, Ra*T)
 
         elif field_row == ("temperature","") and field_col == ("velocity","pol"):
-            mat = geo.i2r2(res[0], l, bc, -l*(l+1.0))
+            mat = geo.i2(res[0], l, bc, -l*(l+1.0))
 
         if mat is None:
             raise RuntimeError("Equations are not setup properly!")
@@ -222,13 +235,7 @@ class BoussinesqRTCSphereStd(base_model.BaseModel):
         mat = None
         bc = self.convert_bc(eq_params,eigs,bcs,field_row,field_col)
         if field_row == ("temperature","") and field_col == field_row:
-            mat = geo.i2r2(res[0], l, bc)
-
-        elif field_row == ("velocity","tor") and field_col == field_row:
-            mat = geo.qid(res[0], l, 1, bc)
-
-        elif field_row == ("velocity","pol") and field_col == field_row:
-            mat = geo.qid(res[0], l, 2, bc)
+            mat = geo.i2(res[0], l, bc)
 
         if mat is None:
             raise RuntimeError("Equations are not setup properly!")
@@ -246,13 +253,13 @@ class BoussinesqRTCSphereStd(base_model.BaseModel):
         mat = None
         bc = self.convert_bc(eq_params,eigs,bcs,field_row,field_col)
         if field_row == ("velocity","tor") and field_col == field_row:
-            mat = geo.i2r2lapl(res[0], l, bc, l*(l+1.0))
+            mat = geo.i2lapl(res[0], l, bc)
 
         elif field_row == ("velocity","pol") and field_col == field_row:
-            mat = geo.i4r4lapl2(res[0], l, bc, l*(l+1.0))
+            mat = geo.i4lapl2(res[0], l, bc)
 
         elif field_row == ("temperature","") and field_col == field_row:
-            mat = geo.i2r2lapl(res[0], l, bc, 1.0/Pr)
+            mat = geo.i2lapl(res[0], l, bc, 1.0/Pr)
 
         if mat is None:
             raise RuntimeError("Equations are not setup properly!")
@@ -268,13 +275,13 @@ class BoussinesqRTCSphereStd(base_model.BaseModel):
         mat = None
         bc = self.convert_bc(eq_params,eigs,bcs,field_row,field_row)
         if field_row == ("velocity","tor"):
-            mat = geo.i2r2(res[0], l, bc, l*(l+1.0))
+            mat = geo.i2(res[0], l, bc)
 
         elif field_row == ("velocity","pol"):
-            mat = geo.i4r4lapl(res[0], l, bc, l*(l+1.0))
+            mat = geo.i4lapl(res[0], l, bc)
 
         elif field_row == ("temperature",""):
-            mat = geo.i2r2(res[0], l, bc)
+            mat = geo.i2(res[0], l, bc)
 
         if mat is None:
             raise RuntimeError("Equations are not setup properly!")
