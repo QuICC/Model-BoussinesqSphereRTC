@@ -65,8 +65,8 @@ namespace Kernel {
 
       if(std::visit([&](auto&& v)->bool{return (v->dom(0).res().sim().ss().id() == SpatialScheme::WLFl::sId);},this->vector(this->name())))
       {
-            this->mCosTheta = this->mspMesh->at(1).array().cos();
-            this->mSinTheta = this->mspMesh->at(1).array().sin();
+         this->mCosTheta = this->mspMesh->at(1).array().cos();
+         this->mSinTheta = this->mspMesh->at(1).array().sin();
       }
    }
 
