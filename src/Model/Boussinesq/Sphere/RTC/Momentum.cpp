@@ -22,8 +22,6 @@
 #include "QuICC/Math/Constants.hpp"
 #include "QuICC/NonDimensional/Ekman.hpp"
 #include "QuICC/PhysicalNames/Velocity.hpp"
-#include "QuICC/SpatialScheme/3D/WLFl.hpp"
-#include "QuICC/SpatialScheme/3D/WLFm.hpp"
 #include "QuICC/Model/Boussinesq/Sphere/RTC/MomentumKernel.hpp"
 
 namespace QuICC {

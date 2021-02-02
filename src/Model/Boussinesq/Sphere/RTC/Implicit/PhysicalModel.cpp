@@ -33,7 +33,7 @@ namespace Implicit {
 
    std::string PhysicalModel::PYMODULE()
    {
-      return "boussinesq.sphere.rtc.implicit.phyiscal_model";
+      return "boussinesq.sphere.rtc.implicit.physical_model";
    }
 
 }
