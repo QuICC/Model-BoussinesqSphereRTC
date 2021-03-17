@@ -81,10 +81,6 @@ namespace RTC {
          virtual void addAsciiOutputFiles(SharedSimulation spSim) override;
 
       protected:
-         /**
-          * @brieg Register named IDs
-          */
-         virtual void registerNames() override;
 
       private:
    };
