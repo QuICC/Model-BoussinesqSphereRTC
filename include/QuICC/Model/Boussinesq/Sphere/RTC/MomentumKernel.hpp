@@ -51,7 +51,7 @@ namespace Kernel {
          virtual void setMesh(std::shared_ptr<std::vector<Array> > spMesh) override;
 
          /**
-          * @brief Set the smart pointer to the velocitt field
+          * @brief Set the smart pointer to the velocity field
           *
           * \param name Name of the field
           * \param spField Shared pointer to the vector field
