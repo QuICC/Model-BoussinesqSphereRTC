@@ -37,6 +37,7 @@
 #include "QuICC/Io/Variable/SphereTorPolEnergyWriter.hpp"
 #include "QuICC/Io/Variable/SphereTorPolLSpectrumWriter.hpp"
 #include "QuICC/Io/Variable/SphereTorPolMSpectrumWriter.hpp"
+#include "QuICC/Io/Variable/SphereAngularMomentumWriter.hpp"
 #include "QuICC/Generator/States/RandomScalarState.hpp"
 #include "QuICC/Generator/States/RandomVectorState.hpp"
 #include "QuICC/Generator/States/SphereExactScalarState.hpp"
@@ -270,6 +271,13 @@ namespace RTC {
       spKineticM->expect(PhysicalNames::Velocity::id());
       //spKineticM->numberOutput();
       spSim->addAsciiOutputFile(spKineticM);
+#endif
+
+#if 0
+      // Create angular momentum writer
+      auto spAngMom = std::make_shared<Io::Variable::SphereAngularMomentumWriter>("", spSim->ss().tag());
+      spAngMom->expect(PhysicalNames::Velocity::id());
+      spSim->addAsciiOutputFile(spAngMom);
 #endif
    }
 
