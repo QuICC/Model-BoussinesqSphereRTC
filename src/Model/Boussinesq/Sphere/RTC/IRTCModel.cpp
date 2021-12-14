@@ -34,9 +34,11 @@
 #include "QuICC/Io/Variable/SphereScalarEnergyWriter.hpp"
 #include "QuICC/Io/Variable/SphereScalarLSpectrumWriter.hpp"
 #include "QuICC/Io/Variable/SphereScalarMSpectrumWriter.hpp"
+#include "QuICC/Io/Variable/SphereScalarNSpectrumWriter.hpp"
 #include "QuICC/Io/Variable/SphereTorPolEnergyWriter.hpp"
 #include "QuICC/Io/Variable/SphereTorPolLSpectrumWriter.hpp"
 #include "QuICC/Io/Variable/SphereTorPolMSpectrumWriter.hpp"
+#include "QuICC/Io/Variable/SphereTorPolNSpectrumWriter.hpp"
 #include "QuICC/Io/Variable/SphereAngularMomentumWriter.hpp"
 #include "QuICC/Generator/States/RandomScalarState.hpp"
 #include "QuICC/Generator/States/RandomVectorState.hpp"
@@ -254,6 +256,14 @@ namespace RTC {
       spSim->addAsciiOutputFile(spTempM);
 #endif
 
+#if 0
+      // Create temperature N power spectrum writer
+      auto spTempN = std::make_shared<Io::Variable::SphereScalarNSpectrumWriter>("temperature", spSim->ss().tag());
+      spTempN->expect(PhysicalNames::Temperature::id());
+      //spTempN->numberOutput();
+      spSim->addAsciiOutputFile(spTempN);
+#endif
+
       // Create kinetic energy writer
       auto spKinetic = std::make_shared<Io::Variable::SphereTorPolEnergyWriter>("kinetic", spSim->ss().tag());
       spKinetic->expect(PhysicalNames::Velocity::id());
@@ -271,6 +281,14 @@ namespace RTC {
       spKineticM->expect(PhysicalNames::Velocity::id());
       //spKineticM->numberOutput();
       spSim->addAsciiOutputFile(spKineticM);
+#endif
+
+#if 0
+      // Create kinetic N power spectrum writer
+      auto spKineticN = std::make_shared<Io::Variable::SphereTorPolNSpectrumWriter>("kinetic", spSim->ss().tag());
+      spKineticN->expect(PhysicalNames::Velocity::id());
+      //spKineticN->numberOutput();
+      spSim->addAsciiOutputFile(spKineticN);
 #endif
 
 #if 0
