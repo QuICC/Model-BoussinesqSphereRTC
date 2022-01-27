@@ -68,10 +68,16 @@ namespace RTC {
    void IRTCModel::addEquations(SharedSimulation spSim)
    {
       // Add transport equation
-      spSim->addEquation<Equations::Boussinesq::Sphere::RTC::Transport>(this->spBackend());
+      spSim->addEquation<Equations::Boussinesq::Sphere::RTC::Transport>(this->spBackend(), 0);
 
       // Add Navier-Stokes equation
-      spSim->addEquation<Equations::Boussinesq::Sphere::RTC::Momentum>(this->spBackend());
+      spSim->addEquation<Equations::Boussinesq::Sphere::RTC::Momentum>(this->spBackend(), 0);
+
+      // Add transport equation
+      spSim->addEquation<Equations::Boussinesq::Sphere::RTC::Transport>(this->spBackend(), 1);
+
+      // Add Navier-Stokes equation
+      spSim->addEquation<Equations::Boussinesq::Sphere::RTC::Momentum>(this->spBackend(), 1);
    }
 
    void IRTCModel::addStates(SharedStateGenerator spGen)
