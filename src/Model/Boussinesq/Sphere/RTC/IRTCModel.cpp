@@ -230,22 +230,58 @@ namespace RTC {
       spVis->addHdf5OutputFile(spOut);
    }
 
+   std::map<std::string, std::map<std::string,int> > IRTCModel::configTags() const
+   {
+      std::map<std::string,int> onOff;
+      onOff.emplace("enable", 1);
+
+      std::map<std::string,int> options;
+      options.emplace("enable", 0);
+      options.emplace("numbered", 0);
+      options.emplace("only_every", 1);
+
+      std::map<std::string,std::map<std::string,int> > tags;
+      // kinetic
+      tags.emplace("kinetic_energy", onOff);
+      tags.emplace("kinetic_l_spectrum", options);
+      tags.emplace("kinetic_m_spectrum", options);
+      tags.emplace("kinetic_n_spectrum", options);
+      // temperature
+      tags.emplace("temperature_energy", onOff);
+      tags.emplace("temperature_l_spectrum", options);
+      tags.emplace("temperature_m_spectrum", options);
+      tags.emplace("temperature_n_spectrum", options);
+      // diagnostic
+      tags.emplace("angular_momentum", onOff);
+      tags.emplace("nusselt", onOff);
+
+      return tags;
+   }
+
    void IRTCModel::addAsciiOutputFiles(SharedSimulation spSim)
    {
       std::string tag;
 
       // Create Nusselt writer
-      auto spNusselt = std::make_shared<Io::Variable::SphereNusseltWriter>("", spSim->ss().tag());
-      spNusselt->expect(PhysicalNames::Temperature::id());
-      spSim->addAsciiOutputFile(spNusselt);
+      tag = "nusselt";
+      if(spSim->config().model(tag).at("enable"))
+      {
+         auto spFile = std::make_shared<Io::Variable::SphereNusseltWriter>("", spSim->ss().tag());
+         spFile->expect(PhysicalNames::Temperature::id());
+         spSim->addAsciiOutputFile(spFile);
+      }
 
       // Create temperature energy writer
-      auto spTemp = std::make_shared<Io::Variable::SphereScalarEnergyWriter>("temperature", spSim->ss().tag());
-      spTemp->expect(PhysicalNames::Temperature::id());
-      spSim->addAsciiOutputFile(spTemp);
+      tag = "temperature_energy";
+      if(spSim->config().model(tag).at("enable"))
+      {
+         auto spFile = std::make_shared<Io::Variable::SphereScalarEnergyWriter>("temperature", spSim->ss().tag());
+         spFile->expect(PhysicalNames::Temperature::id());
+         spSim->addAsciiOutputFile(spFile);
+      }
 
       // Create temperature L energy spectrum writer
-      tag = PhysicalNames::Coordinator::tag(PhysicalNames::Temperature::id()) + std::string("_l_spectrum");
+      tag = "temperature_l_spectrum";
       if(spSim->config().model(tag).at("enable"))
       {
          auto spFile = std::make_shared<Io::Variable::SphereScalarLSpectrumWriter>("temperature", spSim->ss().tag());
@@ -259,7 +295,7 @@ namespace RTC {
       }
 
       // Create temperature M energy spectrum writer
-      tag = PhysicalNames::Coordinator::tag(PhysicalNames::Temperature::id()) + std::string("_m_spectrum");
+      tag = "temperature_m_spectrum";
       if(spSim->config().model(tag).at("enable"))
       {
          auto spspFile = std::make_shared<Io::Variable::SphereScalarMSpectrumWriter>("temperature", spSim->ss().tag());
@@ -273,7 +309,7 @@ namespace RTC {
       }
 
       // Create temperature N power spectrum writer
-      tag = PhysicalNames::Coordinator::tag(PhysicalNames::Temperature::id()) + std::string("_n_spectrum");
+      tag = "temperature_n_spectrum";
       if(spSim->config().model(tag).at("enable"))
       {
          auto spFile = std::make_shared<Io::Variable::SphereScalarNSpectrumWriter>("temperature", spSim->ss().tag());
@@ -287,12 +323,16 @@ namespace RTC {
       }
 
       // Create kinetic energy writer
-      auto spKinetic = std::make_shared<Io::Variable::SphereTorPolEnergyWriter>("kinetic", spSim->ss().tag());
-      spKinetic->expect(PhysicalNames::Velocity::id());
-      spSim->addAsciiOutputFile(spKinetic);
+      tag = "kinetic_energy";
+      if(spSim->config().model(tag).at("enable"))
+      {
+         auto spFile = std::make_shared<Io::Variable::SphereTorPolEnergyWriter>("kinetic", spSim->ss().tag());
+         spFile->expect(PhysicalNames::Velocity::id());
+         spSim->addAsciiOutputFile(spFile);
+      }
 
       // Create kinetic L energy spectrum writer
-      tag = PhysicalNames::Coordinator::tag(PhysicalNames::Velocity::id()) + std::string("_l_spectrum");
+      tag = "kinetic_l_spectrum";
       if(spSim->config().model(tag).at("enable"))
       {
          auto spFile = std::make_shared<Io::Variable::SphereTorPolLSpectrumWriter>("kinetic", spSim->ss().tag());
@@ -306,7 +346,7 @@ namespace RTC {
       }
 
       // Create kinetic M energy spectrum writer
-      tag = PhysicalNames::Coordinator::tag(PhysicalNames::Velocity::id()) + std::string("_m_spectrum");
+      tag = "kinetic_m_spectrum";
       if(spSim->config().model(tag).at("enable"))
       {
          auto spFile = std::make_shared<Io::Variable::SphereTorPolMSpectrumWriter>("kinetic", spSim->ss().tag());
@@ -320,7 +360,7 @@ namespace RTC {
       }
 
       // Create kinetic N power spectrum writer
-      tag = PhysicalNames::Coordinator::tag(PhysicalNames::Velocity::id()) + std::string("_n_spectrum");
+      tag = "kinetic_n_spectrum";
       if(spSim->config().model(tag).at("enable"))
       {
          auto spFile = std::make_shared<Io::Variable::SphereTorPolNSpectrumWriter>("kinetic", spSim->ss().tag());
@@ -333,12 +373,14 @@ namespace RTC {
          spSim->addAsciiOutputFile(spFile);
       }
 
-#if 0
       // Create angular momentum writer
-      auto spAngMom = std::make_shared<Io::Variable::SphereAngularMomentumWriter>("", spSim->ss().tag());
-      spAngMom->expect(PhysicalNames::Velocity::id());
-      spSim->addAsciiOutputFile(spAngMom);
-#endif
+      tag = "angular_momentum";
+      if(spSim->config().model(tag).at("enable"))
+      {
+         auto spFile = std::make_shared<Io::Variable::SphereAngularMomentumWriter>("", spSim->ss().tag());
+         spFile->expect(PhysicalNames::Velocity::id());
+         spSim->addAsciiOutputFile(spFile);
+      }
    }
 
 }
