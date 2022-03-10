@@ -232,6 +232,8 @@ namespace RTC {
 
    void IRTCModel::addAsciiOutputFiles(SharedSimulation spSim)
    {
+      std::string tag;
+
       // Create Nusselt writer
       auto spNusselt = std::make_shared<Io::Variable::SphereNusseltWriter>("", spSim->ss().tag());
       spNusselt->expect(PhysicalNames::Temperature::id());
@@ -242,58 +244,94 @@ namespace RTC {
       spTemp->expect(PhysicalNames::Temperature::id());
       spSim->addAsciiOutputFile(spTemp);
 
-#if 0
       // Create temperature L energy spectrum writer
-      auto spTempL = std::make_shared<Io::Variable::SphereScalarLSpectrumWriter>("temperature", spSim->ss().tag());
-      spTempL->expect(PhysicalNames::Temperature::id());
-      //spTempL->numberOutput();
-      //spTempL->onlyEvery(100);
-      spSim->addAsciiOutputFile(spTempL);
+      tag = PhysicalNames::Coordinator::tag(PhysicalNames::Temperature::id()) + std::string("_l_spectrum");
+      if(spSim->config().model(tag).at("enable"))
+      {
+         auto spFile = std::make_shared<Io::Variable::SphereScalarLSpectrumWriter>("temperature", spSim->ss().tag());
+         spFile->expect(PhysicalNames::Temperature::id());
+         if(spSim->config().model(tag).at("numbered"))
+         {
+            spFile->numberOutput();
+         }
+         spFile->onlyEvery(spSim->config().model(tag).at("only_every"));
+         spSim->addAsciiOutputFile(spFile);
+      }
 
       // Create temperature M energy spectrum writer
-      auto spTempM = std::make_shared<Io::Variable::SphereScalarMSpectrumWriter>("temperature", spSim->ss().tag());
-      spTempM->expect(PhysicalNames::Temperature::id());
-      //spTempM->numberOutput();
-      //spTempM->onlyEvery(100);
-      spSim->addAsciiOutputFile(spTempM);
-#endif
+      tag = PhysicalNames::Coordinator::tag(PhysicalNames::Temperature::id()) + std::string("_m_spectrum");
+      if(spSim->config().model(tag).at("enable"))
+      {
+         auto spspFile = std::make_shared<Io::Variable::SphereScalarMSpectrumWriter>("temperature", spSim->ss().tag());
+         spspFile->expect(PhysicalNames::Temperature::id());
+         if(spSim->config().model(tag).at("numbered"))
+         {
+            spspFile->numberOutput();
+         }
+         spspFile->onlyEvery(spSim->config().model(tag).at("only_every"));
+         spSim->addAsciiOutputFile(spspFile);
+      }
 
-#if 0
       // Create temperature N power spectrum writer
-      auto spTempN = std::make_shared<Io::Variable::SphereScalarNSpectrumWriter>("temperature", spSim->ss().tag());
-      spTempN->expect(PhysicalNames::Temperature::id());
-      //spTempN->numberOutput();
-      spSim->addAsciiOutputFile(spTempN);
-#endif
+      tag = PhysicalNames::Coordinator::tag(PhysicalNames::Temperature::id()) + std::string("_n_spectrum");
+      if(spSim->config().model(tag).at("enable"))
+      {
+         auto spFile = std::make_shared<Io::Variable::SphereScalarNSpectrumWriter>("temperature", spSim->ss().tag());
+         spFile->expect(PhysicalNames::Temperature::id());
+         if(spSim->config().model(tag).at("numbered"))
+         {
+            spFile->numberOutput();
+         }
+         spFile->onlyEvery(spSim->config().model(tag).at("only_every"));
+         spSim->addAsciiOutputFile(spFile);
+      }
 
       // Create kinetic energy writer
       auto spKinetic = std::make_shared<Io::Variable::SphereTorPolEnergyWriter>("kinetic", spSim->ss().tag());
       spKinetic->expect(PhysicalNames::Velocity::id());
       spSim->addAsciiOutputFile(spKinetic);
 
-#if 0
       // Create kinetic L energy spectrum writer
-      auto spKineticL = std::make_shared<Io::Variable::SphereTorPolLSpectrumWriter>("kinetic", spSim->ss().tag());
-      spKineticL->expect(PhysicalNames::Velocity::id());
-      //spKineticL->numberOutput();
-      //spKineticL->onlyEvery(100);
-      spSim->addAsciiOutputFile(spKineticL);
+      tag = PhysicalNames::Coordinator::tag(PhysicalNames::Velocity::id()) + std::string("_l_spectrum");
+      if(spSim->config().model(tag).at("enable"))
+      {
+         auto spFile = std::make_shared<Io::Variable::SphereTorPolLSpectrumWriter>("kinetic", spSim->ss().tag());
+         spFile->expect(PhysicalNames::Velocity::id());
+         if(spSim->config().model(tag).at("numbered"))
+         {
+            spFile->numberOutput();
+         }
+         spFile->onlyEvery(spSim->config().model(tag).at("only_every"));
+         spSim->addAsciiOutputFile(spFile);
+      }
 
       // Create kinetic M energy spectrum writer
-      auto spKineticM = std::make_shared<Io::Variable::SphereTorPolMSpectrumWriter>("kinetic", spSim->ss().tag());
-      spKineticM->expect(PhysicalNames::Velocity::id());
-      //spKineticM->numberOutput();
-      //spKineticM->onlyEvery(100);
-      spSim->addAsciiOutputFile(spKineticM);
-#endif
+      tag = PhysicalNames::Coordinator::tag(PhysicalNames::Velocity::id()) + std::string("_m_spectrum");
+      if(spSim->config().model(tag).at("enable"))
+      {
+         auto spFile = std::make_shared<Io::Variable::SphereTorPolMSpectrumWriter>("kinetic", spSim->ss().tag());
+         spFile->expect(PhysicalNames::Velocity::id());
+         if(spSim->config().model(tag).at("numbered"))
+         {
+            spFile->numberOutput();
+         }
+         spFile->onlyEvery(spSim->config().model(tag).at("only_every"));
+         spSim->addAsciiOutputFile(spFile);
+      }
 
-#if 0
       // Create kinetic N power spectrum writer
-      auto spKineticN = std::make_shared<Io::Variable::SphereTorPolNSpectrumWriter>("kinetic", spSim->ss().tag());
-      spKineticN->expect(PhysicalNames::Velocity::id());
-      //spKineticN->numberOutput();
-      spSim->addAsciiOutputFile(spKineticN);
-#endif
+      tag = PhysicalNames::Coordinator::tag(PhysicalNames::Velocity::id()) + std::string("_n_spectrum");
+      if(spSim->config().model(tag).at("enable"))
+      {
+         auto spFile = std::make_shared<Io::Variable::SphereTorPolNSpectrumWriter>("kinetic", spSim->ss().tag());
+         spFile->expect(PhysicalNames::Velocity::id());
+         if(spSim->config().model(tag).at("numbered"))
+         {
+            spFile->numberOutput();
+         }
+         spFile->onlyEvery(spSim->config().model(tag).at("only_every"));
+         spSim->addAsciiOutputFile(spFile);
+      }
 
 #if 0
       // Create angular momentum writer
