@@ -1,4 +1,3 @@
-option(QUICC_TESTSUITE_BOUSSINESQSPHERERTC "Enable BoussinesqSphereRTC model testsuite?" OFF)
-if(QUICC_TESTSUITE_BOUSSINESQSPHERERTC)
+if(QUICC_TESTSUITE_MODEL)
   add_subdirectory(TestSuite)
 endif()
