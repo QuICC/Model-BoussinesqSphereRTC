@@ -242,27 +242,28 @@ namespace RTC {
       spTemp->expect(PhysicalNames::Temperature::id());
       spSim->addAsciiOutputFile(spTemp);
 
-#if 0
+#if 1
       // Create temperature L energy spectrum writer
       auto spTempL = std::make_shared<Io::Variable::SphereScalarLSpectrumWriter>("temperature", spSim->ss().tag());
       spTempL->expect(PhysicalNames::Temperature::id());
-      //spTempL->numberOutput();
-      //spTempL->onlyEvery(100);
+      spTempL->numberOutput();
+      spTempL->onlyEvery(100);
       spSim->addAsciiOutputFile(spTempL);
 
       // Create temperature M energy spectrum writer
       auto spTempM = std::make_shared<Io::Variable::SphereScalarMSpectrumWriter>("temperature", spSim->ss().tag());
       spTempM->expect(PhysicalNames::Temperature::id());
-      //spTempM->numberOutput();
-      //spTempM->onlyEvery(100);
+      spTempM->numberOutput();
+      spTempM->onlyEvery(100);
       spSim->addAsciiOutputFile(spTempM);
 #endif
 
-#if 0
+#if 1
       // Create temperature N power spectrum writer
       auto spTempN = std::make_shared<Io::Variable::SphereScalarNSpectrumWriter>("temperature", spSim->ss().tag());
       spTempN->expect(PhysicalNames::Temperature::id());
-      //spTempN->numberOutput();
+      spTempN->numberOutput();
+      spTempN->onlyEvery(100);
       spSim->addAsciiOutputFile(spTempN);
 #endif
 
@@ -271,31 +272,32 @@ namespace RTC {
       spKinetic->expect(PhysicalNames::Velocity::id());
       spSim->addAsciiOutputFile(spKinetic);
 
-#if 0
+#if 1
       // Create kinetic L energy spectrum writer
       auto spKineticL = std::make_shared<Io::Variable::SphereTorPolLSpectrumWriter>("kinetic", spSim->ss().tag());
       spKineticL->expect(PhysicalNames::Velocity::id());
-      //spKineticL->numberOutput();
-      //spKineticL->onlyEvery(100);
+      spKineticL->numberOutput();
+      spKineticL->onlyEvery(100);
       spSim->addAsciiOutputFile(spKineticL);
 
       // Create kinetic M energy spectrum writer
       auto spKineticM = std::make_shared<Io::Variable::SphereTorPolMSpectrumWriter>("kinetic", spSim->ss().tag());
       spKineticM->expect(PhysicalNames::Velocity::id());
-      //spKineticM->numberOutput();
-      //spKineticM->onlyEvery(100);
+      spKineticM->numberOutput();
+      spKineticM->onlyEvery(100);
       spSim->addAsciiOutputFile(spKineticM);
 #endif
 
-#if 0
+#if 1
       // Create kinetic N power spectrum writer
       auto spKineticN = std::make_shared<Io::Variable::SphereTorPolNSpectrumWriter>("kinetic", spSim->ss().tag());
       spKineticN->expect(PhysicalNames::Velocity::id());
-      //spKineticN->numberOutput();
+      spKineticN->numberOutput();
+      spKineticN->onlyEvery(100);
       spSim->addAsciiOutputFile(spKineticN);
 #endif
 
-#if 0
+#if 1
       // Create angular momentum writer
       auto spAngMom = std::make_shared<Io::Variable::SphereAngularMomentumWriter>("", spSim->ss().tag());
       spAngMom->expect(PhysicalNames::Velocity::id());
