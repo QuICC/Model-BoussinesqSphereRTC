@@ -260,8 +260,6 @@ namespace RTC {
 
    void IRTCModel::addAsciiOutputFiles(SharedSimulation spSim)
    {
-      //std::string tag;
-
       // Create Nusselt writer
       this->enableAsciiFile<Io::Variable::SphereNusseltWriter>("nusselt", "", PhysicalNames::Temperature::id(), spSim);
 
