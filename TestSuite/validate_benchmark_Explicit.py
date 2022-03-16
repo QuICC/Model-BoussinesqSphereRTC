@@ -7,8 +7,9 @@ ref_dir, data_dir = vt.processArgv(sys.argv[1:])
 results = np.zeros(2, dtype='i8')
 
 # Tolerance per max rows
-rows = [0, 10, 20, 100]
-tols = [101, 101, 101, 1e3]
+rows = np.arange(0, 101, 10)
+tols = [21, 51, 51, 101, 101, 121, 191, 191, 191, 211, 251] # Without n spectra
+tols = [51, 241, 511, 921, 1131, 1521, 1701, 1701, 4311, 13951, 22291] # With n spectra
 
 prefixes = ['temperature', 'kinetic']
 spectra = ['l', 'm', 'n']
@@ -22,7 +23,11 @@ for prefix in prefixes:
     # Spectra
     for mode in spectra:
         for r, t in zip(rows,tols):
-            results += vt.tableTest(prefix +  '_' + mode + f'_spectrum{r:04}.dat', ref_dir, data_dir, tol = t, percol = True)
+            if mode == 'n':
+                threshold = 1e-37
+            else:
+                threshold = -1
+            results += vt.tableTest(prefix +  '_' + mode + f'_spectrum{r:04}.dat', ref_dir, data_dir, tol = t, percol = True, threshold = threshold)
 
 # Nusselt number
 for r, t in zip(rows,tols):
