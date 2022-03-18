@@ -247,14 +247,14 @@ namespace RTC {
       auto spTempL = std::make_shared<Io::Variable::SphereScalarLSpectrumWriter>("temperature", spSim->ss().tag());
       spTempL->expect(PhysicalNames::Temperature::id());
       spTempL->numberOutput();
-      spTempL->onlyEvery(100);
+      spTempL->onlyEvery(10);
       spSim->addAsciiOutputFile(spTempL);
 
       // Create temperature M energy spectrum writer
       auto spTempM = std::make_shared<Io::Variable::SphereScalarMSpectrumWriter>("temperature", spSim->ss().tag());
       spTempM->expect(PhysicalNames::Temperature::id());
       spTempM->numberOutput();
-      spTempM->onlyEvery(100);
+      spTempM->onlyEvery(10);
       spSim->addAsciiOutputFile(spTempM);
 #endif
 
@@ -263,7 +263,7 @@ namespace RTC {
       auto spTempN = std::make_shared<Io::Variable::SphereScalarNSpectrumWriter>("temperature", spSim->ss().tag());
       spTempN->expect(PhysicalNames::Temperature::id());
       spTempN->numberOutput();
-      spTempN->onlyEvery(100);
+      spTempN->onlyEvery(10);
       spSim->addAsciiOutputFile(spTempN);
 #endif
 
@@ -277,14 +277,14 @@ namespace RTC {
       auto spKineticL = std::make_shared<Io::Variable::SphereTorPolLSpectrumWriter>("kinetic", spSim->ss().tag());
       spKineticL->expect(PhysicalNames::Velocity::id());
       spKineticL->numberOutput();
-      spKineticL->onlyEvery(100);
+      spKineticL->onlyEvery(10);
       spSim->addAsciiOutputFile(spKineticL);
 
       // Create kinetic M energy spectrum writer
       auto spKineticM = std::make_shared<Io::Variable::SphereTorPolMSpectrumWriter>("kinetic", spSim->ss().tag());
       spKineticM->expect(PhysicalNames::Velocity::id());
       spKineticM->numberOutput();
-      spKineticM->onlyEvery(100);
+      spKineticM->onlyEvery(10);
       spSim->addAsciiOutputFile(spKineticM);
 #endif
 
@@ -293,7 +293,7 @@ namespace RTC {
       auto spKineticN = std::make_shared<Io::Variable::SphereTorPolNSpectrumWriter>("kinetic", spSim->ss().tag());
       spKineticN->expect(PhysicalNames::Velocity::id());
       spKineticN->numberOutput();
-      spKineticN->onlyEvery(100);
+      spKineticN->onlyEvery(10);
       spSim->addAsciiOutputFile(spKineticN);
 #endif
 
