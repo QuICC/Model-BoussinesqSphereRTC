@@ -4,50 +4,42 @@ import validation_tools as vt
 
 ref_dir, data_dir = vt.processArgv(sys.argv[1:])
 
-results = np.zeros(2, dtype='i8')
+results = []
 
-# Tolerance for long run
-long_tol = 11*1e8
+# Tolerance per max rows
+rows = list(range(0, 101, 10))
+tols = [21, 51, 51, 101, 101, 121, 191, 191, 191, 211, 251] # Without n spectra
+tols = [51, 241, 511, 921, 1131, 1521, 1701, 1701, 4351, 14051, 22291] # With n spectra
 
-# Tolerance for short run
-short_rows = 20
-short_tol = 101
+prefixes = ['temperature', 'kinetic']
+spectra = ['l', 'm', 'n']
 
-# Temperature
-#   Energy
-results += vt.tableTest("temperature_energy.dat", ref_dir, data_dir, tol = short_tol, max_rows = short_rows)
-results += vt.tableTest("temperature_energy.dat", ref_dir, data_dir, tol = long_tol)
-#   L spectrum
-results += vt.tableTest("temperature_l_spectrum0000.dat", ref_dir, data_dir, tol = short_tol)
-results += vt.tableTest("temperature_l_spectrum0100.dat", ref_dir, data_dir, tol = long_tol, percol = True)
-#   M spectrum
-results += vt.tableTest("temperature_m_spectrum0000.dat", ref_dir, data_dir, tol = short_tol)
-results += vt.tableTest("temperature_m_spectrum0100.dat", ref_dir, data_dir, tol = long_tol, percol = True)
-#   M spectrum
-results += vt.tableTest("temperature_n_spectrum0000.dat", ref_dir, data_dir, tol = short_tol)
-results += vt.tableTest("temperature_n_spectrum0100.dat", ref_dir, data_dir, tol = long_tol, percol = True)
-# Kinetic
-#   energy
-results += vt.tableTest("kinetic_energy.dat", ref_dir, data_dir, tol = short_tol, max_rows = short_rows)
-#results += vt.tableTest("kinetic_energy.dat", ref_dir, data_dir, tol = long_tol)
-#   L spectrum
-results += vt.tableTest("kinetic_l_spectrum0000.dat", ref_dir, data_dir, tol = short_tol)
-results += vt.tableTest("kinetic_l_spectrum0100.dat", ref_dir, data_dir, tol = long_tol, percol = True)
-#   M spectrum
-results += vt.tableTest("kinetic_m_spectrum0000.dat", ref_dir, data_dir, tol = short_tol)
-results += vt.tableTest("kinetic_m_spectrum0100.dat", ref_dir, data_dir, tol = long_tol, percol = True)
-#   N spectrum
-results += vt.tableTest("kinetic_n_spectrum0000.dat", ref_dir, data_dir, tol = short_tol)
-results += vt.tableTest("kinetic_n_spectrum0100.dat", ref_dir, data_dir, tol = long_tol, percol = True)
+# check energy and spectra
+for prefix in prefixes:
+    # Energy
+    for r, t in zip(rows,tols):
+        results.append(vt.tableTest(prefix + '_energy.dat', ref_dir, data_dir, r, tol = t, max_rows = r+1))
+
+    # Spectra
+    for mode in spectra:
+        for r, t in zip(rows,tols):
+            if mode == 'n':
+                threshold = 1e-37
+            else:
+                threshold = -1
+            results.append(vt.tableTest(prefix +  '_' + mode + f'_spectrum{r:04}.dat', ref_dir, data_dir, r, tol = t, percol = True, threshold = threshold))
+
 # Nusselt number
-results += vt.tableTest("nusselt.dat", ref_dir, data_dir, tol = short_tol, max_rows = short_rows)
-#results += vt.tableTest("nusselt.dat", ref_dir, data_dir, tol = short_tol)
-# Angular momentum
-#results += vt.tableTest("angular_momentum.dat", ref_dir, data_dir, tol = short_tol, max_rows = short_rows)
-#results += vt.tableTest("angular_momentum.dat", ref_dir, data_dir, tol = long_tol)
+for r, t in zip(rows,tols):
+    results.append(vt.tableTest("nusselt.dat", ref_dir, data_dir, r, tol = t, max_rows = r+1))
+
 # CFL
-results += vt.tableTest("cfl.dat", ref_dir, data_dir, usecols=(0,1,3,5,6,7,8,9), tol = short_tol, max_rows = short_rows)
-#results += vt.tableTest("cfl.dat", ref_dir, data_dir, usecols=(0,1,3,5,6,7,8,9), tol = long_tol)
+for r, t in zip(rows,tols):
+    results.append(vt.tableTest("cfl.dat", ref_dir, data_dir, r, usecols=(0,1,3,5,6,7,8,9), tol = t, max_rows = r+1))
+
+# Angular momentum
+#for r, t in zip(rows,tols):
+#    results.append(vt.tableTest("angular_momentum.dat", ref_dir, data_dir, r, tol = t, max_rows = r+1))
 
 # Output test summary
-vt.printSummary(results)
+vt.printSummary(results, rows)
