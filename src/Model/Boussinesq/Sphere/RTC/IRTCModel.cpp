@@ -46,6 +46,7 @@
 #include "QuICC/Generator/States/SphereExactVectorState.hpp"
 #include "QuICC/Generator/States/Kernels/Sphere/BenchmarkTempC1.hpp"
 #include "QuICC/Generator/States/Kernels/Sphere/BenchmarkTempC1.hpp"
+#include "QuICC/Generator/States/Kernels/Sphere/ValidationTorPol.hpp"
 #include "QuICC/Generator/Visualizers/ScalarFieldVisualizer.hpp"
 #include "QuICC/Generator/Visualizers/VectorFieldVisualizer.hpp"
 #include "QuICC/SpectralKernels/MakeRandom.hpp"
@@ -131,7 +132,7 @@ namespace RTC {
       // Add velocity initial state generator
       spVector = spGen->addEquation<Equations::SphereExactVectorState>(this->spBackend());
       spVector->setIdentity(PhysicalNames::Velocity::id());
-      switch(3)
+      switch(5)
       {
          // Toroidal only
          case 0:
@@ -196,6 +197,15 @@ namespace RTC {
                spKernel->init(-1e-4, 1e-4);
                spVector->setSrcKernel(FieldComponents::Spectral::TOR, spKernel);
                spVector->setSrcKernel(FieldComponents::Spectral::POL, spKernel);
+            }
+            break;
+
+         case 5:
+            {
+               spVector->useNonlinearPath(0);
+               auto spKernel = std::make_shared<Physical::Kernel::Sphere::ValidationTorPol>();
+               spKernel->init(1e9);
+               spVector->setPhysicalKernel(spKernel);
             }
             break;
       }

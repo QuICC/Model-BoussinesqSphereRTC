@@ -61,10 +61,7 @@ class PhysicalModel(base_model.BaseModel):
 
         # Explicit nonlinear terms
         elif timing == self.EXPLICIT_NONLINEAR:
-            if field_row == ("temperature",""):
-                fields = [("temperature","")]
-            else:
-                fields = []
+            fields = []
 
         # Explicit update terms for next step
         elif timing == self.EXPLICIT_NEXTSTEP:
@@ -234,8 +231,6 @@ class PhysicalModel(base_model.BaseModel):
 
         mat = None
         bc = self.convert_bc(eq_params,eigs,bcs,field_row,field_col)
-        if field_row == ("temperature","") and field_col == field_row:
-            mat = geo.i2(res[0], l, bc)
 
         if mat is None:
             raise RuntimeError("Equations are not setup properly!")
