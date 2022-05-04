@@ -52,12 +52,7 @@ class PhysicalModel(base_model.BaseModel):
 
         # Explicit linear terms
         if timing == self.EXPLICIT_LINEAR:
-            if field_row == ("velocity","pol"):
-                fields = [("temperature","")]
-            elif field_row == ("temperature",""):
-                fields = [("velocity","pol")]
-            else:
-                fields = []
+            fields = []
 
         # Explicit nonlinear terms
         elif timing == self.EXPLICIT_NONLINEAR:
@@ -207,16 +202,8 @@ class PhysicalModel(base_model.BaseModel):
         assert(eigs[0].is_integer())
         l = eigs[0]
 
-        Ra = eq_params['rayleigh']
-        T = 1.0/eq_params['ekman']
-
         mat = None
         bc = self.convert_bc(eq_params,eigs,bcs,field_row,field_col)
-        if field_row == ("velocity","pol") and field_col == ("temperature",""):
-            mat = geo.i4(res[0], l, bc, Ra*T)
-
-        elif field_row == ("temperature","") and field_col == ("velocity","pol"):
-            mat = geo.i2(res[0], l, bc, -l*(l+1.0))
 
         if mat is None:
             raise RuntimeError("Equations are not setup properly!")

@@ -59,9 +59,17 @@ namespace Kernel {
          virtual void setVelocity(std::size_t name, Framework::Selector::VariantSharedVectorVariable spField);
 
          /**
+          * @brief Set the smart pointer to the temperature field
+          *
+          * \param name Name of the field
+          * \param spField Shared pointer to the scalar field
+          */
+         virtual void setTemperature(std::size_t name, Framework::Selector::VariantSharedScalarVariable spField);
+
+         /**
           * @brief Initialize kernel
           */
-         void init(const MHDFloat inertia, const MHDFloat coriolis);
+         void init(const MHDFloat inertia, const MHDFloat coriolis, const MHDFloat buoyancy);
 
          /**
           * @brief Compute the physical kernel
@@ -84,6 +92,11 @@ namespace Kernel {
          std::size_t mName;
 
          /**
+          * @brief Name ID of the temperature
+          */
+         std::size_t mTempName;
+
+         /**
           * @brief Scaling constant for inertial term
           */
          MHDFloat mInertia;
@@ -92,6 +105,16 @@ namespace Kernel {
           * @brief Scaling constant for Coriolis term
           */
          MHDFloat mCoriolis;
+
+         /**
+          * @brief Scaling constant for Buoyancy term
+          */
+         MHDFloat mBuoyancy;
+
+         /**
+          * @brief Storage for the radial(theta) grid values (if required)
+          */
+         Array mRadius;
 
          /**
           * @brief Storage for the cos(theta) grid values (if required)

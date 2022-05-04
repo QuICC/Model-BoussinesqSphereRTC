@@ -21,7 +21,9 @@
 #include "QuICC/Typedefs.hpp"
 #include "QuICC/Math/Constants.hpp"
 #include "QuICC/NonDimensional/Ekman.hpp"
+#include "QuICC/NonDimensional/Rayleigh.hpp"
 #include "QuICC/SolveTiming/Prognostic.hpp"
+#include "QuICC/PhysicalNames/Temperature.hpp"
 #include "QuICC/PhysicalNames/Velocity.hpp"
 #include "QuICC/SpatialScheme/ISpatialScheme.hpp"
 #include "QuICC/SpectralKernels/Sphere/ConserveAngularMomentum.hpp"
@@ -85,7 +87,10 @@ namespace RTC {
          // Initialize the physical kernel
          auto spNLKernel = std::make_shared<Physical::Kernel::MomentumKernel>();
          spNLKernel->setVelocity(this->name(), this->spUnknown());
-         spNLKernel->init(1.0, 1.0/this->eqParams().nd(NonDimensional::Ekman::id()));
+         spNLKernel->setTemperature(PhysicalNames::Temperature::id(), this->spScalar(PhysicalNames::Temperature::id()));
+         auto T = 1.0/this->eqParams().nd(NonDimensional::Ekman::id());
+         auto Ra = this->eqParams().nd(NonDimensional::Rayleigh::id());
+         spNLKernel->init(1.0, T, Ra*T);
          this->mspNLKernel = spNLKernel;
       }
    }
@@ -122,6 +127,11 @@ namespace RTC {
       velReq.enableSpectral();
       velReq.enablePhysical();
       velReq.enableCurl();
+
+      // Add temperature to requirements: is scalar?
+      auto& tempReq = this->mRequirements.addField(PhysicalNames::Temperature::id(), FieldRequirement(true, ss.spectral(), ss.physical()));
+      tempReq.enableSpectral();
+      tempReq.enablePhysical();
    }
 
 }
