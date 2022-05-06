@@ -58,7 +58,7 @@ namespace RTC {
 
    void Transport::setNLComponents()
    {
-      this->addNLComponent(FieldComponents::Spectral::SCALAR, Transform::Path::ScalarNL::id());
+      this->addNLComponent(FieldComponents::Spectral::SCALAR, Transform::Path::I2ScalarNL::id());
    }
 
    void Transport::initNLKernel(const bool force)
