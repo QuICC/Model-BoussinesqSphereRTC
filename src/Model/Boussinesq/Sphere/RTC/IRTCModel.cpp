@@ -132,7 +132,7 @@ namespace RTC {
       // Add velocity initial state generator
       spVector = spGen->addEquation<Equations::SphereExactVectorState>(this->spBackend());
       spVector->setIdentity(PhysicalNames::Velocity::id());
-      switch(5)
+      switch(3)
       {
          // Toroidal only
          case 0:
@@ -197,15 +197,6 @@ namespace RTC {
                spKernel->init(-1e-4, 1e-4);
                spVector->setSrcKernel(FieldComponents::Spectral::TOR, spKernel);
                spVector->setSrcKernel(FieldComponents::Spectral::POL, spKernel);
-            }
-            break;
-
-         case 5:
-            {
-               spVector->useNonlinearPath(0);
-               auto spKernel = std::make_shared<Physical::Kernel::Sphere::ValidationTorPol>();
-               spKernel->init(1e9);
-               spVector->setPhysicalKernel(spKernel);
             }
             break;
       }
