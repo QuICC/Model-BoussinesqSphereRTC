@@ -46,7 +46,6 @@
 #include "QuICC/Generator/States/SphereExactVectorState.hpp"
 #include "QuICC/Generator/States/Kernels/Sphere/BenchmarkTempC1.hpp"
 #include "QuICC/Generator/States/Kernels/Sphere/BenchmarkTempC1.hpp"
-#include "QuICC/Generator/States/Kernels/Sphere/ValidationTorPol.hpp"
 #include "QuICC/Generator/Visualizers/ScalarFieldVisualizer.hpp"
 #include "QuICC/Generator/Visualizers/VectorFieldVisualizer.hpp"
 #include "QuICC/SpectralKernels/MakeRandom.hpp"
