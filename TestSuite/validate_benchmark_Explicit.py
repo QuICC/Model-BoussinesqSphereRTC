@@ -6,10 +6,12 @@ ref_dir, data_dir = vt.processArgv(sys.argv[1:])
 
 results = []
 
+# Check simulation setup
+vt.check_setup('OUT_stdout', ref_dir, data_dir, 'Timestepper information', 7)
+
 # Tolerance per max rows
 rows = list(range(0, 101, 10))
-tols = [21, 51, 51, 101, 101, 121, 191, 191, 191, 211, 251] # Without n spectra
-tols = [51, 241, 511, 921, 1131, 1521, 1701, 1701, 4351, 14051, 22291] # With n spectra
+tols = [26, 90, 179, 219, 254, 312, 357, 392, 466, 550, 600]
 
 prefixes = ['temperature', 'kinetic']
 spectra = ['l', 'm', 'n']
@@ -18,7 +20,7 @@ spectra = ['l', 'm', 'n']
 for prefix in prefixes:
     # Energy
     for r, t in zip(rows,tols):
-        results.append(vt.tableTest(prefix + '_energy.dat', ref_dir, data_dir, r, tol = t, max_rows = r+1))
+        results.append(vt.tableTest(prefix + '_energy.dat', ref_dir, data_dir, r, tol = t, max_rows = r+1, perrow = True, max_firstcol = 1))
 
     # Spectra
     for mode in spectra:
@@ -27,7 +29,7 @@ for prefix in prefixes:
                 threshold = 1e-37
             else:
                 threshold = -1
-            results.append(vt.tableTest(prefix +  '_' + mode + f'_spectrum{r:04}.dat', ref_dir, data_dir, r, tol = t, percol = True, threshold = threshold))
+            results.append(vt.tableTest(prefix +  '_' + mode + f'_spectrum{r:04}.dat', ref_dir, data_dir, r, tol = t, percol = True, perrow = True, max_firstcol = 1, threshold = threshold))
 
 # Nusselt number
 for r, t in zip(rows,tols):
@@ -42,4 +44,4 @@ for r, t in zip(rows,tols):
 #    results.append(vt.tableTest("angular_momentum.dat", ref_dir, data_dir, r, tol = t, max_rows = r+1))
 
 # Output test summary
-vt.printSummary(results, rows)
+vt.printSummary(results, rows, tols)
