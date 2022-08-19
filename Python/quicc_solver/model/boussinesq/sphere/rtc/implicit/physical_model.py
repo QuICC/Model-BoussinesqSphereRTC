@@ -59,10 +59,7 @@ class PhysicalModel(base_model.BaseModel):
 
         # Explicit linear terms
         if timing == self.EXPLICIT_LINEAR:
-            if field_row == ("temperature",""):
-                fields = [("velocity","pol")]
-            else:
-                fields = []
+            fields = []
 
         # Explicit nonlinear terms
         elif timing == self.EXPLICIT_NONLINEAR:
@@ -225,13 +222,10 @@ class PhysicalModel(base_model.BaseModel):
         """Create matrix block for explicit linear term"""
 
         assert(eigs[0].is_integer())
-
         m = int(eigs[0])
 
         mat = None
         bc = self.convert_bc(eq_params,eigs,bcs,field_row,field_col)
-        if field_row == ("temperature","") and field_col == ("velocity","pol"):
-            mat = geo.i2(res[0], res[1], m, bc, -1.0, with_sh_coeff = 'laplh', restriction = restriction)
 
         if mat is None:
             raise RuntimeError("Equations are not setup properly!")
@@ -242,7 +236,6 @@ class PhysicalModel(base_model.BaseModel):
         """Create the explicit nonlinear operator"""
 
         assert(eigs[0].is_integer())
-
         m = int(eigs[0])
 
         mat = None
@@ -288,7 +281,10 @@ class PhysicalModel(base_model.BaseModel):
                 mat = mat + geo.i4lapl(res[0], res[1], m, bc, 1j*m*T, with_sh_coeff = 'invlaplh', l_zero_fix = 'zero', restriction = restriction)
 
             elif field_col == ("temperature",""):
-                mat = geo.i4(res[0], res[1], m, bc, -Ra*T, l_zero_fix = 'zero', restriction = restriction)
+                if self.linearize:
+                    mat = geo.i4(res[0], res[1], m, bc, -Ra*T, l_zero_fix = 'zero', restriction = restriction)
+                else:
+                    mat = geo.zblk(res[0], res[1], m, bc)
 
         elif field_row == ("temperature",""):
             if field_col == ("velocity","tor"):
