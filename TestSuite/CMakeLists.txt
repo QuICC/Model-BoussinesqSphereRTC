@@ -9,4 +9,6 @@ quicc_add_benchmark(Implicit
   MODEL "BoussinesqSphereRTC"
   WORKDIR "${CMAKE_BINARY_DIR}/${QUICC_CURRENT_MODEL_DIR}/TestSuite/Benchmarks"
   ARCHIVEDIR "${CMAKE_BINARY_DIR}/Models/_refdata"
+  TIMEOUT 500
+  GITTAG add/spherertc_implicit
   )
