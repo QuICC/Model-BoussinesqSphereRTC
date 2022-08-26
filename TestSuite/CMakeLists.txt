@@ -11,5 +11,4 @@ quicc_add_benchmark(Implicit
   ARCHIVEDIR "${CMAKE_BINARY_DIR}/Models/_refdata"
   TIMEOUT 500
   VARIANTS "framework/parallel/algorithm:single2d"
-  GITTAG add/spherertc_implicit
   )
