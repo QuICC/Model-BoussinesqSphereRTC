@@ -6,18 +6,12 @@
 #ifndef QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_EXPLICIT_MODELBACKEND_HPP
 #define QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_EXPLICIT_MODELBACKEND_HPP
 
-// Configuration includes
-//
-
 // System includes
 //
 #include <string>
 #include <vector>
 #include <map>
 #include <memory>
-
-// External includes
-//
 
 // Project includes
 //
@@ -72,7 +66,9 @@ namespace Explicit {
          virtual void enableGalerkin(const bool flag) override;
 
          /**
-          * @brief Get vector of bools about periodic box
+          * @brief Get auotmatically computed parameters based on input parameters
+          *
+          * @param cfg  Input parameters
           */
          virtual std::map<std::string,MHDFloat> automaticParameters(const std::map<std::string,MHDFloat>& cfg) const override;
 
