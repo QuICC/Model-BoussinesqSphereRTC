@@ -25,6 +25,7 @@
 #include "QuICC/SolveTiming/Prognostic.hpp"
 #include "QuICC/PhysicalNames/Temperature.hpp"
 #include "QuICC/PhysicalNames/Velocity.hpp"
+#include "QuICC/Bc/Name/StressFree.hpp"
 #include "QuICC/SpatialScheme/ISpatialScheme.hpp"
 #include "QuICC/SpectralKernels/Sphere/ConserveAngularMomentum.hpp"
 #include "QuICC/Transform/Path/I2CurlNl.hpp"
@@ -99,7 +100,7 @@ namespace RTC {
 
    void Momentum::initConstraintKernel()
    {
-      if(this->bcIds().bcId(this->name()) == 1)
+      if(this->bcIds().bcId(this->name()) == Bc::Name::StressFree::id())
       {
          // Initialize the physical kernel
          auto spConstraint = std::make_shared<Spectral::Kernel::Sphere::ConserveAngularMomentum>(this->ss().has(SpatialScheme::Feature::ComplexSpectrum));
