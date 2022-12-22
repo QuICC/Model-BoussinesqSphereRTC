@@ -20,6 +20,7 @@
 //
 #include "QuICC/Model/Boussinesq/Sphere/RTC/Transport.hpp"
 #include "QuICC/Model/Boussinesq/Sphere/RTC/Momentum.hpp"
+#include "Model/Boussinesq/Sphere/RTC/gitHash.hpp"
 #include "QuICC/Enums/FieldIds.hpp"
 #include "QuICC/PhysicalNames/Temperature.hpp"
 #include "QuICC/PhysicalNames/Velocity.hpp"
@@ -63,6 +64,11 @@ namespace RTC {
    VectorFormulation::Id IRTCModel::SchemeFormulation()
    {
       return VectorFormulation::TORPOL;
+   }
+
+   std::string IRTCModel::version() const
+   {
+      return std::string(gitHash);
    }
 
    void IRTCModel::addEquations(SharedSimulation spSim)
