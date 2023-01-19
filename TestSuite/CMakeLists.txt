@@ -5,6 +5,7 @@ quicc_add_benchmark(Explicit
   ARCHIVEDIR "${CMAKE_BINARY_DIR}/Models/_refdata"
   VARIANTS "framework/parallel/algorithm:serial"
   MPIRANKS 6
+  GITTAG transform_setup
   )
 
 quicc_add_benchmark(Explicit
@@ -13,6 +14,7 @@ quicc_add_benchmark(Explicit
   ARCHIVEDIR "${CMAKE_BINARY_DIR}/Models/_refdata"
   VARIANTS "framework/parallel/algorithm:single1d"
   MPIRANKS 6
+  GITTAG transform_setup
   )
 
 quicc_add_benchmark(Explicit
@@ -21,6 +23,7 @@ quicc_add_benchmark(Explicit
   ARCHIVEDIR "${CMAKE_BINARY_DIR}/Models/_refdata"
   VARIANTS "framework/parallel/algorithm:single2d"
   MPIRANKS 6
+  GITTAG transform_setup
   )
 
 quicc_add_benchmark(Explicit
@@ -29,6 +32,7 @@ quicc_add_benchmark(Explicit
   ARCHIVEDIR "${CMAKE_BINARY_DIR}/Models/_refdata"
   VARIANTS "framework/parallel/algorithm:tubular"
   MPIRANKS 6
+  GITTAG transform_setup
   )
 
 quicc_add_benchmark(Implicit
@@ -38,6 +42,7 @@ quicc_add_benchmark(Implicit
   TIMEOUT 500
   VARIANTS "framework/parallel/algorithm:serial"
   MPIRANKS 6
+  GITTAG transform_setup
   )
 
 quicc_add_benchmark(Implicit
@@ -47,6 +52,7 @@ quicc_add_benchmark(Implicit
   TIMEOUT 500
   VARIANTS "framework/parallel/algorithm:single1d"
   MPIRANKS 6
+  GITTAG transform_setup
   )
 
 quicc_add_benchmark(Implicit
@@ -56,6 +62,7 @@ quicc_add_benchmark(Implicit
   TIMEOUT 500
   VARIANTS "framework/parallel/algorithm:single2d"
   MPIRANKS 6
+  GITTAG transform_setup
   )
 
 quicc_add_benchmark(Implicit
@@ -65,4 +72,5 @@ quicc_add_benchmark(Implicit
   TIMEOUT 500
   VARIANTS "framework/parallel/algorithm:tubular"
   MPIRANKS 6
+  GITTAG transform_setup
   )
