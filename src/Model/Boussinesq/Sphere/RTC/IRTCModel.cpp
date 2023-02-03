@@ -41,12 +41,13 @@
 #include "QuICC/Io/Variable/SphereTorPolMSpectrumWriter.hpp"
 #include "QuICC/Io/Variable/SphereTorPolNSpectrumWriter.hpp"
 #include "QuICC/Io/Variable/SphereAngularMomentumWriter.hpp"
+#include "QuICC/Io/Variable/FieldProbeWriter.hpp"
 #include "QuICC/Generator/States/RandomScalarState.hpp"
 #include "QuICC/Generator/States/RandomVectorState.hpp"
 #include "QuICC/Generator/States/SphereExactScalarState.hpp"
 #include "QuICC/Generator/States/SphereExactVectorState.hpp"
 #include "QuICC/Generator/States/Kernels/Sphere/BenchmarkTempC1.hpp"
-#include "QuICC/Generator/States/Kernels/Sphere/BenchmarkTempC1.hpp"
+#include "QuICC/Generator/States/Kernels/Sphere/ScalarYllPerturbation.hpp"
 #include "QuICC/Generator/Visualizers/ScalarFieldVisualizer.hpp"
 #include "QuICC/Generator/Visualizers/VectorFieldVisualizer.hpp"
 #include "QuICC/SpectralKernels/MakeRandom.hpp"
@@ -132,6 +133,15 @@ namespace RTC {
                spScalar->setSrcKernel(spKernel);
             }
             break;
+
+         case 5:
+            {
+               auto spKernel = std::make_shared<Physical::Kernel::Sphere::ScalarYllPerturbation>();
+               spKernel->init(0.0, 1e-5, 3);
+               spScalar->setPhysicalKernel(spKernel);
+            }
+            break;
+
       }
 
       // Add velocity initial state generator
@@ -295,6 +305,17 @@ namespace RTC {
 
       // Create angular momentum writer
       this->enableAsciiFile<Io::Variable::SphereAngularMomentumWriter>("angular_momentum", "", PhysicalNames::Velocity::id(), spSim);
+
+      // Add Velocity probe
+      std::vector<MHDFloat> pos = {0.6, Math::PI/2.0, 0};
+      auto spFile = std::make_shared<Io::Variable::FieldProbeWriter>("velocity_", spSim->ss().tag(), pos);
+      spFile->expect(PhysicalNames::Velocity::id());
+      spSim->addAsciiOutputFile(spFile);
+
+      // Add Temperature probe
+      spFile = std::make_shared<Io::Variable::FieldProbeWriter>("temperature_", spSim->ss().tag(), pos);
+      spFile->expect(PhysicalNames::Temperature::id());
+      spSim->addAsciiOutputFile(spFile);
    }
 
 }
