@@ -137,7 +137,10 @@ namespace RTC {
          case 5:
             {
                auto spKernel = std::make_shared<Physical::Kernel::Sphere::ScalarYllPerturbation>();
-               spKernel->init(0.0, 1e-5, 3);
+               const MHDFloat amplitude_bg = 0.0;
+               const MHDFloat eps = 1e-5;
+               const int m = 3;
+               spKernel->init(amplitude_bg, eps, m);
                spScalar->setPhysicalKernel(spKernel);
             }
             break;
@@ -306,16 +309,28 @@ namespace RTC {
       // Create angular momentum writer
       this->enableAsciiFile<Io::Variable::SphereAngularMomentumWriter>("angular_momentum", "", PhysicalNames::Velocity::id(), spSim);
 
+      // Examples of field physical space probes
+      //
+      const bool probeVelocity = false;
+      const bool probeTemperature = false;
+
       // Add Velocity probe
-      std::vector<MHDFloat> pos = {0.6, Math::PI/2.0, 0};
-      auto spFile = std::make_shared<Io::Variable::FieldProbeWriter>("velocity_", spSim->ss().tag(), pos);
-      spFile->expect(PhysicalNames::Velocity::id());
-      spSim->addAsciiOutputFile(spFile);
+      if(probeVelocity)
+      {
+         std::vector<MHDFloat> pos = {0.6, Math::PI/2.0, 0};
+         auto spFile = std::make_shared<Io::Variable::FieldProbeWriter>("velocity_", spSim->ss().tag(), pos);
+         spFile->expect(PhysicalNames::Velocity::id());
+         spSim->addAsciiOutputFile(spFile);
+      }
 
       // Add Temperature probe
-      spFile = std::make_shared<Io::Variable::FieldProbeWriter>("temperature_", spSim->ss().tag(), pos);
-      spFile->expect(PhysicalNames::Temperature::id());
-      spSim->addAsciiOutputFile(spFile);
+      if(probeTemperature)
+      {
+         std::vector<MHDFloat> pos = {0.6, Math::PI/2.0, 0};
+         auto spFile = std::make_shared<Io::Variable::FieldProbeWriter>("temperature_", spSim->ss().tag(), pos);
+         spFile->expect(PhysicalNames::Temperature::id());
+         spSim->addAsciiOutputFile(spFile);
+      }
    }
 
 }
