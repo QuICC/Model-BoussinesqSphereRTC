@@ -158,7 +158,8 @@ namespace Explicit {
          }
          else if(fId == std::make_pair(PhysicalNames::Velocity::id(), FieldComponents::Spectral::POL))
          {
-            shiftR = 2;
+            //shiftR = 2;
+            shiftR = 1;
          }
          else
          {
@@ -232,7 +233,8 @@ namespace Explicit {
       }
       else if(rowId == std::make_pair(PhysicalNames::Velocity::id(),FieldComponents::Spectral::POL) && rowId == colId)
       {
-         SparseSM::Worland::I4Lapl2 spasm(nN, nN, a, b, l, 2);
+         //SparseSM::Worland::I4Lapl2 spasm(nN, nN, a, b, l, 2);
+         SparseSM::Worland::I2Lapl spasm(nN, nN, a, b, l, 1);
          decMat.real() = spasm.mat();
       }
       else if(rowId == std::make_pair(PhysicalNames::Temperature::id(), FieldComponents::Spectral::SCALAR) && rowId == colId)
@@ -265,7 +267,8 @@ namespace Explicit {
       }
       else if(fieldId == std::make_pair(PhysicalNames::Velocity::id(),FieldComponents::Spectral::POL))
       {
-         SparseSM::Worland::I4Lapl spasm(nN, nN, a, b, l, 2);
+         //SparseSM::Worland::I4Lapl spasm(nN, nN, a, b, l, 2);
+         SparseSM::Worland::I2 spasm(nN, nN, a, b, l, 1);
          decMat.real() = spasm.mat();
       }
       else if(fieldId == std::make_pair(PhysicalNames::Temperature::id(), FieldComponents::Spectral::SCALAR))
