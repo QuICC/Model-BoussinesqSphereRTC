@@ -29,7 +29,8 @@
 #include "QuICC/SpatialScheme/ISpatialScheme.hpp"
 #include "QuICC/SpectralKernels/Sphere/ConserveAngularMomentum.hpp"
 #include "QuICC/Transform/Path/I2CurlNl.hpp"
-#include "QuICC/Transform/Path/I4CurlCurlNl.hpp"
+#include "QuICC/Transform/Path/NegI2CurlCurlNl.hpp"
+#include "QuICC/Transform/Path/NegI4CurlCurlNl.hpp"
 #include "QuICC/Model/Boussinesq/Sphere/RTC/MomentumKernel.hpp"
 
 namespace QuICC {
@@ -79,7 +80,7 @@ namespace RTC {
    {
       this->addNLComponent(FieldComponents::Spectral::TOR, Transform::Path::I2CurlNl::id());
 
-      this->addNLComponent(FieldComponents::Spectral::POL, Transform::Path::I4CurlCurlNl::id());
+      this->addNLComponent(FieldComponents::Spectral::POL, Transform::Path::NegI2CurlCurlNl::id());
    }
 
    void Momentum::initNLKernel(const bool force)
