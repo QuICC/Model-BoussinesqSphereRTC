@@ -54,6 +54,16 @@ namespace RTC {
           */
          virtual void initNLKernel(const bool force = false) override;
 
+         /**
+          * @brief Generic boundary value implementation
+          *
+          * @param compId  ID of the spectral component
+          * @param i       Fastest index
+          * @param j       Second index
+          * @param k       Slowest index
+          */
+         MHDVariant boundaryValue(FieldComponents::Spectral::Id compId, const int i, const int j, const int k) const final;
+
       protected:
          /**
           * @brief Set variable requirements
