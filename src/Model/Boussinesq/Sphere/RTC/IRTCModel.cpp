@@ -41,12 +41,13 @@
 #include "QuICC/Io/Variable/SphereTorPolMSpectrumWriter.hpp"
 #include "QuICC/Io/Variable/SphereTorPolNSpectrumWriter.hpp"
 #include "QuICC/Io/Variable/SphereAngularMomentumWriter.hpp"
+#include "QuICC/Io/Variable/FieldProbeWriter.hpp"
 #include "QuICC/Generator/States/RandomScalarState.hpp"
 #include "QuICC/Generator/States/RandomVectorState.hpp"
 #include "QuICC/Generator/States/SphereExactScalarState.hpp"
 #include "QuICC/Generator/States/SphereExactVectorState.hpp"
 #include "QuICC/Generator/States/Kernels/Sphere/BenchmarkTempC1.hpp"
-#include "QuICC/Generator/States/Kernels/Sphere/BenchmarkTempC1.hpp"
+#include "QuICC/Generator/States/Kernels/Sphere/ScalarYllPerturbation.hpp"
 #include "QuICC/Generator/Visualizers/ScalarFieldVisualizer.hpp"
 #include "QuICC/Generator/Visualizers/VectorFieldVisualizer.hpp"
 #include "QuICC/SpectralKernels/MakeRandom.hpp"
@@ -132,6 +133,18 @@ namespace RTC {
                spScalar->setSrcKernel(spKernel);
             }
             break;
+
+         case 5:
+            {
+               auto spKernel = std::make_shared<Physical::Kernel::Sphere::ScalarYllPerturbation>();
+               const MHDFloat amplitude_bg = 0.0;
+               const MHDFloat eps = 1e-5;
+               const int m = 3;
+               spKernel->init(amplitude_bg, eps, m);
+               spScalar->setPhysicalKernel(spKernel);
+            }
+            break;
+
       }
 
       // Add velocity initial state generator
@@ -295,6 +308,29 @@ namespace RTC {
 
       // Create angular momentum writer
       this->enableAsciiFile<Io::Variable::SphereAngularMomentumWriter>("angular_momentum", "", PhysicalNames::Velocity::id(), spSim);
+
+      // Examples of field physical space probes
+      //
+      const bool probeVelocity = false;
+      const bool probeTemperature = false;
+
+      // Add Velocity probe
+      if(probeVelocity)
+      {
+         std::vector<MHDFloat> pos = {0.6, Math::PI/2.0, 0};
+         auto spFile = std::make_shared<Io::Variable::FieldProbeWriter>("velocity_", spSim->ss().tag(), pos);
+         spFile->expect(PhysicalNames::Velocity::id());
+         spSim->addAsciiOutputFile(spFile);
+      }
+
+      // Add Temperature probe
+      if(probeTemperature)
+      {
+         std::vector<MHDFloat> pos = {0.6, Math::PI/2.0, 0};
+         auto spFile = std::make_shared<Io::Variable::FieldProbeWriter>("temperature_", spSim->ss().tag(), pos);
+         spFile->expect(PhysicalNames::Temperature::id());
+         spSim->addAsciiOutputFile(spFile);
+      }
    }
 
 }
