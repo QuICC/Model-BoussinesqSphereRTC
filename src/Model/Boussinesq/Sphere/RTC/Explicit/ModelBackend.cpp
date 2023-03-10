@@ -17,6 +17,9 @@
 #include "QuICC/ModelOperator/ExplicitNextstep.hpp"
 #include "QuICC/ModelOperator/Stencil.hpp"
 #include "QuICC/ModelOperator/Boundary.hpp"
+#include "QuICC/ModelOperator/SplitImplicitLinear.hpp"
+#include "QuICC/ModelOperator/SplitBoundary.hpp"
+#include "QuICC/ModelOperator/SplitBoundaryValue.hpp"
 #include "QuICC/ModelOperatorBoundary/FieldToRhs.hpp"
 #include "QuICC/ModelOperatorBoundary/SolverHasBc.hpp"
 #include "QuICC/ModelOperatorBoundary/SolverNoTau.hpp"
@@ -67,52 +70,9 @@ namespace RTC {
 namespace Explicit {
 
    ModelBackend::ModelBackend()
-      : IModelBackend(), mUseGalerkin(false)
+      : IRTCBackend()
    {
-   }
-
-   std::vector<std::string> ModelBackend::fieldNames() const
-   {
-      std::vector<std::string> names = {
-         PhysicalNames::Velocity().tag(),
-         PhysicalNames::Temperature().tag()
-      };
-
-      return names;
-   }
-
-   std::vector<std::string> ModelBackend::paramNames() const
-   {
-      std::vector<std::string> names = {
-         NonDimensional::Prandtl().tag(),
-         NonDimensional::Rayleigh().tag(),
-         NonDimensional::Ekman().tag()
-      };
-
-      return names;
-   }
-
-   std::vector<bool> ModelBackend::isPeriodicBox() const
-   {
-      std::vector<bool> periodic = {false, false, false};
-
-      return periodic;
-   }
-
-   void ModelBackend::enableGalerkin(const bool flag)
-   {
-      this->mUseGalerkin = flag;
-   }
-
-   std::map<std::string,MHDFloat> ModelBackend::automaticParameters(const std::map<std::string,MHDFloat>& cfg) const
-   {
-      auto E = cfg.find(NonDimensional::Ekman().tag())->second;
-
-      std::map<std::string,MHDFloat> params = {
-         {NonDimensional::CflInertial().tag(), 0.1*E}
-      };
-
-      return params;
+      this->enableSplitEquation(false);
    }
 
    ModelBackend::SpectralFieldIds ModelBackend::implicitFields(const SpectralFieldId& fId) const
@@ -122,34 +82,47 @@ namespace Explicit {
       return fields;
    }
 
-   void ModelBackend::equationInfo(bool& isComplex, SpectralFieldIds& im, SpectralFieldIds& exL, SpectralFieldIds& exNL, SpectralFieldIds& exNS, int& indexMode, const SpectralFieldId& fId, const Resolution& res) const
+   void ModelBackend::equationInfo(EquationInfo& info, const SpectralFieldId& fId, const Resolution& res) const
    {
       // Operators are real
-      isComplex = false;
+      info.isComplex = false;
+
+      // Operators are real
+      if(fId == std::make_pair(PhysicalNames::Velocity::id(), FieldComponents::Spectral::POL))
+      {
+         info.isSplitEquation = this->useSplitEquation();
+      }
+      else
+      {
+         info.isSplitEquation = false;
+      }
 
       // Implicit coupled fields
-      im = this->implicitFields(fId);
+      info.im = this->implicitFields(fId);
 
       // Explicit linear terms
-      exL.clear();
+      info.exL.clear();
 
       // Explicit nonlinear terms
-      exNL.clear();
+      info.exNL.clear();
 
       // Explicit nextstep terms
-      exNS.clear();
+      info.exNS.clear();
 
       // Index mode
-      indexMode = static_cast<int>(Equations::CouplingIndexType::SLOWEST_MULTI_RHS);
+      info.indexMode = static_cast<int>(Equations::CouplingIndexType::SLOWEST_MULTI_RHS);
    }
 
    void ModelBackend::blockSize(int& tN, int& gN, ArrayI& shift, int& rhs, const SpectralFieldId& fId, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs) const
    {
-      auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, eigs.at(0))(0);
+      assert(eigs.size() == 1);
+      int l = eigs.at(0);
+
+      auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
       tN = nN;
 
       int shiftR;
-      if(this->mUseGalerkin)
+      if(this->useGalerkin())
       {
          if(fId == std::make_pair(PhysicalNames::Velocity::id(), FieldComponents::Spectral::TOR) ||
                fId == std::make_pair(PhysicalNames::Temperature::id(), FieldComponents::Spectral::SCALAR))
@@ -158,8 +131,14 @@ namespace Explicit {
          }
          else if(fId == std::make_pair(PhysicalNames::Velocity::id(), FieldComponents::Spectral::POL))
          {
-            //shiftR = 2;
-            shiftR = 1;
+            if(this->useSplitEquation())
+            {
+               shiftR = 1;
+            }
+            else
+            {
+               shiftR = 2;
+            }
          }
          else
          {
@@ -182,10 +161,10 @@ namespace Explicit {
       rhs = 1;
    }
 
-   void ModelBackend::operatorInfo(ArrayI& tauN, ArrayI& galN, MatrixI& galShift, ArrayI& rhsCols, ArrayI& sysN, const SpectralFieldId& fId, const Resolution& res, const Equations::Tools::ICoupling& coupling, const BcMap& bcs) const
+   void ModelBackend::operatorInfo(OperatorInfo& info, const SpectralFieldId& fId, const Resolution& res, const Equations::Tools::ICoupling& coupling, const BcMap& bcs) const
    {
       // Loop overall matrices/eigs
-      for(int idx = 0; idx < tauN.size(); ++idx)
+      for(int idx = 0; idx < info.tauN.size(); ++idx)
       {
          auto eigs = coupling.getIndexes(res, idx);
 
@@ -194,10 +173,10 @@ namespace Explicit {
 
          this->blockSize(tN, gN, shift, rhs, fId, res, eigs, bcs);
 
-         tauN(idx) = tN;
-         galN(idx) = gN;
-         galShift.row(idx) = shift;
-         rhsCols(idx) = rhs;
+         info.tauN(idx) = tN;
+         info.galN(idx) = gN;
+         info.galShift.row(idx) = shift;
+         info.rhsCols(idx) = rhs;
 
          // Compute system size
          int sN = 0;
@@ -209,19 +188,19 @@ namespace Explicit {
 
          if(sN == 0)
          {
-            sN = galN(idx);
+            sN = info.galN(idx);
          }
 
-         sysN(idx) = sN;
+         info.sysN(idx) = sN;
       }
    }
 
-   void ModelBackend::implicitBlock(DecoupledZSparse& decMat, const SpectralFieldId& rowId, const SpectralFieldId& colId, const int matIdx, const Resolution& res, const std::vector<MHDFloat>& eigs, const NonDimensional::NdMap& nds) const
+   void ModelBackend::implicitBlock(DecoupledZSparse& decMat, const SpectralFieldId& rowId, const SpectralFieldId& colId, const int matIdx, const Resolution& res, const std::vector<MHDFloat>& eigs, const NonDimensional::NdMap& nds, const bool isSplitOperator) const
    {
       assert(eigs.size() == 1);
       int l = eigs.at(0);
 
-      auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, eigs.at(0))(0);
+      auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
 
       auto a = Polynomial::Worland::WorlandBase::ALPHA_CHEBYSHEV;
       auto b = Polynomial::Worland::WorlandBase::DBETA_CHEBYSHEV;
@@ -233,9 +212,25 @@ namespace Explicit {
       }
       else if(rowId == std::make_pair(PhysicalNames::Velocity::id(),FieldComponents::Spectral::POL) && rowId == colId)
       {
-         //SparseSM::Worland::I4Lapl2 spasm(nN, nN, a, b, l, 2);
-         SparseSM::Worland::I2Lapl spasm(nN, nN, a, b, l, 1);
-         decMat.real() = spasm.mat();
+         // Split fourth order system
+         if(this->useSplitEquation())
+         {
+            if(isSplitOperator)
+            {
+               SparseSM::Worland::I2Lapl spasm(nN, nN, a, b, l, 1);
+               decMat.real() = spasm.mat();
+            }
+            else
+            {
+               SparseSM::Worland::I2Lapl spasm(nN, nN, a, b, l, 1);
+               decMat.real() = spasm.mat();
+            }
+         }
+         else
+         {
+            SparseSM::Worland::I4Lapl2 spasm(nN, nN, a, b, l, 2);
+            decMat.real() = spasm.mat();
+         }
       }
       else if(rowId == std::make_pair(PhysicalNames::Temperature::id(), FieldComponents::Spectral::SCALAR) && rowId == colId)
       {
@@ -255,7 +250,7 @@ namespace Explicit {
       assert(eigs.size() == 1);
       int l = eigs.at(0);
 
-      auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, eigs.at(0))(0);
+      auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
 
       auto a = Polynomial::Worland::WorlandBase::ALPHA_CHEBYSHEV;
       auto b = Polynomial::Worland::WorlandBase::DBETA_CHEBYSHEV;
@@ -267,9 +262,16 @@ namespace Explicit {
       }
       else if(fieldId == std::make_pair(PhysicalNames::Velocity::id(),FieldComponents::Spectral::POL))
       {
-         //SparseSM::Worland::I4Lapl spasm(nN, nN, a, b, l, 2);
-         SparseSM::Worland::I2 spasm(nN, nN, a, b, l, 1);
-         decMat.real() = spasm.mat();
+         if(this->useSplitEquation())
+         {
+            SparseSM::Worland::I2 spasm(nN, nN, a, b, l, 1);
+            decMat.real() = spasm.mat();
+         }
+         else
+         {
+            SparseSM::Worland::I4Lapl spasm(nN, nN, a, b, l, 2);
+            decMat.real() = spasm.mat();
+         }
       }
       else if(fieldId == std::make_pair(PhysicalNames::Temperature::id(), FieldComponents::Spectral::SCALAR))
       {
@@ -278,12 +280,31 @@ namespace Explicit {
       }
    }
 
+   void ModelBackend::splitBoundaryValueBlock(DecoupledZSparse& decMat, const SpectralFieldId& fieldId, const int matIdx, const Resolution& res, const std::vector<MHDFloat>& eigs, const NonDimensional::NdMap& nds) const
+   {
+      assert(eigs.size() == 1);
+
+      int l = eigs.at(0);
+      auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
+
+      if(fieldId == std::make_pair(PhysicalNames::Velocity::id(),FieldComponents::Spectral::POL))
+      {
+         decMat.real().resize(nN, 1);
+         decMat.imag().resize(nN, 1);
+
+         Eigen::Triplet<MHDFloat> val = {0, 0, 1.0};
+         std::vector<Eigen::Triplet<MHDFloat> > triplets = {val};
+         decMat.real().setFromTriplets(triplets.begin(), triplets.end());
+         decMat.imag().setFromTriplets(triplets.begin(), triplets.end());
+      }
+   }
+
    void ModelBackend::applyGalerkinStencil(DecoupledZSparse& decMat, const SpectralFieldId& rowId, const SpectralFieldId& colId, const int matIdx, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds) const
    {
       assert(eigs.size() == 1);
       int l = eigs.at(0);
 
-      auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, eigs.at(0))(0);
+      auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
 
       auto a = Polynomial::Worland::WorlandBase::ALPHA_CHEBYSHEV;
       auto b = Polynomial::Worland::WorlandBase::DBETA_CHEBYSHEV;
@@ -296,12 +317,12 @@ namespace Explicit {
       decMat.real() = qId.mat()*(decMat.real()*stencil);
    }
 
-   void ModelBackend::applyTau(DecoupledZSparse& decMat, const SpectralFieldId& rowId, const SpectralFieldId& colId, const int matIdx, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds) const
+   void ModelBackend::applyTau(DecoupledZSparse& decMat, const SpectralFieldId& rowId, const SpectralFieldId& colId, const int matIdx, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds, const bool isSplitOperator) const
    {
       assert(eigs.size() == 1);
       int l = eigs.at(0);
 
-      auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, eigs.at(0))(0);
+      auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
 
       auto a = Polynomial::Worland::WorlandBase::ALPHA_CHEBYSHEV;
       auto b = Polynomial::Worland::WorlandBase::DBETA_CHEBYSHEV;
@@ -327,19 +348,41 @@ namespace Explicit {
       }
       else if(rowId == std::make_pair(PhysicalNames::Velocity::id(), FieldComponents::Spectral::POL) && rowId == colId)
       {
-         if(bcId == Bc::Name::NoSlip::id())
+         if(this->useSplitEquation())
          {
-            bcOp.addRow<SparseSM::Worland::Boundary::Value>();
-            bcOp.addRow<SparseSM::Worland::Boundary::D1>();
-         }
-         else if(bcId == Bc::Name::StressFree::id())
-         {
-            bcOp.addRow<SparseSM::Worland::Boundary::Value>();
-            bcOp.addRow<SparseSM::Worland::Boundary::D2>();
+            if(isSplitOperator)
+            {
+               bcOp.addRow<SparseSM::Worland::Boundary::Value>();
+            }
+            else if(bcId == Bc::Name::NoSlip::id())
+            {
+               bcOp.addRow<SparseSM::Worland::Boundary::D1>();
+            }
+            else if(bcId == Bc::Name::StressFree::id())
+            {
+               bcOp.addRow<SparseSM::Worland::Boundary::D2>();
+            }
+            else
+            {
+               throw std::logic_error("Boundary conditions for Velocity Poloidal component not implemented");
+            }
          }
          else
          {
-            throw std::logic_error("Boundary conditions for Velocity Poloidal component not implemented");
+            if(bcId == Bc::Name::NoSlip::id())
+            {
+               bcOp.addRow<SparseSM::Worland::Boundary::Value>();
+               bcOp.addRow<SparseSM::Worland::Boundary::D1>();
+            }
+            else if(bcId == Bc::Name::StressFree::id())
+            {
+               bcOp.addRow<SparseSM::Worland::Boundary::Value>();
+               bcOp.addRow<SparseSM::Worland::Boundary::D2>();
+            }
+            else
+            {
+               throw std::logic_error("Boundary conditions for Velocity Poloidal component not implemented");
+            }
          }
       }
       else if(rowId == std::make_pair(PhysicalNames::Temperature::id(), FieldComponents::Spectral::SCALAR) && rowId == colId)
@@ -363,11 +406,10 @@ namespace Explicit {
 
    void ModelBackend::modelMatrix(DecoupledZSparse& rModelMatrix, const std::size_t opId, const Equations::CouplingInformation::FieldId_range imRange, const int matIdx, const std::size_t bcType, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds) const
    {
-
       // Time operator
       if(opId == ModelOperator::Time::id())
       {
-         bool needStencil = (this->mUseGalerkin && bcType == ModelOperatorBoundary::SolverNoTau::id());
+         bool needStencil = (this->useGalerkin() && bcType == ModelOperatorBoundary::SolverNoTau::id());
          bool needTau = bcType == ModelOperatorBoundary::SolverHasBc::id();
 
          for(auto pRowId = imRange.first; pRowId != imRange.second; pRowId++)
@@ -381,21 +423,22 @@ namespace Explicit {
             }
             else if(needTau)
             {
-               this->applyTau(rModelMatrix, *pRowId, *pRowId, matIdx, res, eigs, bcs, nds);
+               this->applyTau(rModelMatrix, *pRowId, *pRowId, matIdx, res, eigs, bcs, nds, false);
             }
          }
       }
       // Linear operator
-      else if(opId == ModelOperator::ImplicitLinear::id())
+      else if(opId == ModelOperator::ImplicitLinear::id() || opId == ModelOperator::SplitImplicitLinear::id())
       {
-         bool needStencil = (this->mUseGalerkin && bcType == ModelOperatorBoundary::SolverNoTau::id());
+         bool isSplit = (opId == ModelOperator::SplitImplicitLinear::id());
+         bool needStencil = (this->useGalerkin() && bcType == ModelOperatorBoundary::SolverNoTau::id());
          bool needTau = bcType == ModelOperatorBoundary::SolverHasBc::id();
 
          for(auto pRowId = imRange.first; pRowId != imRange.second; pRowId++)
          {
             for(auto pColId = imRange.first; pColId != imRange.second; pColId++)
             {
-               this->implicitBlock(rModelMatrix, *pRowId, *pColId, matIdx, res, eigs, nds);
+               this->implicitBlock(rModelMatrix, *pRowId, *pColId, matIdx, res, eigs, nds, isSplit);
 
                // Apply boundary condition
                if(needStencil)
@@ -404,18 +447,22 @@ namespace Explicit {
                }
                else if(needTau)
                {
-                  this->applyTau(rModelMatrix, *pRowId, *pColId, matIdx, res, eigs, bcs, nds);
+                  this->applyTau(rModelMatrix, *pRowId, *pColId, matIdx, res, eigs, bcs, nds, isSplit);
                }
             }
          }
       }
       // Boundary operator
-      else if(opId == ModelOperator::Boundary::id())
+      else if(opId == ModelOperator::Boundary::id() || opId == ModelOperator::SplitBoundary::id())
       {
-         bool needStencil = this->mUseGalerkin;
+         bool isSplit = (opId == ModelOperator::SplitBoundary::id());
+         bool needStencil = this->useGalerkin();
          bool needTau = (bcType == ModelOperatorBoundary::SolverHasBc::id());
 
-         auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, eigs.at(0))(0);
+         assert(eigs.size() == 1);
+         int l = eigs.at(0);
+
+         auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
 
          for(auto pRowId = imRange.first; pRowId != imRange.second; pRowId++)
          {
@@ -430,9 +477,17 @@ namespace Explicit {
                }
                else if(needTau)
                {
-                  this->applyTau(rModelMatrix, *pRowId, *pColId, matIdx, res, eigs, bcs, nds);
+                  this->applyTau(rModelMatrix, *pRowId, *pColId, matIdx, res, eigs, bcs, nds, isSplit);
                }
             }
+         }
+      }
+      // Split equation boundary value
+      else if(opId == ModelOperator::SplitBoundaryValue::id())
+      {
+         for(auto pRowId = imRange.first; pRowId != imRange.second; pRowId++)
+         {
+            this->splitBoundaryValueBlock(rModelMatrix, *pRowId, matIdx, res, eigs, nds);
          }
       }
       else
@@ -446,7 +501,7 @@ namespace Explicit {
       assert(eigs.size() == 1);
       int l = eigs.at(0);
 
-      auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, eigs.at(0))(0);
+      auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
 
       auto a = Polynomial::Worland::WorlandBase::ALPHA_CHEBYSHEV;
       auto b = Polynomial::Worland::WorlandBase::DBETA_CHEBYSHEV;

@@ -15,7 +15,7 @@
 
 // Project includes
 //
-#include "QuICC/Model/IModelBackend.hpp"
+#include "QuICC/Model/Boussinesq/Sphere/RTC/IRTCBackend.hpp"
 
 namespace QuICC {
 
@@ -32,7 +32,7 @@ namespace Explicit {
    /**
     * @brief Interface for model backend
     */
-   class ModelBackend: public IModelBackend
+   class ModelBackend: public IRTCBackend
    {
       public:
          /**
@@ -46,41 +46,14 @@ namespace Explicit {
          virtual ~ModelBackend() = default;
 
          /**
-          * @brief Get vector of names for the physical fields
-          */
-         virtual std::vector<std::string> fieldNames() const override;
-
-         /**
-          * @brief Get vector of names for the nondimensional parameters
-          */
-         virtual std::vector<std::string> paramNames() const override;
-
-         /**
-          * @brief Get vector of bools about periodic box
-          */
-         virtual std::vector<bool> isPeriodicBox() const override;
-
-         /**
-          * @brief Enable galerkin basis
-          */
-         virtual void enableGalerkin(const bool flag) override;
-
-         /**
-          * @brief Get auotmatically computed parameters based on input parameters
-          *
-          * @param cfg  Input parameters
-          */
-         virtual std::map<std::string,MHDFloat> automaticParameters(const std::map<std::string,MHDFloat>& cfg) const override;
-
-         /**
           * @brief Get equation information
           */
-         virtual void equationInfo(bool& isComplex, SpectralFieldIds& im, SpectralFieldIds& exL, SpectralFieldIds& exNL, SpectralFieldIds& exNS, int& indexMode, const SpectralFieldId& fId, const Resolution& res) const override;
+         virtual void equationInfo(EquationInfo& info, const SpectralFieldId& fId, const Resolution& res) const override;
 
          /**
           * @brief Get operator information
           */
-         virtual void operatorInfo(ArrayI& tauN, ArrayI& galN, MatrixI& galShift, ArrayI& rhsCols, ArrayI& sysN, const SpectralFieldId& fId, const Resolution& res, const Equations::Tools::ICoupling& coupling, const BcMap& bcs) const override;
+         virtual void operatorInfo(OperatorInfo& info, const SpectralFieldId& fId, const Resolution& res, const Equations::Tools::ICoupling& coupling, const BcMap& bcs) const override;
 
          /**
           * @brief Build model matrix
@@ -110,8 +83,17 @@ namespace Explicit {
 
          /**
           * @brief Build implicit matrix block
+          *
+          * @param decMat  Ouput matrix
+          * @param rowId   Field ID of block matrix row
+          * @param colId   Field ID of block matrix column
+          * @param matIdx  Matrix ID
+          * @param res     Resolution object
+          * @param eigs    Slow indexes
+          * @param nds     Nondimension parameters
+          * @param isSplitOperator  Set operator of split system
           */
-         void implicitBlock(DecoupledZSparse& decMat, const SpectralFieldId& rowId, const SpectralFieldId& colId, const int matIdx, const Resolution& res, const std::vector<MHDFloat>& eigs, const NonDimensional::NdMap& nds) const;
+         void implicitBlock(DecoupledZSparse& decMat, const SpectralFieldId& rowId, const SpectralFieldId& colId, const int matIdx, const Resolution& res, const std::vector<MHDFloat>& eigs, const NonDimensional::NdMap& nds, const bool isSplitOperator) const;
 
          /**
           * @brief Build time matrix block
@@ -124,27 +106,37 @@ namespace Explicit {
          void applyBoundary(DecoupledZSparse& decMat, const SpectralFieldId& rowId, const SpectralFieldId& colId, const int matIdx, const std::size_t bcType, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds) const;
 
          /**
+          * @brief Build inhomogeneous boundary value for split equation
+          */
+         void splitBoundaryValueBlock(DecoupledZSparse& decMat, const SpectralFieldId& fieldId, const int matIdx, const Resolution& res, const std::vector<MHDFloat>& eigs, const NonDimensional::NdMap& nds) const;
+
+         /**
           * @brief Apply galerkin stencil for boundary condition
           */
          void applyGalerkinStencil(DecoupledZSparse& decMat, const SpectralFieldId& rowId, const SpectralFieldId& colId, const int matIdx, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds) const;
 
          /**
           * @brief Apply tau line for boundary condition
+          *
+          * @param decMat  Ouput matrix
+          * @param rowId   Field ID of block matrix row
+          * @param colId   Field ID of block matrix column
+          * @param matIdx  Matrix ID
+          * @param res     Resolution object
+          * @param eigs    Slow indexes
+          * @param nds     Nondimension parameters
+          * @param isSplitOperator  Set operator of split system
           */
-         void applyTau(DecoupledZSparse& decMat, const SpectralFieldId& rowId, const SpectralFieldId& colId, const int matIdx, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds) const;
+         void applyTau(DecoupledZSparse& decMat, const SpectralFieldId& rowId, const SpectralFieldId& colId, const int matIdx, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds, const bool isSplitOperator) const;
 
       private:
-         /**
-          * @brief Use Galerkin basis?
-          */
-         bool mUseGalerkin;
    };
 
-}
-}
-}
-}
-}
-}
+} // Explicit
+} // RTC
+} // Sphere
+} // Boussines
+} // Model
+} // QuICC
 
 #endif // QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_EXPLICIT_MODELBACKEND_HPP
