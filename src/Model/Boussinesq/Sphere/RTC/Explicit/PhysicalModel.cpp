@@ -12,9 +12,6 @@
 #include "QuICC/Model/Boussinesq/Sphere/RTC/Explicit/ModelBackend.hpp"
 #include "QuICC/Model/PyModelBackend.hpp"
 
-// Force use of C++ backend
-#define QUICC_MODEL_BOUSSINESQSPHERERTC_EXPLICIT_BACKEND_CPP
-
 namespace QuICC {
 
 namespace Model {
