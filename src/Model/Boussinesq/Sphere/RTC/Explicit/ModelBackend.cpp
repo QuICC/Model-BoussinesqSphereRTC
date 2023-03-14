@@ -53,7 +53,6 @@
 #include "QuICC/SparseSM/Worland/Stencil/R1D1DivR1.hpp"
 #include "QuICC/SparseSM/Worland/Stencil/ValueD1.hpp"
 #include "QuICC/SparseSM/Worland/Stencil/ValueD2.hpp"
-
 #include "QuICC/Polynomial/Worland/WorlandBase.hpp"
 #include "QuICC/Equations/CouplingIndexType.hpp"
 
@@ -117,48 +116,7 @@ namespace Explicit {
    {
       assert(eigs.size() == 1);
       int l = eigs.at(0);
-
-      auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
-      tN = nN;
-
-      int shiftR;
-      if(this->useGalerkin())
-      {
-         if(fId == std::make_pair(PhysicalNames::Velocity::id(), FieldComponents::Spectral::TOR) ||
-               fId == std::make_pair(PhysicalNames::Temperature::id(), FieldComponents::Spectral::SCALAR))
-         {
-            shiftR = 1;
-         }
-         else if(fId == std::make_pair(PhysicalNames::Velocity::id(), FieldComponents::Spectral::POL))
-         {
-            if(this->useSplitEquation())
-            {
-               shiftR = 1;
-            }
-            else
-            {
-               shiftR = 2;
-            }
-         }
-         else
-         {
-            shiftR = 0;
-         }
-
-         gN = (nN - shiftR);
-      }
-      else
-      {
-         shiftR = 0;
-         gN = nN;
-      }
-
-      // Set galerkin shifts
-      shift(0) = shiftR;
-      shift(1) = 0;
-      shift(2) = 0;
-
-      rhs = 1;
+      this->blockInfo(tN, gN, shift, rhs, fId, res, l,bcs);
    }
 
    void ModelBackend::operatorInfo(OperatorInfo& info, const SpectralFieldId& fId, const Resolution& res, const Equations::Tools::ICoupling& coupling, const BcMap& bcs) const
@@ -299,113 +257,11 @@ namespace Explicit {
       }
    }
 
-   void ModelBackend::applyGalerkinStencil(DecoupledZSparse& decMat, const SpectralFieldId& rowId, const SpectralFieldId& colId, const int matIdx, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds) const
-   {
-      assert(eigs.size() == 1);
-      int l = eigs.at(0);
-
-      auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
-
-      auto a = Polynomial::Worland::WorlandBase::ALPHA_CHEBYSHEV;
-      auto b = Polynomial::Worland::WorlandBase::DBETA_CHEBYSHEV;
-
-      auto stencil = decMat.real();
-      this->galerkinStencil(stencil, colId, matIdx, res, eigs, false, bcs, nds);
-
-      auto s = stencil.rows() - stencil.cols();
-      SparseSM::Worland::Id qId(nN-s, nN, a, b, l, 0, s);
-      decMat.real() = qId.mat()*(decMat.real()*stencil);
-   }
-
-   void ModelBackend::applyTau(DecoupledZSparse& decMat, const SpectralFieldId& rowId, const SpectralFieldId& colId, const int matIdx, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds, const bool isSplitOperator) const
-   {
-      assert(eigs.size() == 1);
-      int l = eigs.at(0);
-
-      auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
-
-      auto a = Polynomial::Worland::WorlandBase::ALPHA_CHEBYSHEV;
-      auto b = Polynomial::Worland::WorlandBase::DBETA_CHEBYSHEV;
-
-      auto bcId = bcs.find(rowId.first)->second;
-
-      SparseSM::Worland::Boundary::Operator bcOp(nN, nN, a, b, l);
-
-      if(rowId == std::make_pair(PhysicalNames::Velocity::id(), FieldComponents::Spectral::TOR) && rowId == colId)
-      {
-         if(bcId == Bc::Name::NoSlip::id())
-         {
-            bcOp.addRow<SparseSM::Worland::Boundary::Value>();
-         }
-         else if(bcId == Bc::Name::StressFree::id())
-         {
-            bcOp.addRow<SparseSM::Worland::Boundary::R1D1DivR1>();
-         }
-         else
-         {
-            throw std::logic_error("Boundary conditions for Velocity Toroidal component not implemented");
-         }
-      }
-      else if(rowId == std::make_pair(PhysicalNames::Velocity::id(), FieldComponents::Spectral::POL) && rowId == colId)
-      {
-         if(this->useSplitEquation())
-         {
-            if(isSplitOperator)
-            {
-               bcOp.addRow<SparseSM::Worland::Boundary::Value>();
-            }
-            else if(bcId == Bc::Name::NoSlip::id())
-            {
-               bcOp.addRow<SparseSM::Worland::Boundary::D1>();
-            }
-            else if(bcId == Bc::Name::StressFree::id())
-            {
-               bcOp.addRow<SparseSM::Worland::Boundary::D2>();
-            }
-            else
-            {
-               throw std::logic_error("Boundary conditions for Velocity Poloidal component not implemented");
-            }
-         }
-         else
-         {
-            if(bcId == Bc::Name::NoSlip::id())
-            {
-               bcOp.addRow<SparseSM::Worland::Boundary::Value>();
-               bcOp.addRow<SparseSM::Worland::Boundary::D1>();
-            }
-            else if(bcId == Bc::Name::StressFree::id())
-            {
-               bcOp.addRow<SparseSM::Worland::Boundary::Value>();
-               bcOp.addRow<SparseSM::Worland::Boundary::D2>();
-            }
-            else
-            {
-               throw std::logic_error("Boundary conditions for Velocity Poloidal component not implemented");
-            }
-         }
-      }
-      else if(rowId == std::make_pair(PhysicalNames::Temperature::id(), FieldComponents::Spectral::SCALAR) && rowId == colId)
-      {
-         if(bcId == Bc::Name::FixedTemperature::id())
-         {
-            bcOp.addRow<SparseSM::Worland::Boundary::Value>();
-         }
-         else if(bcId == Bc::Name::FixedFlux::id())
-         {
-            bcOp.addRow<SparseSM::Worland::Boundary::D1>();
-         }
-         else
-         {
-            throw std::logic_error("Boundary conditions for Temperature not implemented (" + std::to_string(bcId) + ")");
-         }
-      }
-
-      decMat.real() += bcOp.mat();
-   }
-
    void ModelBackend::modelMatrix(DecoupledZSparse& rModelMatrix, const std::size_t opId, const Equations::CouplingInformation::FieldId_range imRange, const int matIdx, const std::size_t bcType, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds) const
    {
+      assert(eigs.size() == 1);
+      int l = eigs.at(0);
+
       // Time operator
       if(opId == ModelOperator::Time::id())
       {
@@ -419,11 +275,11 @@ namespace Explicit {
             // Apply boundary condition
             if(needStencil)
             {
-               this->applyGalerkinStencil(rModelMatrix, *pRowId, *pRowId, matIdx, res, eigs, bcs, nds);
+               this->applyGalerkinStencil(rModelMatrix.real(), *pRowId, *pRowId, l, res, bcs, nds);
             }
             else if(needTau)
             {
-               this->applyTau(rModelMatrix, *pRowId, *pRowId, matIdx, res, eigs, bcs, nds, false);
+               this->applyTau(rModelMatrix.real(), *pRowId, *pRowId, l, res, bcs, nds, false);
             }
          }
       }
@@ -443,11 +299,11 @@ namespace Explicit {
                // Apply boundary condition
                if(needStencil)
                {
-                  this->applyGalerkinStencil(rModelMatrix, *pRowId, *pColId, matIdx, res, eigs, bcs, nds);
+                  this->applyGalerkinStencil(rModelMatrix.real(), *pRowId, *pColId, l, res, bcs, nds);
                }
                else if(needTau)
                {
-                  this->applyTau(rModelMatrix, *pRowId, *pColId, matIdx, res, eigs, bcs, nds, isSplit);
+                  this->applyTau(rModelMatrix.real(), *pRowId, *pColId, l, res, bcs, nds, isSplit);
                }
             }
          }
@@ -473,11 +329,11 @@ namespace Explicit {
                // Apply boundary condition
                if(needStencil)
                {
-                  this->applyGalerkinStencil(rModelMatrix, *pRowId, *pColId, matIdx, res, eigs, bcs, nds);
+                  this->applyGalerkinStencil(rModelMatrix.real(), *pRowId, *pColId, l, res, bcs, nds);
                }
                else if(needTau)
                {
-                  this->applyTau(rModelMatrix, *pRowId, *pColId, matIdx, res, eigs, bcs, nds, isSplit);
+                  this->applyTau(rModelMatrix.real(), *pRowId, *pColId, l, res, bcs, nds, isSplit);
                }
             }
          }
@@ -500,75 +356,7 @@ namespace Explicit {
    {
       assert(eigs.size() == 1);
       int l = eigs.at(0);
-
-      auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
-
-      auto a = Polynomial::Worland::WorlandBase::ALPHA_CHEBYSHEV;
-      auto b = Polynomial::Worland::WorlandBase::DBETA_CHEBYSHEV;
-
-      auto bcId = bcs.find(fieldId.first)->second;
-
-      int s = 0;
-      if(fieldId == std::make_pair(PhysicalNames::Velocity::id(), FieldComponents::Spectral::TOR))
-      {
-         s = 1;
-         if(bcId == Bc::Name::NoSlip::id())
-         {
-            SparseSM::Worland::Stencil::Value bc(nN, nN-1, a, b, l);
-            mat = bc.mat();
-         }
-         else if(bcId == Bc::Name::StressFree::id())
-         {
-            SparseSM::Worland::Stencil::R1D1DivR1 bc(nN, nN-1, a, b, l);
-            mat = bc.mat();
-         }
-         else
-         {
-            throw std::logic_error("Galerkin boundary conditions for Velocity Toroidal component not implemented");
-         }
-      }
-      else if(fieldId == std::make_pair(PhysicalNames::Velocity::id(), FieldComponents::Spectral::POL))
-      {
-         s = 2;
-         if(bcId == Bc::Name::NoSlip::id())
-         {
-            SparseSM::Worland::Stencil::ValueD1 bc(nN, nN-2, a, b, l);
-            mat = bc.mat();
-         }
-         else if(bcId == Bc::Name::StressFree::id())
-         {
-            SparseSM::Worland::Stencil::ValueD2 bc(nN, nN-2, a, b, l);
-            mat = bc.mat();
-         }
-         else
-         {
-            throw std::logic_error("Galerin boundary conditions for Velocity Poloidal component not implemented");
-         }
-      }
-      else if(fieldId == std::make_pair(PhysicalNames::Temperature::id(), FieldComponents::Spectral::SCALAR))
-      {
-         s = 1;
-         if(bcId == Bc::Name::FixedTemperature::id())
-         {
-            SparseSM::Worland::Stencil::Value bc(nN, nN-1, a, b, l);
-            mat = bc.mat();
-         }
-         else if(bcId == Bc::Name::FixedFlux::id())
-         {
-            SparseSM::Worland::Stencil::D1 bc(nN, nN-1, a, b, l);
-            mat = bc.mat();
-         }
-         else
-         {
-            throw std::logic_error("Galerkin boundary conditions for Temperature not implemented");
-         }
-      }
-
-      if(makeSquare)
-      {
-         SparseSM::Worland::Id qId(nN-s, nN, a, b, l);
-         mat = qId.mat()*mat;
-      }
+      this->stencil(mat, fieldId, l, res, makeSquare, bcs, nds);
    }
 
    void ModelBackend::explicitBlock(DecoupledZSparse& mat, const SpectralFieldId& fId, const std::size_t opId,  const SpectralFieldId fieldId, const int matIdx, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds) const

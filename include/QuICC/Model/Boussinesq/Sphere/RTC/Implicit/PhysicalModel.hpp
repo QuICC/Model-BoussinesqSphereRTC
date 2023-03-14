@@ -49,6 +49,11 @@ namespace Implicit {
          /// Python script/module name
          virtual std::string PYMODULE() override;
 
+         /**
+          * @brief Initialize specialized backend
+          */
+         void init() final;
+
       protected:
 
       private:
