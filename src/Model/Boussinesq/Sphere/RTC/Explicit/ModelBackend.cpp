@@ -69,7 +69,12 @@ namespace RTC {
 namespace Explicit {
 
    ModelBackend::ModelBackend()
-      : IRTCBackend(), mcTruncateQI(false)
+      : IRTCBackend(),
+#ifdef QUICC_TRANSFORM_WORLAND_TRUNCATE_QI
+      mcTruncateQI(true)
+#else
+      mcTruncateQI(false)
+#endif // QUICC_TRANSFORM_WORLAND_TRUNCATE_QI
    {
       this->enableSplitEquation(false);
    }

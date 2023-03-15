@@ -74,7 +74,12 @@ namespace RTC {
 namespace Implicit {
 
    ModelBackend::ModelBackend()
-      : IRTCBackend(), mcTruncateQI(false)
+      : IRTCBackend()
+#ifdef QUICC_TRANSFORM_WORLAND_TRUNCATE_QI
+      mcTruncateQI(true)
+#else
+      mcTruncateQI(false)
+#endif // QUICC_TRANSFORM_WORLAND_TRUNCATE_QI
    {
       this->enableSplitEquation(false);
    }
@@ -199,7 +204,7 @@ namespace Implicit {
                   const auto dl = static_cast<MHDFloat>(l);
                   const auto invlapl = 1.0/(dl*(dl + 1.0));
                   SparseSM::Worland::I2Lapl i2lapl(nN, nN, a, b, l, 1*this->mcTruncateQI);
-                  SparseMatrix bMat = i2lapl.mat(); 
+                  SparseMatrix bMat = i2lapl.mat();
                   if(this->useGalerkin())
                   {
                      this->applyGalerkinStencil(bMat, rowId, colId, l, res, bcs, nds);
