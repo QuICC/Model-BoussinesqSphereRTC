@@ -69,7 +69,7 @@ namespace RTC {
 namespace Explicit {
 
    ModelBackend::ModelBackend()
-      : IRTCBackend()
+      : IRTCBackend(), mcTruncateQI(false)
    {
       this->enableSplitEquation(false);
    }
@@ -165,7 +165,7 @@ namespace Explicit {
 
       if(rowId == std::make_pair(PhysicalNames::Velocity::id(),FieldComponents::Spectral::TOR) && rowId == colId)
       {
-         SparseSM::Worland::I2Lapl spasm(nN, nN, a, b, l, 1);
+         SparseSM::Worland::I2Lapl spasm(nN, nN, a, b, l, 1*this->mcTruncateQI);
          decMat.real() = spasm.mat();
       }
       else if(rowId == std::make_pair(PhysicalNames::Velocity::id(),FieldComponents::Spectral::POL) && rowId == colId)
@@ -175,18 +175,18 @@ namespace Explicit {
          {
             if(isSplitOperator)
             {
-               SparseSM::Worland::I2Lapl spasm(nN, nN, a, b, l, 1);
+               SparseSM::Worland::I2Lapl spasm(nN, nN, a, b, l, 1*this->mcTruncateQI);
                decMat.real() = spasm.mat();
             }
             else
             {
-               SparseSM::Worland::I2Lapl spasm(nN, nN, a, b, l, 1);
+               SparseSM::Worland::I2Lapl spasm(nN, nN, a, b, l, 1*this->mcTruncateQI);
                decMat.real() = spasm.mat();
             }
          }
          else
          {
-            SparseSM::Worland::I4Lapl2 spasm(nN, nN, a, b, l, 2);
+            SparseSM::Worland::I4Lapl2 spasm(nN, nN, a, b, l, 2*this->mcTruncateQI);
             decMat.real() = spasm.mat();
          }
       }
@@ -194,7 +194,7 @@ namespace Explicit {
       {
          auto Pr = nds.find(NonDimensional::Prandtl::id())->second->value();
 
-         SparseSM::Worland::I2Lapl spasm(nN, nN, a, b, l, 1);
+         SparseSM::Worland::I2Lapl spasm(nN, nN, a, b, l, 1*this->mcTruncateQI);
          decMat.real() = (1.0/Pr)*spasm.mat();
       }
       else
@@ -215,25 +215,25 @@ namespace Explicit {
 
       if(fieldId == std::make_pair(PhysicalNames::Velocity::id(),FieldComponents::Spectral::TOR))
       {
-         SparseSM::Worland::I2 spasm(nN, nN, a, b, l, 1);
+         SparseSM::Worland::I2 spasm(nN, nN, a, b, l, 1*this->mcTruncateQI);
          decMat.real() = spasm.mat();
       }
       else if(fieldId == std::make_pair(PhysicalNames::Velocity::id(),FieldComponents::Spectral::POL))
       {
          if(this->useSplitEquation())
          {
-            SparseSM::Worland::I2 spasm(nN, nN, a, b, l, 1);
+            SparseSM::Worland::I2 spasm(nN, nN, a, b, l, 1*this->mcTruncateQI);
             decMat.real() = spasm.mat();
          }
          else
          {
-            SparseSM::Worland::I4Lapl spasm(nN, nN, a, b, l, 2);
+            SparseSM::Worland::I4Lapl spasm(nN, nN, a, b, l, 2*this->mcTruncateQI);
             decMat.real() = spasm.mat();
          }
       }
       else if(fieldId == std::make_pair(PhysicalNames::Temperature::id(), FieldComponents::Spectral::SCALAR))
       {
-         SparseSM::Worland::I2 spasm(nN, nN, a, b, l, 1);
+         SparseSM::Worland::I2 spasm(nN, nN, a, b, l, 1*this->mcTruncateQI);
          decMat.real() = spasm.mat();
       }
    }

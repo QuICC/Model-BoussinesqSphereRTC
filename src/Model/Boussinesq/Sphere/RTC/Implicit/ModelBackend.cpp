@@ -74,7 +74,7 @@ namespace RTC {
 namespace Implicit {
 
    ModelBackend::ModelBackend()
-      : IRTCBackend()
+      : IRTCBackend(), mcTruncateQI(false)
    {
       this->enableSplitEquation(false);
    }
@@ -198,7 +198,7 @@ namespace Implicit {
                {
                   const auto dl = static_cast<MHDFloat>(l);
                   const auto invlapl = 1.0/(dl*(dl + 1.0));
-                  SparseSM::Worland::I2Lapl i2lapl(nN, nN, a, b, l, 1);
+                  SparseSM::Worland::I2Lapl i2lapl(nN, nN, a, b, l, 1*this->mcTruncateQI);
                   SparseMatrix bMat = i2lapl.mat(); 
                   if(this->useGalerkin())
                   {
@@ -206,7 +206,7 @@ namespace Implicit {
                   }
                   this->addBlock(decMat.real(), bMat, rowShift, colShift);
 
-                  SparseSM::Worland::I2 i2(nN, nN, a, b, l, 1);
+                  SparseSM::Worland::I2 i2(nN, nN, a, b, l, 1*this->mcTruncateQI);
                   bMat = m*T*invlapl*i2.mat();
                   if(this->useGalerkin())
                   {
@@ -241,7 +241,7 @@ namespace Implicit {
                {
                   const auto dl = static_cast<QuICC::internal::MHDFloat>(l);
                   const auto invlapl = 1.0/(dl*(dl + 1.0));
-                  SparseSM::Worland::I2Qm corQm(nN, nN, a, b, l);
+                  SparseSM::Worland::I2Qm corQm(nN, nN, a, b, l, 1*this->mcTruncateQI);
                   auto norm = coriolis(l, m);
                   SparseMatrix bMat = -static_cast<MHDFloat>(norm*T*invlapl)*corQm.mat();
                   if(this->useGalerkin())
@@ -269,7 +269,7 @@ namespace Implicit {
                {
                   const auto dl = static_cast<QuICC::internal::MHDFloat>(l);
                   const auto invlapl = MHD_MP(1.0)/(dl*(dl + MHD_MP(1.0)));
-                  SparseSM::Worland::I2Qp corQp(nN, nN, a, b, l);
+                  SparseSM::Worland::I2Qp corQp(nN, nN, a, b, l, 1*this->mcTruncateQI);
                   auto norm = -coriolis(l+1, m);
                   SparseMatrix bMat = -static_cast<MHDFloat>(norm*T*invlapl)*corQp.mat();
                   if(this->useGalerkin())
@@ -302,7 +302,7 @@ namespace Implicit {
                {
                   const auto dl = static_cast<QuICC::internal::MHDFloat>(l);
                   const auto invlapl = MHD_MP(1.0)/(dl*(dl + MHD_MP(1.0)));
-                  SparseSM::Worland::I4Lapl2 i4lapl2(nN, nN, a, b, l, 2);
+                  SparseSM::Worland::I4Lapl2 i4lapl2(nN, nN, a, b, l, 2*this->mcTruncateQI);
                   SparseMatrix bMat = i4lapl2.mat();
                   if(this->useGalerkin())
                   {
@@ -310,7 +310,7 @@ namespace Implicit {
                   }
 
                   this->addBlock(decMat.real(), bMat, rowShift, colShift);
-                  SparseSM::Worland::I4Lapl coriolis(nN, nN, a, b, l, 2);
+                  SparseSM::Worland::I4Lapl coriolis(nN, nN, a, b, l, 2*this->mcTruncateQI);
                   bMat = static_cast<MHDFloat>(m*T*invlapl)*coriolis.mat();
                   if(this->useGalerkin())
                   {
@@ -344,7 +344,7 @@ namespace Implicit {
                {
                   const auto dl = static_cast<MHDFloat>(l);
                   const auto invlapl = 1.0/(dl*(dl + 1.0));
-                  SparseSM::Worland::I4Qm corQm(nN, nN, a, b, l);
+                  SparseSM::Worland::I4Qm corQm(nN, nN, a, b, l, 2*this->mcTruncateQI);
                   auto norm = coriolis(l, m);
                   SparseMatrix bMat = static_cast<MHDFloat>(norm*T*invlapl)*corQm.mat();
                   if(this->useGalerkin())
@@ -370,7 +370,7 @@ namespace Implicit {
                {
                   const auto dl = static_cast<MHDFloat>(l);
                   const auto invlapl = 1.0/(dl*(dl + 1.0));
-                  SparseSM::Worland::I4Qp corQp(nN, nN, a, b, l);
+                  SparseSM::Worland::I4Qp corQp(nN, nN, a, b, l, 2*this->mcTruncateQI);
                   auto norm = -coriolis(l+1, m);
                   SparseMatrix bMat = static_cast<MHDFloat>(norm*T*invlapl)*corQp.mat();
                   if(this->useGalerkin())
@@ -396,7 +396,7 @@ namespace Implicit {
 //               auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
 //               if(l > 0)
 //               {
-//                  SparseSM::Worland::I4 i4(nN, nN, a, b, l);
+//                  SparseSM::Worland::I4 i4(nN, nN, a, b, l, 2*this->mcTruncateQI);
 //                  SparseMatrix bMat = -forcing*i4.mat();
 //                  if(this->useGalerkin())
 //                  {
@@ -422,7 +422,7 @@ namespace Implicit {
             {
                auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
                SparseMatrix bMat;
-               SparseSM::Worland::I2Lapl i2lapl(nN, nN, a, b, l, 1);
+               SparseSM::Worland::I2Lapl i2lapl(nN, nN, a, b, l, 1*this->mcTruncateQI);
                bMat = (1.0/Pr)*i2lapl.mat();
                if(this->useGalerkin())
                {
@@ -480,7 +480,7 @@ namespace Implicit {
             SparseMatrix bMat;
             if(l > 0)
             {
-               SparseSM::Worland::I2 spasm(nN, nN, a, b, l, 1);
+               SparseSM::Worland::I2 spasm(nN, nN, a, b, l, 1*this->mcTruncateQI);
                bMat = spasm.mat();
                if(this->useGalerkin())
                {
@@ -506,7 +506,7 @@ namespace Implicit {
             SparseMatrix bMat;
             if(l > 0)
             {
-               SparseSM::Worland::I4Lapl spasm(nN, nN, a, b, l, 2);
+               SparseSM::Worland::I4Lapl spasm(nN, nN, a, b, l, 2*this->mcTruncateQI);
                bMat = spasm.mat();
                if(this->useGalerkin())
                {
@@ -529,7 +529,7 @@ namespace Implicit {
          {
             auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
             SparseMatrix bMat;
-            SparseSM::Worland::I2 spasm(nN, nN, a, b, l, 1);
+            SparseSM::Worland::I2 spasm(nN, nN, a, b, l, 1*this->mcTruncateQI);
             bMat = spasm.mat();
             if(this->useGalerkin())
             {

@@ -111,6 +111,10 @@ namespace Explicit {
          void splitBoundaryValueBlock(DecoupledZSparse& decMat, const SpectralFieldId& fieldId, const int matIdx, const Resolution& res, const std::vector<MHDFloat>& eigs, const NonDimensional::NdMap& nds) const;
 
       private:
+         /**
+          * @brief Truncate quasi-inverse operators?
+          */
+         const bool mcTruncateQI;
    };
 
 } // Explicit
