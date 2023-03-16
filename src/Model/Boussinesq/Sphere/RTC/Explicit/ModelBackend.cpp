@@ -76,7 +76,7 @@ namespace Explicit {
       mcTruncateQI(false)
 #endif // QUICC_TRANSFORM_WORLAND_TRUNCATE_QI
    {
-      this->enableSplitEquation(false);
+      this->enableSplitEquation(true);
    }
 
    ModelBackend::SpectralFieldIds ModelBackend::implicitFields(const SpectralFieldId& fId) const
@@ -91,7 +91,7 @@ namespace Explicit {
       // Operators are real
       info.isComplex = false;
 
-      // Operators are real
+      // Splitting 4th poloidal equation into two systems
       if(fId == std::make_pair(PhysicalNames::Velocity::id(), FieldComponents::Spectral::POL))
       {
          info.isSplitEquation = this->useSplitEquation();

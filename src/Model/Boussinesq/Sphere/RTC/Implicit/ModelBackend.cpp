@@ -74,7 +74,7 @@ namespace RTC {
 namespace Implicit {
 
    ModelBackend::ModelBackend()
-      : IRTCBackend()
+      : IRTCBackend(),
 #ifdef QUICC_TRANSFORM_WORLAND_TRUNCATE_QI
       mcTruncateQI(true)
 #else
