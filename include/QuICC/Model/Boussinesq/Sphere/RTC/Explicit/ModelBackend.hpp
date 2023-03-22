@@ -115,7 +115,7 @@ namespace Explicit {
 } // Explicit
 } // RTC
 } // Sphere
-} // Boussines
+} // Boussinesq
 } // Model
 } // QuICC
 

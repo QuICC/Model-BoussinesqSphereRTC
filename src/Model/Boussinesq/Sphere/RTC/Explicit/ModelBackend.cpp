@@ -320,9 +320,6 @@ namespace Explicit {
          bool needStencil = this->useGalerkin();
          bool needTau = (bcType == ModelOperatorBoundary::SolverHasBc::id());
 
-         assert(eigs.size() == 1);
-         int l = eigs.at(0);
-
          auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
 
          for(auto pRowId = imRange.first; pRowId != imRange.second; pRowId++)
@@ -384,9 +381,9 @@ namespace Explicit {
       }
    }
 
-}
-}
-}
-}
-}
-}
+} // Explicit
+} // RTC
+} // Sphere
+} // Boussinesq
+} // Model
+} // QuICC
