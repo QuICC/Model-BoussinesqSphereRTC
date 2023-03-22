@@ -59,11 +59,11 @@ namespace Implicit {
       private:
    };
 
-}
-}
-}
-}
-}
-}
+} // Implicit
+} // RTC
+} // Sphere
+} // Boussinesq
+} // Model
+} // QuICC
 
 #endif // QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_IMPLICIT_PHYSICALMODEL_HPP

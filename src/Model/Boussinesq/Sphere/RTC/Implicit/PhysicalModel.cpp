@@ -42,9 +42,9 @@ namespace Implicit {
 #endif
    }
 
-}
-}
-}
-}
-}
-}
+} // Implicit
+} // RTC
+} // Sphere
+} // Boussinesq
+} // Model
+} // QuICC
