@@ -61,6 +61,7 @@
 #include "QuICC/Polynomial/Worland/WorlandBase.hpp"
 #include "QuICC/Equations/CouplingIndexType.hpp"
 
+#include <iostream>
 namespace QuICC {
 
 namespace Model {
@@ -329,7 +330,12 @@ namespace Implicit {
 
                   this->addBlock(decMat.real(), bMat, rowShift, colShift);
                   SparseSM::Worland::I4Lapl coriolis(nN, nN, a, b, l, 2*this->mcTruncateQI);
+#if 0
                   bMat = static_cast<MHDFloat>(m*T*invlapl)*coriolis.mat();
+#else
+                  SparseSM::Worland::Id Q(nN, nN, a, b, l, -1);
+                  bMat = static_cast<MHDFloat>(m*T*invlapl)*coriolis.mat()*Q.mat();
+#endif
                   if(this->useGalerkin())
                   {
                      this->applyGalerkinStencil(bMat, rowId, colId, l, res, bcs, nds);
@@ -404,31 +410,31 @@ namespace Implicit {
                colShift += gN;
             }
          }
-//         else if(colId == std::make_pair(PhysicalNames::Temperature::id(),FieldComponents::Spectral::SCALAR))
-//         {
-//            const auto Ra = nds.find(NonDimensional::Rayleigh::id())->second->value();
-//            const auto T = 1.0/nds.find(NonDimensional::Ekman::id())->second->value();
-//            const auto forcing = Ra*T;
-//            for(int l = m; l < nL; l++)
-//            {
-//               auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
-//               if(l > 0)
-//               {
-//                  SparseSM::Worland::I4 i4(nN, nN, a, b, l, 2*this->mcTruncateQI);
-//                  SparseMatrix bMat = -forcing*i4.mat();
-//                  if(this->useGalerkin())
-//                  {
-//                     this->applyGalerkinStencil(bMat, rowId, colId, l, res, bcs, nds);
-//                  }
-//                  this->addBlock(decMat.real(), bMat, rowShift, colShift);
-//               }
-//               this->blockInfo(tN, gN, shift, rhs, rowId, res, l, bcs);
-//               rowShift += gN;
-//
-//               this->blockInfo(tN, gN, shift, rhs, colId, res, l, bcs);
-//               colShift += gN;
-//            }
-//         }
+         else if(this->useLinearized() && colId == std::make_pair(PhysicalNames::Temperature::id(),FieldComponents::Spectral::SCALAR))
+         {
+            const auto Ra = nds.find(NonDimensional::Rayleigh::id())->second->value();
+            const auto T = 1.0/nds.find(NonDimensional::Ekman::id())->second->value();
+            const auto forcing = Ra*T;
+            for(int l = m; l < nL; l++)
+            {
+               auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
+               if(l > 0)
+               {
+                  SparseSM::Worland::I4 i4(nN, nN, a, b, l, 2*this->mcTruncateQI);
+                  SparseMatrix bMat = -forcing*i4.mat();
+                  if(this->useGalerkin())
+                  {
+                     this->applyGalerkinStencil(bMat, rowId, colId, l, res, bcs, nds);
+                  }
+                  this->addBlock(decMat.real(), bMat, rowShift, colShift);
+               }
+               this->blockInfo(tN, gN, shift, rhs, rowId, res, l, bcs);
+               rowShift += gN;
+
+               this->blockInfo(tN, gN, shift, rhs, colId, res, l, bcs);
+               colShift += gN;
+            }
+         }
       }
       else if(rowId == std::make_pair(PhysicalNames::Temperature::id(), FieldComponents::Spectral::SCALAR))
       {
@@ -442,6 +448,29 @@ namespace Implicit {
                SparseMatrix bMat;
                SparseSM::Worland::I2Lapl i2lapl(nN, nN, a, b, l, 1*this->mcTruncateQI);
                bMat = (1.0/Pr)*i2lapl.mat();
+               if(this->useGalerkin())
+               {
+                  this->applyGalerkinStencil(bMat, rowId, colId, l, res, bcs, nds);
+               }
+               this->addBlock(decMat.real(), bMat, rowShift, colShift);
+
+               this->blockInfo(tN, gN, shift, rhs, rowId, res, l, bcs);
+               rowShift += gN;
+
+               this->blockInfo(tN, gN, shift, rhs, colId, res, l, bcs);
+               colShift += gN;
+            }
+         }
+         else if(this->useLinearized() && colId == std::make_pair(PhysicalNames::Velocity::id(),FieldComponents::Spectral::POL))
+         {
+            for(int l = m; l < nL; l++)
+            {
+               const auto dl = static_cast<MHDFloat>(l);
+               const auto laplh = (dl*(dl + 1.0));
+               auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
+               SparseMatrix bMat;
+               SparseSM::Worland::I2 i2(nN, nN, a, b, l, 1*this->mcTruncateQI);
+               bMat = laplh*i2.mat();
                if(this->useGalerkin())
                {
                   this->applyGalerkinStencil(bMat, rowId, colId, l, res, bcs, nds);
@@ -525,7 +554,12 @@ namespace Implicit {
             if(l > 0)
             {
                SparseSM::Worland::I4Lapl spasm(nN, nN, a, b, l, 2*this->mcTruncateQI);
+#if 0
                bMat = spasm.mat();
+#else
+               SparseSM::Worland::Id Q(nN, nN, a, b, l, -1);
+               bMat = spasm.mat()*Q.mat();
+#endif
                if(this->useGalerkin())
                {
                   this->applyGalerkinStencil(bMat, fieldId, fieldId, l, res, bcs, nds);
