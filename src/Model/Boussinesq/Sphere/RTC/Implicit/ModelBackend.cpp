@@ -61,7 +61,6 @@
 #include "QuICC/Polynomial/Worland/WorlandBase.hpp"
 #include "QuICC/Equations/CouplingIndexType.hpp"
 
-#include <iostream>
 namespace QuICC {
 
 namespace Model {
