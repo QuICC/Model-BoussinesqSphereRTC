@@ -3,23 +3,14 @@
  * @brief Source of the Boussinesq rotating thermal convection in a sphere (Toroidal/Poloidal formulation) without coupled solve (standard implementation)
  */
 
-// Configuration includes
-//
-
 // System includes
 //
 
-// External includes
-//
-
-// Class include
+// Project includes
 //
 #include "QuICC/Model/Boussinesq/Sphere/RTC/Explicit/PhysicalModel.hpp"
 #include "QuICC/Model/Boussinesq/Sphere/RTC/Explicit/ModelBackend.hpp"
 #include "QuICC/Model/PyModelBackend.hpp"
-
-// Project includes
-//
 
 namespace QuICC {
 
@@ -51,9 +42,9 @@ namespace Explicit {
 #endif
    }
 
-}
-}
-}
-}
-}
-}
+} // Explicit
+} // RTC
+} // Sphere
+} // Boussinesq
+} // Model
+} // QuICC
