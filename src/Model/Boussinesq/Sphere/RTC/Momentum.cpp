@@ -25,10 +25,12 @@
 #include "QuICC/SolveTiming/Prognostic.hpp"
 #include "QuICC/PhysicalNames/Temperature.hpp"
 #include "QuICC/PhysicalNames/Velocity.hpp"
+#include "QuICC/Bc/Name/StressFree.hpp"
 #include "QuICC/SpatialScheme/ISpatialScheme.hpp"
 #include "QuICC/SpectralKernels/Sphere/ConserveAngularMomentum.hpp"
-#include "QuICC/Transform/Path/I2CurlNL.hpp"
-#include "QuICC/Transform/Path/I4CurlCurlNL.hpp"
+#include "QuICC/Transform/Path/I2CurlNl.hpp"
+#include "QuICC/Transform/Path/NegI2CurlCurlNl.hpp"
+#include "QuICC/Transform/Path/NegI4CurlCurlNl.hpp"
 #include "QuICC/Model/Boussinesq/Sphere/RTC/MomentumKernel.hpp"
 
 namespace QuICC {
@@ -76,9 +78,16 @@ namespace RTC {
 
    void Momentum::setNLComponents()
    {
-      this->addNLComponent(FieldComponents::Spectral::TOR, Transform::Path::I2CurlNL::id());
+      this->addNLComponent(FieldComponents::Spectral::TOR, Transform::Path::I2CurlNl::id());
 
-      this->addNLComponent(FieldComponents::Spectral::POL, Transform::Path::I4CurlCurlNL::id());
+      if(this->couplingInfo(FieldComponents::Spectral::POL).isSplitEquation())
+      {
+         this->addNLComponent(FieldComponents::Spectral::POL, Transform::Path::NegI2CurlCurlNl::id());
+      }
+      else
+      {
+         this->addNLComponent(FieldComponents::Spectral::POL, Transform::Path::NegI4CurlCurlNl::id());
+      }
    }
 
    void Momentum::initNLKernel(const bool force)
@@ -99,7 +108,7 @@ namespace RTC {
 
    void Momentum::initConstraintKernel(const std::shared_ptr<std::vector<Array> > )
    {
-      if(this->bcIds().bcId(this->name()) == 1)
+      if(this->bcIds().bcId(this->name()) == Bc::Name::StressFree::id())
       {
          // Initialize the physical kernel
          auto spConstraint = std::make_shared<Spectral::Kernel::Sphere::ConserveAngularMomentum>(this->ss().has(SpatialScheme::Feature::ComplexSpectrum));

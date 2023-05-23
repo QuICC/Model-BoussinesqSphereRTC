@@ -24,7 +24,7 @@
 #include "QuICC/PhysicalNames/Velocity.hpp"
 #include "QuICC/PhysicalNames/Temperature.hpp"
 #include "QuICC/SolveTiming/Prognostic.hpp"
-#include "QuICC/Transform/Path/I2ScalarNL.hpp"
+#include "QuICC/Transform/Path/I2ScalarNl.hpp"
 #include "QuICC/Model/Boussinesq/Sphere/RTC/TransportKernel.hpp"
 
 namespace QuICC {
@@ -58,7 +58,7 @@ namespace RTC {
 
    void Transport::setNLComponents()
    {
-      this->addNLComponent(FieldComponents::Spectral::SCALAR, Transform::Path::I2ScalarNL::id());
+      this->addNLComponent(FieldComponents::Spectral::SCALAR, Transform::Path::I2ScalarNl::id());
    }
 
    void Transport::initNLKernel(const bool force)
