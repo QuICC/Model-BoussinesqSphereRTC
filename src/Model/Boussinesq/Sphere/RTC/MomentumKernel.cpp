@@ -88,31 +88,43 @@ namespace Kernel {
       ///
       /// Compute \f$\left(\nabla\wedge\vec u\right)\wedge\vec u\f$
       ///
-      switch(id)
-      {
-         case(FieldComponents::Physical::R):
-            std::visit([&](auto&& v){Physical::Cross<FieldComponents::Physical::THETA,FieldComponents::Physical::PHI>::set(rNLComp, v->dom(0).curl(), v->dom(0).phys(), this->mInertia);}, this->vector(this->name()));
-            break;
-         case(FieldComponents::Physical::THETA):
-            std::visit([&](auto&& v){Physical::Cross<FieldComponents::Physical::PHI,FieldComponents::Physical::R>::set(rNLComp, v->dom(0).curl(), v->dom(0).phys(), this->mInertia);}, this->vector(this->name()));
-            break;
-         case(FieldComponents::Physical::PHI):
-            std::visit([&](auto&& v){Physical::Cross<FieldComponents::Physical::R,FieldComponents::Physical::THETA>::set(rNLComp, v->dom(0).curl(), v->dom(0).phys(), this->mInertia);}, this->vector(this->name()));
-            break;
-         default:
-            assert(false);
-            break;
-      }
+      std::visit(
+         [&](auto&& v)
+         {
+            switch(id)
+            {
+               case(FieldComponents::Physical::R):
+                  Physical::Cross<FieldComponents::Physical::THETA,FieldComponents::Physical::PHI>::set(rNLComp, v->dom(0).curl(), v->dom(0).phys(), this->mInertia);
+                  break;
+               case(FieldComponents::Physical::THETA):
+                  Physical::Cross<FieldComponents::Physical::PHI,FieldComponents::Physical::R>::set(rNLComp, v->dom(0).curl(), v->dom(0).phys(), this->mInertia);
+                  break;
+               case(FieldComponents::Physical::PHI):
+                  Physical::Cross<FieldComponents::Physical::R,FieldComponents::Physical::THETA>::set(rNLComp, v->dom(0).curl(), v->dom(0).phys(), this->mInertia);
+                  break;
+               default:
+                  assert(false);
+                  break;
+            }
+         }, this->vector(this->name()));
 
-      std::visit([&](auto&& s){Physical::SphericalBuoyancy::sub(rNLComp, id, s->dom(0).res(), this->mRadius, s->dom(0).phys(), this->mBuoyancy);}, this->scalar(this->mTempName));
+      std::visit(
+         [&](auto&& s)
+         {
+            Physical::SphericalBuoyancy::sub(rNLComp, id, s->dom(0).res(), this->mRadius, s->dom(0).phys(), this->mBuoyancy);
+         }, this->scalar(this->mTempName));
 
-      if(std::visit([&](auto&& v)->bool{return (v->dom(0).res().sim().ss().has(SpatialScheme::Feature::SpectralOrdering132));},this->vector(this->name())))
-      {
-         ///
-         /// Compute Coriolis term
-         ///
-         std::visit([&](auto&& v){Physical::SphericalCoriolis::add(rNLComp, id, v->dom(0).res(), this->mCosTheta, this->mSinTheta, v->dom(0).phys(), this->mCoriolis);}, this->vector(this->name()));
-      }
+      std::visit(
+         [&](auto&& v)
+         {
+            if(v->dom(0).res().sim().ss().has(SpatialScheme::Feature::SpectralOrdering132))
+            {
+               ///
+               /// Compute Coriolis term
+               ///
+               Physical::SphericalCoriolis::add(rNLComp, id, v->dom(0).res(), this->mCosTheta, this->mSinTheta, v->dom(0).phys(), this->mCoriolis);
+            }
+         }, this->vector(this->name()));
    }
 
 }

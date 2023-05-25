@@ -56,7 +56,7 @@ namespace Kernel {
           * \param name Name of the field
           * \param spField Shared pointer to the vector field
           */
-         virtual void setVelocity(std::size_t name, Framework::Selector::VariantSharedVectorVariable spField);
+         void setVelocity(std::size_t name, Framework::Selector::VariantSharedVectorVariable spField);
 
          /**
           * @brief Set the smart pointer to the temperature field
@@ -64,7 +64,7 @@ namespace Kernel {
           * \param name Name of the field
           * \param spField Shared pointer to the scalar field
           */
-         virtual void setTemperature(std::size_t name, Framework::Selector::VariantSharedScalarVariable spField);
+         void setTemperature(std::size_t name, Framework::Selector::VariantSharedScalarVariable spField);
 
          /**
           * @brief Initialize kernel
