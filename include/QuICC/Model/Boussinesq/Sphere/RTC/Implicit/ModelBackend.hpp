@@ -104,8 +104,10 @@ namespace Implicit {
           * @param rowId   Field ID of block matrix row
           * @param colId   Field ID of block matrix column
           * @param matIdx  Matrix ID
+          * @param bcType  Type of boundary condition
           * @param res     Resolution object
           * @param eigs    Slow indexes
+          * @param bcs     Boundary conditions for each field
           * @param nds     Nondimension parameters
           * @param isSplitOperator  Set operator of split system
           */
@@ -113,11 +115,31 @@ namespace Implicit {
 
          /**
           * @brief Build time matrix block
+          *
+          * @param decMat  Ouput matrix
+          * @param fieldId Field ID (block diagonal matrix)
+          * @param matIdx  Matrix ID
+          * @param bcType  Type of boundary condition
+          * @param res     Resolution object
+          * @param eigs    Slow indexes
+          * @param bcs     Boundary conditions for each field
+          * @param nds     Nondimension parameters
           */
          void timeBlock(DecoupledZSparse& decMat, const SpectralFieldId& fieldId, const int matIdx, const std::size_t bcType, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds) const;
 
          /**
           * @brief Build boundary matrix block
+          *
+          * @param decMat  Ouput matrix
+          * @param rowId   Field ID of block matrix row
+          * @param colId   Field ID of block matrix column
+          * @param matIdx  Matrix ID
+          * @param bcType  Type of boundary condition
+          * @param res     Resolution object
+          * @param eigs    Slow indexes
+          * @param bcs     Boundary conditions for each field
+          * @param nds     Nondimension parameters
+          * @param isSplitOperator  Set operator of split system
           */
          void boundaryBlock(DecoupledZSparse& decMat, const SpectralFieldId& rowId, const SpectralFieldId& colId, const int matIdx, const std::size_t bcType, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds, const bool isSplitEquation) const;
 

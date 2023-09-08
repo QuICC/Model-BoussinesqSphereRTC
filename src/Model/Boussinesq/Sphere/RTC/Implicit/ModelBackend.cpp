@@ -9,6 +9,7 @@
 
 // Project includes
 //
+#include "QuICC/Enums/Dimensions.hpp"
 #include "QuICC/Model/Boussinesq/Sphere/RTC/Implicit/ModelBackend.hpp"
 #include "QuICC/ModelOperator/Time.hpp"
 #include "QuICC/ModelOperator/ImplicitLinear.hpp"
@@ -112,7 +113,7 @@ namespace Implicit {
       // Operators are real
       info.isComplex = true;
 
-      // Operators are real
+      // Splitting 4th poloidal equation into two systems
       if(fId == std::make_pair(PhysicalNames::Velocity::id(), FieldComponents::Spectral::POL))
       {
          info.isSplitEquation = this->useSplitEquation();

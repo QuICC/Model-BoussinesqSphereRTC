@@ -157,7 +157,7 @@ namespace Explicit {
       }
    }
 
-   void ModelBackend::implicitBlock(DecoupledZSparse& decMat, const SpectralFieldId& rowId, const SpectralFieldId& colId, const int matIdx, const Resolution& res, const std::vector<MHDFloat>& eigs, const NonDimensional::NdMap& nds, const bool isSplitOperator) const
+   void ModelBackend::implicitBlock(DecoupledZSparse& decMat, const SpectralFieldId& rowId, const SpectralFieldId& colId, const int matIdx, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds, const bool isSplitOperator) const
    {
       assert(eigs.size() == 1);
       int l = eigs.at(0);
@@ -207,7 +207,7 @@ namespace Explicit {
       }
    }
 
-   void ModelBackend::timeBlock(DecoupledZSparse& decMat, const SpectralFieldId& fieldId, const int matIdx, const Resolution& res, const std::vector<MHDFloat>& eigs, const NonDimensional::NdMap& nds) const
+   void ModelBackend::timeBlock(DecoupledZSparse& decMat, const SpectralFieldId& fieldId, const int matIdx, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds) const
    {
       assert(eigs.size() == 1);
       int l = eigs.at(0);
@@ -232,7 +232,23 @@ namespace Explicit {
          else
          {
             SparseSM::Worland::I4Lapl spasm(nN, nN, a, b, l, 2*this->mcTruncateQI);
-            decMat.real() = spasm.mat();
+            auto bcId = bcs.find(fieldId.first)->second;
+
+            // Correct Laplacian for 4th order system according to:
+            // McFadden,Murray,Boisvert,
+            // Elimination of Spurious Eigenvalues in the
+            // Chebyshev Tau Spectral Method,
+            // JCP 91, 228-239 (1990)
+            // We simply drop the last column
+            if(bcId == Bc::Name::NoSlip::id())
+            {
+               SparseSM::Worland::Id qid(nN, nN, a, b, l, -1);
+               decMat.real() = spasm.mat()*qid.mat();
+            }
+            else
+            {
+               decMat.real() = spasm.mat();
+            }
          }
       }
       else if(fieldId == std::make_pair(PhysicalNames::Temperature::id(), FieldComponents::Spectral::SCALAR))
@@ -274,7 +290,7 @@ namespace Explicit {
 
          for(auto pRowId = imRange.first; pRowId != imRange.second; pRowId++)
          {
-            this->timeBlock(rModelMatrix, *pRowId, matIdx, res, eigs, nds);
+            this->timeBlock(rModelMatrix, *pRowId, matIdx, res, eigs, bcs, nds);
 
             // Apply boundary condition
             if(needStencil)
@@ -298,7 +314,7 @@ namespace Explicit {
          {
             for(auto pColId = imRange.first; pColId != imRange.second; pColId++)
             {
-               this->implicitBlock(rModelMatrix, *pRowId, *pColId, matIdx, res, eigs, nds, isSplit);
+               this->implicitBlock(rModelMatrix, *pRowId, *pColId, matIdx, res, eigs, bcs, nds, isSplit);
 
                // Apply boundary condition
                if(needStencil)
