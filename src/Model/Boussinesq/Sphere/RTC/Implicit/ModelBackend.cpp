@@ -330,7 +330,24 @@ namespace Implicit {
 
                   this->addBlock(decMat.real(), bMat, rowShift, colShift);
                   SparseSM::Worland::I4Lapl coriolis(nN, nN, a, b, l, 2*this->mcTruncateQI);
-                  bMat = static_cast<MHDFloat>(m*T*invlapl)*coriolis.mat();
+                  auto bcId = bcs.find(rowId.first)->second;
+
+                  // Correct Laplacian for 4th order system according to:
+                  // McFadden,Murray,Boisvert,
+                  // Elimination of Spurious Eigenvalues in the
+                  // Chebyshev Tau Spectral Method,
+                  // JCP 91, 228-239 (1990)
+                  // We simply drop the last column
+                  if(bcId == Bc::Name::NoSlip::id())
+                  {
+                     SparseSM::Worland::Id qid(nN, nN, a, b, l, -1);
+                     bMat = static_cast<MHDFloat>(m*T*invlapl)*coriolis.mat()*qid.mat();
+                  }
+                  else
+                  {
+                     bMat = static_cast<MHDFloat>(m*T*invlapl)*coriolis.mat();
+                  }
+
                   if(this->useGalerkin())
                   {
                      this->applyGalerkinStencil(bMat, rowId, colId, l, res, bcs, nds);
@@ -526,7 +543,24 @@ namespace Implicit {
             if(l > 0)
             {
                SparseSM::Worland::I4Lapl spasm(nN, nN, a, b, l, 2*this->mcTruncateQI);
-               bMat = spasm.mat();
+               auto bcId = bcs.find(fieldId.first)->second;
+
+               // Correct Laplacian for 4th order system according to:
+               // McFadden,Murray,Boisvert,
+               // Elimination of Spurious Eigenvalues in the
+               // Chebyshev Tau Spectral Method,
+               // JCP 91, 228-239 (1990)
+               // We simply drop the last column
+               if(bcId == Bc::Name::NoSlip::id())
+               {
+                  SparseSM::Worland::Id qid(nN, nN, a, b, l, -1);
+                  bMat = spasm.mat()*qid.mat();
+               }
+               else
+               {
+                  bMat = spasm.mat();
+               }
+
                if(this->useGalerkin())
                {
                   this->applyGalerkinStencil(bMat, fieldId, fieldId, l, res, bcs, nds);
