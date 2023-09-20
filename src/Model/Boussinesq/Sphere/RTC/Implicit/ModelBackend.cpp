@@ -255,12 +255,13 @@ namespace Implicit {
             colShift = baseColShift;
             for(int l = m+1; l < nL; l++)
             {
-               auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
+               auto nNr = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
+               auto nNc = res.counter().dimensions(Dimensions::Space::SPECTRAL, l-1)(0);
                if(l > 0)
                {
                   const auto dl = static_cast<QuICC::internal::MHDFloat>(l);
                   const auto invlapl = 1.0/(dl*(dl + 1.0));
-                  SparseSM::Worland::I2Qm corQm(nN, nN, a, b, l, 1*this->mcTruncateQI);
+                  SparseSM::Worland::I2Qm corQm(nNr, nNc, a, b, l, 1*this->mcTruncateQI);
                   auto norm = coriolis(l, m);
                   SparseMatrix bMat = -static_cast<MHDFloat>(norm*T*invlapl)*corQm.mat();
                   if(this->useGalerkin())
@@ -274,7 +275,7 @@ namespace Implicit {
                this->blockInfo(tN, gN, shift, rhs, rowId, res, l, bcs);
                rowShift += gN;
 
-               this->blockInfo(tN, gN, shift, rhs, colId, res, l, bcs);
+               this->blockInfo(tN, gN, shift, rhs, colId, res, l-1, bcs);
                colShift += gN;
             }
 
@@ -283,12 +284,13 @@ namespace Implicit {
             colShift = baseColShift + gN;
             for(int l = m; l < nL - 1; l++)
             {
-               auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
+               auto nNr = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
+               auto nNc = res.counter().dimensions(Dimensions::Space::SPECTRAL, l+1)(0);
                if(l > 0)
                {
                   const auto dl = static_cast<QuICC::internal::MHDFloat>(l);
                   const auto invlapl = MHD_MP(1.0)/(dl*(dl + MHD_MP(1.0)));
-                  SparseSM::Worland::I2Qp corQp(nN, nN, a, b, l, 1*this->mcTruncateQI);
+                  SparseSM::Worland::I2Qp corQp(nNr, nNc, a, b, l, 1*this->mcTruncateQI);
                   auto norm = -coriolis(l+1, m);
                   SparseMatrix bMat = -static_cast<MHDFloat>(norm*T*invlapl)*corQp.mat();
                   if(this->useGalerkin())
@@ -302,7 +304,7 @@ namespace Implicit {
                this->blockInfo(tN, gN, shift, rhs, rowId, res, l, bcs);
                rowShift += gN;
 
-               this->blockInfo(tN, gN, shift, rhs, colId, res, l, bcs);
+               this->blockInfo(tN, gN, shift, rhs, colId, res, l+1, bcs);
                colShift += gN;
             }
          }
@@ -375,12 +377,13 @@ namespace Implicit {
             colShift = baseColShift;
             for(int l = m+1; l < nL; l++)
             {
-               auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
+               auto nNr = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
+               auto nNc = res.counter().dimensions(Dimensions::Space::SPECTRAL, l-1)(0);
                if(l > 0)
                {
                   const auto dl = static_cast<MHDFloat>(l);
                   const auto invlapl = 1.0/(dl*(dl + 1.0));
-                  SparseSM::Worland::I4Qm corQm(nN, nN, a, b, l, 2*this->mcTruncateQI);
+                  SparseSM::Worland::I4Qm corQm(nNr, nNc, a, b, l, 2*this->mcTruncateQI);
                   auto norm = coriolis(l, m);
                   SparseMatrix bMat = static_cast<MHDFloat>(norm*T*invlapl)*corQm.mat();
                   if(this->useGalerkin())
@@ -389,10 +392,11 @@ namespace Implicit {
                   }
                   this->addBlock(decMat.real(), bMat, rowShift, colShift);
                }
+
                this->blockInfo(tN, gN, shift, rhs, rowId, res, l, bcs);
                rowShift += gN;
 
-               this->blockInfo(tN, gN, shift, rhs, colId, res, l, bcs);
+               this->blockInfo(tN, gN, shift, rhs, colId, res, l-1, bcs);
                colShift += gN;
             }
 
@@ -401,12 +405,13 @@ namespace Implicit {
             colShift = baseColShift + gN;
             for(int l = m; l < nL - 1; l++)
             {
-               auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
+               auto nNr = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
+               auto nNc = res.counter().dimensions(Dimensions::Space::SPECTRAL, l+1)(0);
                if(l > 0)
                {
                   const auto dl = static_cast<MHDFloat>(l);
                   const auto invlapl = 1.0/(dl*(dl + 1.0));
-                  SparseSM::Worland::I4Qp corQp(nN, nN, a, b, l, 2*this->mcTruncateQI);
+                  SparseSM::Worland::I4Qp corQp(nNr, nNc, a, b, l, 2*this->mcTruncateQI);
                   auto norm = -coriolis(l+1, m);
                   SparseMatrix bMat = static_cast<MHDFloat>(norm*T*invlapl)*corQp.mat();
                   if(this->useGalerkin())
@@ -418,7 +423,7 @@ namespace Implicit {
                this->blockInfo(tN, gN, shift, rhs, rowId, res, l, bcs);
                rowShift += gN;
 
-               this->blockInfo(tN, gN, shift, rhs, colId, res, l, bcs);
+               this->blockInfo(tN, gN, shift, rhs, colId, res, l+1, bcs);
                colShift += gN;
             }
          }
