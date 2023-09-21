@@ -915,7 +915,6 @@ namespace Implicit {
          auto realOp = [](const int nNr, const int nNc, const int l, std::shared_ptr<internal::BlockOptions> opts, const NonDimensional::NdMap& nds)
          {
             SparseMatrix bMat(nNr, nNc);
-            auto& o = *std::dynamic_pointer_cast<internal::BlockOptionsImpl>(opts);
 
             return bMat;
          };
