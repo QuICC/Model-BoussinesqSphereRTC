@@ -169,29 +169,43 @@ namespace Explicit {
 
       if(rowId == std::make_pair(PhysicalNames::Velocity::id(),FieldComponents::Spectral::TOR) && rowId == colId)
       {
-         SparseSM::Worland::I2Lapl spasm(nN, nN, a, b, l, 1*this->mcTruncateQI);
-         decMat.real() = spasm.mat();
+         if(l > 0)
+         {
+            SparseSM::Worland::I2Lapl spasm(nN, nN, a, b, l, 1*this->mcTruncateQI);
+            decMat.real() = spasm.mat();
+         }
+         else
+         {
+            decMat.real().resize(nN, nN);
+         }
       }
       else if(rowId == std::make_pair(PhysicalNames::Velocity::id(),FieldComponents::Spectral::POL) && rowId == colId)
       {
-         // Split fourth order system
-         if(this->useSplitEquation())
+         if(l > 0)
          {
-            if(isSplitOperator)
+            // Split fourth order system
+            if(this->useSplitEquation())
             {
-               SparseSM::Worland::I2Lapl spasm(nN, nN, a, b, l, 1*this->mcTruncateQI);
-               decMat.real() = spasm.mat();
+               if(isSplitOperator)
+               {
+                  SparseSM::Worland::I2Lapl spasm(nN, nN, a, b, l, 1*this->mcTruncateQI);
+                  decMat.real() = spasm.mat();
+               }
+               else
+               {
+                  SparseSM::Worland::I2Lapl spasm(nN, nN, a, b, l, 1*this->mcTruncateQI);
+                  decMat.real() = spasm.mat();
+               }
             }
             else
             {
-               SparseSM::Worland::I2Lapl spasm(nN, nN, a, b, l, 1*this->mcTruncateQI);
+               SparseSM::Worland::I4Lapl2 spasm(nN, nN, a, b, l, 2*this->mcTruncateQI);
                decMat.real() = spasm.mat();
             }
          }
          else
          {
-            SparseSM::Worland::I4Lapl2 spasm(nN, nN, a, b, l, 2*this->mcTruncateQI);
-            decMat.real() = spasm.mat();
+            decMat.real().resize(nN, nN);
          }
       }
       else if(rowId == std::make_pair(PhysicalNames::Temperature::id(), FieldComponents::Spectral::SCALAR) && rowId == colId)
@@ -219,36 +233,52 @@ namespace Explicit {
 
       if(fieldId == std::make_pair(PhysicalNames::Velocity::id(),FieldComponents::Spectral::TOR))
       {
-         SparseSM::Worland::I2 spasm(nN, nN, a, b, l, 1*this->mcTruncateQI);
-         decMat.real() = spasm.mat();
-      }
-      else if(fieldId == std::make_pair(PhysicalNames::Velocity::id(),FieldComponents::Spectral::POL))
-      {
-         if(this->useSplitEquation())
+         if(l > 0)
          {
             SparseSM::Worland::I2 spasm(nN, nN, a, b, l, 1*this->mcTruncateQI);
             decMat.real() = spasm.mat();
          }
          else
          {
-            SparseSM::Worland::I4Lapl spasm(nN, nN, a, b, l, 2*this->mcTruncateQI);
-            auto bcId = bcs.find(fieldId.first)->second;
-
-            // Correct Laplacian for 4th order system according to:
-            // McFadden,Murray,Boisvert,
-            // Elimination of Spurious Eigenvalues in the
-            // Chebyshev Tau Spectral Method,
-            // JCP 91, 228-239 (1990)
-            // We simply drop the last column
-            if(bcId == Bc::Name::NoSlip::id())
+            SparseSM::Worland::Id qid(nN, nN, a, b, l);
+            decMat.real() = qid.mat();
+         }
+      }
+      else if(fieldId == std::make_pair(PhysicalNames::Velocity::id(),FieldComponents::Spectral::POL))
+      {
+         if(l > 0)
+         {
+            if(this->useSplitEquation())
             {
-               SparseSM::Worland::Id qid(nN, nN, a, b, l, -1);
-               decMat.real() = spasm.mat()*qid.mat();
+               SparseSM::Worland::I2 spasm(nN, nN, a, b, l, 1*this->mcTruncateQI);
+               decMat.real() = spasm.mat();
             }
             else
             {
-               decMat.real() = spasm.mat();
+               SparseSM::Worland::I4Lapl spasm(nN, nN, a, b, l, 2*this->mcTruncateQI);
+               auto bcId = bcs.find(fieldId.first)->second;
+
+               // Correct Laplacian for 4th order system according to:
+               // McFadden,Murray,Boisvert,
+               // Elimination of Spurious Eigenvalues in the
+               // Chebyshev Tau Spectral Method,
+               // JCP 91, 228-239 (1990)
+               // We simply drop the last column
+               if(bcId == Bc::Name::NoSlip::id())
+               {
+                  SparseSM::Worland::Id qid(nN, nN, a, b, l, -1);
+                  decMat.real() = spasm.mat()*qid.mat();
+               }
+               else
+               {
+                  decMat.real() = spasm.mat();
+               }
             }
+         }
+         else
+         {
+            SparseSM::Worland::Id qid(nN, nN, a, b, l);
+            decMat.real() = qid.mat();
          }
       }
       else if(fieldId == std::make_pair(PhysicalNames::Temperature::id(), FieldComponents::Spectral::SCALAR))
