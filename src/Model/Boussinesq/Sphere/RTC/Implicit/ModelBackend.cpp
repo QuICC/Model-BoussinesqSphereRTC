@@ -634,8 +634,6 @@ namespace Implicit {
                if(l > 0)
                {
                   auto& o = *std::dynamic_pointer_cast<BlockOptionsImpl>(opts);
-                  const auto dl = static_cast<MHDFloat>(l);
-                  const auto invlapl = 1.0/(dl*(dl + 1.0));
                   SparseSM::Worland::I2Lapl i2lapl(nNr, nNc, o.a, o.b, l, 1*o.truncateQI);
                   bMat = i2lapl.mat();
                }
@@ -750,10 +748,6 @@ namespace Implicit {
                {
                   auto& o = *std::dynamic_pointer_cast<BlockOptionsImpl>(opts);
 
-                  const auto T = 1.0/nds.find(NonDimensional::Ekman::id())->second->value();
-
-                  const auto dl = static_cast<QuICC::internal::MHDFloat>(l);
-                  const auto invlapl = MHD_MP(1.0)/(dl*(dl + MHD_MP(1.0)));
                   SparseSM::Worland::I4Lapl2 i4lapl2(nNr, nNc, o.a, o.b, l, 2*o.truncateQI);
                   bMat = i4lapl2.mat();
                }
@@ -918,8 +912,7 @@ namespace Implicit {
             };
 
             // Create diagonal block
-            descr.push_back({});
-            auto& d = descr.back();
+            auto& d = getDescription();
             d.nRowShift = 0;
             d.nColShift = 0;
             d.realOp = realOp;
@@ -942,8 +935,7 @@ namespace Implicit {
             };
 
             // Create diagonal block
-            descr.push_back({});
-            auto& d = descr.back();
+            auto& d = getDescription();
             d.nRowShift = 0;
             d.nColShift = 0;
             d.realOp = realOp;
