@@ -44,6 +44,34 @@ namespace Implicit {
          {
          };
       };
+
+      struct BlockOptions
+      {
+         BlockOptions() = default;
+         virtual ~BlockOptions() = default;
+      };
+
+      struct BlockOptionsImpl: public BlockOptions
+      {
+         BlockOptionsImpl() = default;
+         virtual ~BlockOptionsImpl() = default;
+
+         ::QuICC::internal::MHDFloat a;
+         ::QuICC::internal::MHDFloat b;
+         int m;
+         bool truncateQI;
+         std::size_t bcId;
+         bool isSplitOperator;
+      };
+
+      struct BlockDescription
+      {
+         int nRowShift = 0;
+         int nColShift = 0;
+         std::shared_ptr<BlockOptions> opts;
+         SparseMatrix (*realOp)(const int nNr, const int nNc, const int l, std::shared_ptr<BlockOptions> opts, const NonDimensional::NdMap& nds) = nullptr;
+         SparseMatrix (*imagOp)(const int nNr, const int nNc, const int l, std::shared_ptr<BlockOptions> opts, const NonDimensional::NdMap& nds) = nullptr;
+      };
    }
 
    /**
@@ -142,7 +170,7 @@ namespace Implicit {
          SpectralFieldIds implicitFields(const SpectralFieldId& fId) const;
 
          /**
-          * @brief Build implicit matrix block
+          * @brief Build implicit matrix block description
           *
           * @param decMat  Ouput matrix
           * @param rowId   Field ID of block matrix row
@@ -155,38 +183,10 @@ namespace Implicit {
           * @param nds     Nondimension parameters
           * @param isSplitOperator  Set operator of split system
           */
-         void implicitBlock(DecoupledZSparse& decMat, const SpectralFieldId& rowId, const SpectralFieldId& colId, const int matIdx, const std::size_t bcType, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds, const bool isSplitOperator) const;
-
-         struct BlockOptions
-         {
-            BlockOptions() = default;
-            virtual ~BlockOptions() = default;
-         };
-         struct BlockOptionsImpl: public BlockOptions
-         {
-            BlockOptionsImpl() = default;
-            virtual ~BlockOptionsImpl() = default;
-
-            ::QuICC::internal::MHDFloat a;
-            ::QuICC::internal::MHDFloat b;
-            int m;
-            bool truncateQI;
-            std::size_t bcId;
-            bool isSplitOperator;
-         };
-
-         struct BlockDescription
-         {
-            int nRowShift = 0;
-            int nColShift = 0;
-            std::shared_ptr<BlockOptions> opts;
-            SparseMatrix (*realOp)(const int nNr, const int nNc, const int l, std::shared_ptr<BlockOptions> opts, const NonDimensional::NdMap& nds) = nullptr;
-            SparseMatrix (*imagOp)(const int nNr, const int nNc, const int l, std::shared_ptr<BlockOptions> opts, const NonDimensional::NdMap& nds) = nullptr;
-         };
-         std::vector<BlockDescription> implicitBlockBuilder(const SpectralFieldId& rowId, const SpectralFieldId& colId, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds, const bool isSplitOperator) const;
+         std::vector<internal::BlockDescription> implicitBlockBuilder(const SpectralFieldId& rowId, const SpectralFieldId& colId, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds, const bool isSplitOperator) const;
 
          /**
-          * @brief Build time matrix block
+          * @brief Build time matrix block description
           *
           * @param decMat  Ouput matrix
           * @param fieldId Field ID (block diagonal matrix)
@@ -196,11 +196,12 @@ namespace Implicit {
           * @param eigs    Slow indexes
           * @param bcs     Boundary conditions for each field
           * @param nds     Nondimension parameters
+          * @param isSplitOperator  Set operator of split system
           */
-         void timeBlock(DecoupledZSparse& decMat, const SpectralFieldId& fieldId, const int matIdx, const std::size_t bcType, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds) const;
+         std::vector<internal::BlockDescription> timeBlockBuilder(const SpectralFieldId& rowId, const SpectralFieldId& colId, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds) const;
 
          /**
-          * @brief Build boundary matrix block
+          * @brief Build boundary matrix block description
           *
           * @param decMat  Ouput matrix
           * @param rowId   Field ID of block matrix row
@@ -213,7 +214,24 @@ namespace Implicit {
           * @param nds     Nondimension parameters
           * @param isSplitOperator  Set operator of split system
           */
-         void boundaryBlock(DecoupledZSparse& decMat, const SpectralFieldId& rowId, const SpectralFieldId& colId, const int matIdx, const std::size_t bcType, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds, const bool isSplitEquation) const;
+         std::vector<internal::BlockDescription> boundaryBlockBuilder(const SpectralFieldId& rowId, const SpectralFieldId& colId, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds, const bool isSplitOperator) const;
+
+         /**
+          * @brief Build matrix block from description
+          *
+          * @param decMat  Ouput matrix
+          * @param descr   Block description
+          * @param rowId   Field ID of block matrix row
+          * @param colId   Field ID of block matrix column
+          * @param matIdx  Matrix ID
+          * @param bcType  Type of boundary condition
+          * @param res     Resolution object
+          * @param eigs    Slow indexes
+          * @param bcs     Boundary conditions for each field
+          * @param nds     Nondimension parameters
+          * @param isSplitOperator  Set operator of split system
+          */
+         void buildBlock(DecoupledZSparse& decMat, const std::vector<internal::BlockDescription>& descr, const SpectralFieldId& rowId, const SpectralFieldId& colId, const int matIdx, const std::size_t bcType, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds, const bool isSplitOperator) const;
 
       private:
          /**
