@@ -16,6 +16,7 @@
 // Project includes
 //
 #include "QuICC/Model/Boussinesq/Sphere/RTC/IRTCBackend.hpp"
+#include "Types/Precision.hpp"
 
 namespace QuICC {
 
@@ -155,6 +156,34 @@ namespace Implicit {
           * @param isSplitOperator  Set operator of split system
           */
          void implicitBlock(DecoupledZSparse& decMat, const SpectralFieldId& rowId, const SpectralFieldId& colId, const int matIdx, const std::size_t bcType, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds, const bool isSplitOperator) const;
+
+         struct BlockOptions
+         {
+            BlockOptions() = default;
+            virtual ~BlockOptions() = default;
+         };
+         struct BlockOptionsImpl: public BlockOptions
+         {
+            BlockOptionsImpl() = default;
+            virtual ~BlockOptionsImpl() = default;
+
+            ::QuICC::internal::MHDFloat a;
+            ::QuICC::internal::MHDFloat b;
+            int m;
+            bool truncateQI;
+            std::size_t bcId;
+            bool isSplitOperator;
+         };
+
+         struct BlockDescription
+         {
+            int nRowShift = 0;
+            int nColShift = 0;
+            std::shared_ptr<BlockOptions> opts;
+            SparseMatrix (*realOp)(const int nNr, const int nNc, const int l, std::shared_ptr<BlockOptions> opts, const NonDimensional::NdMap& nds) = nullptr;
+            SparseMatrix (*imagOp)(const int nNr, const int nNc, const int l, std::shared_ptr<BlockOptions> opts, const NonDimensional::NdMap& nds) = nullptr;
+         };
+         std::vector<BlockDescription> implicitBlockBuilder(const SpectralFieldId& rowId, const SpectralFieldId& colId, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds, const bool isSplitOperator) const;
 
          /**
           * @brief Build time matrix block
