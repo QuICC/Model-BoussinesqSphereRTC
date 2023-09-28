@@ -307,18 +307,18 @@ namespace RTC {
       }
    }
 
-   void IRTCBackend::applyGalerkinStencil(SparseMatrix& mat, const SpectralFieldId& rowId, const SpectralFieldId& colId, const int l, const Resolution& res, const BcMap& bcs, const NonDimensional::NdMap& nds) const
+   void IRTCBackend::applyGalerkinStencil(SparseMatrix& mat, const SpectralFieldId& rowId, const SpectralFieldId& colId, const int lr, const int lc, const Resolution& res, const BcMap& bcs, const NonDimensional::NdMap& nds) const
    {
-      auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
+      auto nNr = res.counter().dimensions(Dimensions::Space::SPECTRAL, lr)(0);
 
       auto a = Polynomial::Worland::WorlandBase::ALPHA_CHEBYSHEV;
       auto b = Polynomial::Worland::WorlandBase::DBETA_CHEBYSHEV;
 
       auto S = mat;
-      this->stencil(S, colId, l, res, false, bcs, nds);
+      this->stencil(S, colId, lc, res, false, bcs, nds);
 
       auto s = this->nBc(rowId);
-      SparseSM::Worland::Id qId(nN-s, nN, a, b, l, 0, s);
+      SparseSM::Worland::Id qId(nNr-s, nNr, a, b, lr, 0, s);
       mat = qId.mat()*(mat*S);
    }
 

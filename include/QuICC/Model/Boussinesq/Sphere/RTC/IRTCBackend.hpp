@@ -119,12 +119,13 @@ namespace RTC {
           * @param mat     Input/Output matrix to apply stencil to
           * @param rowId   ID of field of equation
           * @param colId   ID of field
-          * @param l       Harmonic degree
+          * @param lr      Row space harmonic degree
+          * @param lc      Column space harmonic degree
           * @param res     Resolution object
           * @param bcs     Boundary conditions
           * @param nds     Nondimensional parameters
           */
-         void applyGalerkinStencil(SparseMatrix& decMat, const SpectralFieldId& rowId, const SpectralFieldId& colId, const int l, const Resolution& res, const BcMap& bcs, const NonDimensional::NdMap& nds) const;
+         void applyGalerkinStencil(SparseMatrix& decMat, const SpectralFieldId& rowId, const SpectralFieldId& colId, const int lr, const int lc, const Resolution& res, const BcMap& bcs, const NonDimensional::NdMap& nds) const;
 
       private:
    };

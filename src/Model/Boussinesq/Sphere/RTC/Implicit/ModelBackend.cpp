@@ -236,11 +236,11 @@ namespace Implicit {
 
                if(this->useGalerkin())
                {
-                  this->applyGalerkinStencil(bMat, rowId, colId, l, res, bcs, nds);
+                  this->applyGalerkinStencil(bMat, rowId, colId, l, l + lShift, res, bcs, nds);
                }
                else if(needTau)
                {
-                  this->applyTau(bMat, rowId, colId, l, res, bcs, nds, isSplitOperator);
+                  this->applyTau(bMat, rowId, colId, l + lShift, res, bcs, nds, isSplitOperator);
                }
                this->addBlock(decMat.real(), bMat, rowShift, colShift);
             }
@@ -253,11 +253,11 @@ namespace Implicit {
 
                if(this->useGalerkin())
                {
-                  this->applyGalerkinStencil(bMat, rowId, colId, l, res, bcs, nds);
+                  this->applyGalerkinStencil(bMat, rowId, colId, l, l + lShift, res, bcs, nds);
                }
                else if(needTau)
                {
-                  this->applyTau(bMat, rowId, colId, l, res, bcs, nds, isSplitOperator);
+                  this->applyTau(bMat, rowId, colId, l + lShift, res, bcs, nds, isSplitOperator);
                }
                this->addBlock(decMat.imag(), bMat, rowShift, colShift);
             }
