@@ -28,6 +28,7 @@
 #include "QuICC/Bc/Name/FixedFlux.hpp"
 #include "QuICC/Bc/Name/StressFree.hpp"
 #include "QuICC/Bc/Name/NoSlip.hpp"
+#include "QuICC/Bc/Name/NoPenetration.hpp"
 #include "QuICC/PhysicalNames/Velocity.hpp"
 #include "QuICC/PhysicalNames/Temperature.hpp"
 #include "QuICC/NonDimensional/Prandtl.hpp"
@@ -171,6 +172,13 @@ namespace RTC {
             {
                bcOp.addRow<SparseSM::Worland::Boundary::R1D1DivR1>();
             }
+            else if(bcId == Bc::Name::NoPenetration::id())
+            {
+               if(l%2 == 1)
+               {
+                  bcOp.addRow<SparseSM::Worland::Boundary::Value>();
+               }
+            }
             else
             {
                throw std::logic_error("Boundary conditions for Velocity Toroidal component not implemented");
@@ -211,6 +219,10 @@ namespace RTC {
                {
                   bcOp.addRow<SparseSM::Worland::Boundary::Value>();
                   bcOp.addRow<SparseSM::Worland::Boundary::D2>();
+               }
+               else if(bcId == Bc::Name::NoPenetration::id())
+               {
+                  bcOp.addRow<SparseSM::Worland::Boundary::Value>();
                }
                else
                {

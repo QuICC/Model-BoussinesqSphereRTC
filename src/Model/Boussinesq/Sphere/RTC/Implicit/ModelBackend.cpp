@@ -62,6 +62,10 @@
 #include "QuICC/Polynomial/Worland/WorlandBase.hpp"
 #include "QuICC/Equations/CouplingIndexType.hpp"
 
+//#define QUICC_INVISCID_4TH
+#define QUICC_INVISCID_2ND
+#include <iostream>
+
 namespace QuICC {
 
 namespace Model {
@@ -332,12 +336,41 @@ namespace Implicit {
                return bMat;
             };
 
+            // Imaginary part of operator
+            auto imagOp2 = [](const int nNr, const int nNc, const int l, std::shared_ptr<internal::BlockOptions> opts, const NonDimensional::NdMap& nds)
+            {
+               SparseMatrix bMat(nNr, nNc);
+
+               if(l > 0)
+               {
+                  auto& o = *std::dynamic_pointer_cast<internal::BlockOptionsImpl>(opts);
+
+                  const auto T = 1.0/nds.find(NonDimensional::Ekman::id())->second->value();
+                  const auto dl = static_cast<MHDFloat>(l);
+                  const auto invlapl = 1.0/(dl*(dl + 1.0));
+
+                  SparseSM::Worland::I2 i2(nNr+1, nNc, o.a, o.b, l, 1*o.truncateQI);
+                  SparseSM::Worland::Id qid(nNr, nNr+1, o.a, o.b, l, 0, 1);
+                  bMat = o.m*T*invlapl*(qid.mat()*i2.mat());
+               }
+
+               return bMat;
+            };
+
             // Create block diagonal operator
             auto& d = getDescription();
             d.nRowShift = 0;
             d.nColShift = 0;
+#if defined QUICC_INVISCID_4TH
+            d.realOp = nullptr;
+            d.imagOp = imagOp;
+#elif defined QUICC_INVISCID_2ND
+            d.realOp = nullptr;
+            d.imagOp = imagOp2;
+#else
             d.realOp = realOp;
             d.imagOp = imagOp;
+#endif
          }
          else if(colId == std::make_pair(PhysicalNames::Velocity::id(),FieldComponents::Spectral::POL))
          {
@@ -354,8 +387,7 @@ namespace Implicit {
                      return (l - MHD_MP(1.0))*(l + MHD_MP(1.0))*precision::sqrt(((l - m)*(l + m))/((MHD_MP(2.0)*l - MHD_MP(1.0))*(MHD_MP(2.0)*l + MHD_MP(1.0))));
                   };
 
-                  const auto Ek = nds.find(NonDimensional::Ekman::id())->second->value();
-                  const auto T = 1.0/Ek;
+                  const auto T = 1.0/nds.find(NonDimensional::Ekman::id())->second->value();
                   const auto dl = static_cast<QuICC::internal::MHDFloat>(l);
                   const auto invlapl = 1.0/(dl*(dl + 1.0));
 
@@ -367,12 +399,49 @@ namespace Implicit {
                return bMat;
             };
 
+            // Real part of first lower diagonal
+            auto realOpLower2 = [](const int nNr, const int nNc, const int l, std::shared_ptr<internal::BlockOptions> opts, const NonDimensional::NdMap& nds)
+            {
+               SparseMatrix bMat(nNr, nNc);
+
+               if(l > 0)
+               {
+                  auto& o = *std::dynamic_pointer_cast<internal::BlockOptionsImpl>(opts);
+
+                  auto coriolis = [](const int l, const int m){
+                     return (l - MHD_MP(1.0))*(l + MHD_MP(1.0))*precision::sqrt(((l - m)*(l + m))/((MHD_MP(2.0)*l - MHD_MP(1.0))*(MHD_MP(2.0)*l + MHD_MP(1.0))));
+                  };
+
+                  const auto T = 1.0/nds.find(NonDimensional::Ekman::id())->second->value();
+                  const auto dl = static_cast<QuICC::internal::MHDFloat>(l);
+                  const auto invlapl = 1.0/(dl*(dl + 1.0));
+
+                  SparseSM::Worland::I2Qm corQm(nNr+1, nNc, o.a, o.b, l, 1*o.truncateQI);
+                  int s = 0;
+                  if(l%2 == 0)
+                  {
+                     s = 1;
+                  }
+
+                  SparseSM::Worland::Id qid(nNr, nNr+1, o.a, o.b, l, 0, s);
+                  auto norm = coriolis(l, o.m);
+                  bMat = -static_cast<MHDFloat>(norm*T*invlapl)*(qid.mat()*corQm.mat());
+               }
+
+               return bMat;
+            };
+
             // Create first lower diagonal operator
             auto& dLow = getDescription();
             dLow.nRowShift = 1;
             dLow.nColShift = 0;
+#ifdef QUICC_INVISCID_2ND
+            dLow.realOp = realOpLower2;
+            dLow.imagOp = nullptr;
+#else
             dLow.realOp = realOpLower;
             dLow.imagOp = nullptr;
+#endif
 
             // Real part of first upper diagonal
             auto realOpUpper = [](const int nNr, const int nNc, const int l, std::shared_ptr<internal::BlockOptions> opts, const NonDimensional::NdMap& nds)
@@ -398,12 +467,47 @@ namespace Implicit {
                return bMat;
             };
 
+            // Real part of first upper diagonal
+            auto realOpUpper2 = [](const int nNr, const int nNc, const int l, std::shared_ptr<internal::BlockOptions> opts, const NonDimensional::NdMap& nds)
+            {
+               SparseMatrix bMat(nNr, nNc);
+
+               if(l > 0)
+               {
+                  auto& o = *std::dynamic_pointer_cast<internal::BlockOptionsImpl>(opts);
+
+                  auto coriolis = [](const int l, const int m){
+                     return (l - MHD_MP(1.0))*(l + MHD_MP(1.0))*precision::sqrt(((l - m)*(l + m))/((MHD_MP(2.0)*l - MHD_MP(1.0))*(MHD_MP(2.0)*l + MHD_MP(1.0))));
+                  };
+
+                  const auto T = 1.0/nds.find(NonDimensional::Ekman::id())->second->value();
+                  const auto dl = static_cast<QuICC::internal::MHDFloat>(l);
+                  const auto invlapl = MHD_MP(1.0)/(dl*(dl + MHD_MP(1.0)));
+                  SparseSM::Worland::I2Qp corQp(nNr+1, nNc, o.a, o.b, l, 1*o.truncateQI);
+                  int s = 0;
+                  if(l%2 == 0)
+                  {
+                     s = 1;
+                  }
+                  SparseSM::Worland::Id qid(nNr, nNr+1, o.a, o.b, l, 0, s);
+                  auto norm = -coriolis(l+1, o.m);
+                  bMat = -static_cast<MHDFloat>(norm*T*invlapl)*(qid.mat()*corQp.mat());
+               }
+
+               return bMat;
+            };
+
             // Create first upper diagonal operator
             auto& dUp = getDescription();
             dUp.nRowShift = 0;
             dUp.nColShift = 1;
+#ifdef QUICC_INVISCID_2ND
+            dUp.realOp = realOpUpper2;
+            dUp.imagOp = nullptr;
+#else
             dUp.realOp = realOpUpper;
             dUp.imagOp = nullptr;
+#endif
          }
       }
       else if(rowId == std::make_pair(PhysicalNames::Velocity::id(),FieldComponents::Spectral::POL))
@@ -460,12 +564,40 @@ namespace Implicit {
                return bMat;
             };
 
+            // Imaginary part of block
+            auto imagOp2 = [](const int nNr, const int nNc, const int l, std::shared_ptr<internal::BlockOptions> opts, const NonDimensional::NdMap& nds)
+            {
+               SparseMatrix bMat(nNr, nNc);
+
+               if(l > 0)
+               {
+                  auto& o = *std::dynamic_pointer_cast<internal::BlockOptionsImpl>(opts);
+
+                  const auto dl = static_cast<QuICC::internal::MHDFloat>(l);
+                  const auto invlapl = MHD_MP(1.0)/(dl*(dl + MHD_MP(1.0)));
+                  const auto T = 1.0/nds.find(NonDimensional::Ekman::id())->second->value();
+                  SparseSM::Worland::I2Lapl coriolis(nNr, nNc, o.a, o.b, l, 2*o.truncateQI);
+
+                  bMat = static_cast<MHDFloat>(o.m*T*invlapl)*coriolis.mat();
+               }
+
+               return bMat;
+            };
+
             // Create diagonal block
             auto& d = getDescription();
             d.nRowShift = 0;
             d.nColShift = 0;
+#if defined QUICC_INVISCID_4TH
+            d.realOp = nullptr;
+            d.imagOp = imagOp;
+#elif defined QUICC_INVISCID_2ND
+            d.realOp = nullptr;
+            d.imagOp = imagOp2;
+#else
             d.realOp = realOp;
             d.imagOp = imagOp;
+#endif
 
          }
          else if(colId == std::make_pair(PhysicalNames::Velocity::id(),FieldComponents::Spectral::TOR))
@@ -495,12 +627,42 @@ namespace Implicit {
                return bMat;
             };
 
+            // Create real part of block
+            auto realOpLower2 = [](const int nNr, const int nNc, const int l, std::shared_ptr<internal::BlockOptions> opts, const NonDimensional::NdMap& nds)
+            {
+               SparseMatrix bMat(nNr, nNc);
+
+               if(l > 0)
+               {
+                  auto& o = *std::dynamic_pointer_cast<internal::BlockOptionsImpl>(opts);
+
+                  auto coriolis = [](const int l, const int m){
+                     return (l - MHD_MP(1.0))*(l + MHD_MP(1.0))*precision::sqrt(((l - m)*(l + m))/((MHD_MP(2.0)*l - MHD_MP(1.0))*(MHD_MP(2.0)*l + MHD_MP(1.0))));
+                  };
+
+                  const auto T = 1.0/nds.find(NonDimensional::Ekman::id())->second->value();
+
+                  const auto dl = static_cast<MHDFloat>(l);
+                  const auto invlapl = 1.0/(dl*(dl + 1.0));
+                  SparseSM::Worland::I2Qm corQm(nNr, nNc, o.a, o.b, l, 1*o.truncateQI);
+                  auto norm = coriolis(l, o.m);
+                  bMat = static_cast<MHDFloat>(norm*T*invlapl)*corQm.mat();
+               }
+
+               return bMat;
+            };
+
             // Create first lower diagonal operator
             auto& dLow = getDescription();
             dLow.nRowShift = 1;
             dLow.nColShift = 0;
+#ifdef QUICC_INVISCID_2ND
+            dLow.realOp = realOpLower2;
+            dLow.imagOp = nullptr;
+#else
             dLow.realOp = realOpLower;
             dLow.imagOp = nullptr;
+#endif
 
             // Create real part of block
             auto realOpUpper = [](const int nNr, const int nNc, const int l, std::shared_ptr<internal::BlockOptions> opts, const NonDimensional::NdMap& nds)
@@ -527,12 +689,42 @@ namespace Implicit {
                return bMat;
             };
 
+            // Create real part of block
+            auto realOpUpper2 = [](const int nNr, const int nNc, const int l, std::shared_ptr<internal::BlockOptions> opts, const NonDimensional::NdMap& nds)
+            {
+               SparseMatrix bMat(nNr, nNc);
+
+               if(l > 0)
+               {
+                  auto& o = *std::dynamic_pointer_cast<internal::BlockOptionsImpl>(opts);
+
+                  auto coriolis = [](const int l, const int m){
+                     return (l - MHD_MP(1.0))*(l + MHD_MP(1.0))*precision::sqrt(((l - m)*(l + m))/((MHD_MP(2.0)*l - MHD_MP(1.0))*(MHD_MP(2.0)*l + MHD_MP(1.0))));
+                  };
+
+                  const auto T = 1.0/nds.find(NonDimensional::Ekman::id())->second->value();
+
+                  const auto dl = static_cast<MHDFloat>(l);
+                  const auto invlapl = 1.0/(dl*(dl + 1.0));
+                  SparseSM::Worland::I2Qp corQp(nNr, nNc, o.a, o.b, l, 1*o.truncateQI);
+                  auto norm = -coriolis(l+1, o.m);
+                  bMat = static_cast<MHDFloat>(norm*T*invlapl)*corQp.mat();
+               }
+
+               return bMat;
+            };
+
             // Create first upper diagonal operator
             auto& dUp = getDescription();
             dUp.nRowShift = 0;
             dUp.nColShift = 1;
+#ifdef QUICC_INVISCID_2ND
+            dUp.realOp = realOpUpper2;
+            dUp.imagOp = nullptr;
+#else
             dUp.realOp = realOpUpper;
             dUp.imagOp = nullptr;
+#endif
          }
          else if(this->useLinearized() &&
                colId == std::make_pair(PhysicalNames::Temperature::id(),FieldComponents::Spectral::SCALAR))
@@ -669,12 +861,45 @@ namespace Implicit {
             return bMat;
          };
 
+         // Real part of operator
+         auto realOp2 = [](const int nNr, const int nNc, const int l, std::shared_ptr<internal::BlockOptions> opts, const NonDimensional::NdMap& nds)
+         {
+            assert(nNr == nNc);
+
+            SparseMatrix bMat;
+            auto& o = *std::dynamic_pointer_cast<internal::BlockOptionsImpl>(opts);
+
+            if(l > 0)
+            {
+               SparseSM::Worland::I2 spasm(nNr+1, nNc, o.a, o.b, l, 1*o.truncateQI);
+               int s = 0;
+               if(l%2 == 0)
+               {
+                  s = 1;
+               }
+               SparseSM::Worland::Id qid(nNr, nNr+1, o.a, o.b, l, 0, s);
+               bMat = (qid.mat()*spasm.mat());
+            }
+            else
+            {
+               SparseSM::Worland::Id qid(nNr, nNc, o.a, o.b, l);
+               bMat = qid.mat();
+            }
+
+            return bMat;
+         };
+
          // Create block diagonal operator
          auto& d = getDescription();
          d.nRowShift = 0;
          d.nColShift = 0;
+#ifdef QUICC_INVISCID_2ND
+         d.realOp = realOp2;
+         d.imagOp = nullptr;
+#else
          d.realOp = realOp;
          d.imagOp = nullptr;
+#endif
       }
       else if(fieldId == std::make_pair(PhysicalNames::Velocity::id(),FieldComponents::Spectral::POL))
       {
@@ -715,12 +940,39 @@ namespace Implicit {
             return bMat;
          };
 
+         // Real part of operator
+         auto realOp2 = [](const int nNr, const int nNc, const int l, std::shared_ptr<internal::BlockOptions> opts, const NonDimensional::NdMap& nds)
+         {
+            assert(nNr == nNc);
+
+            SparseMatrix bMat;
+            auto& o = *std::dynamic_pointer_cast<internal::BlockOptionsImpl>(opts);
+
+            if(l > 0)
+            {
+               SparseSM::Worland::I2Lapl spasm(nNr, nNc, o.a, o.b, l, 1*o.truncateQI);
+               bMat = spasm.mat();
+            }
+            else
+            {
+               SparseSM::Worland::Id qid(nNr, nNc, o.a, o.b, l);
+               bMat = qid.mat();
+            }
+
+            return bMat;
+         };
+
          // Create block diagonal operator
          auto& d = getDescription();
          d.nRowShift = 0;
          d.nColShift = 0;
+#ifdef QUICC_INVISCID_2ND
+         d.realOp = realOp2;
+         d.imagOp = nullptr;
+#else
          d.realOp = realOp;
          d.imagOp = nullptr;
+#endif
       }
       else if(fieldId == std::make_pair(PhysicalNames::Temperature::id(), FieldComponents::Spectral::SCALAR))
       {
