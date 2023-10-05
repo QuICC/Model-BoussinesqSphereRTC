@@ -325,7 +325,7 @@ namespace Explicit {
             // Apply boundary condition
             if(needStencil)
             {
-               this->applyGalerkinStencil(rModelMatrix.real(), *pRowId, *pRowId, l, res, bcs, nds);
+               this->applyGalerkinStencil(rModelMatrix.real(), *pRowId, *pRowId, l, l, res, bcs, nds);
             }
             else if(needTau)
             {
@@ -349,7 +349,7 @@ namespace Explicit {
                // Apply boundary condition
                if(needStencil)
                {
-                  this->applyGalerkinStencil(rModelMatrix.real(), *pRowId, *pColId, l, res, bcs, nds);
+                  this->applyGalerkinStencil(rModelMatrix.real(), *pRowId, *pColId, l, l, res, bcs, nds);
                }
                else if(needTau)
                {
@@ -376,7 +376,7 @@ namespace Explicit {
                // Apply boundary condition
                if(needStencil)
                {
-                  this->applyGalerkinStencil(rModelMatrix.real(), *pRowId, *pColId, l, res, bcs, nds);
+                  this->applyGalerkinStencil(rModelMatrix.real(), *pRowId, *pColId, l, l, res, bcs, nds);
                }
                else if(needTau)
                {
