@@ -3,27 +3,18 @@
  * @brief Source of the implementation of the transport equation in the Boussinesq rotating thermal convection in a sphere
  */
 
-// Configuration includes
-//
-
 // System includes
 //
 
-// External includes
-//
-
-// Class include
-//
-#include "QuICC/Model/Boussinesq/Sphere/RTC/Transport.hpp"
-
 // Project includes
 //
+#include "Model/Boussinesq/Sphere/RTC/Transport.hpp"
 #include "QuICC/Transform/Path/Scalar.hpp"
 #include "QuICC/PhysicalNames/Velocity.hpp"
 #include "QuICC/PhysicalNames/Temperature.hpp"
 #include "QuICC/SolveTiming/Prognostic.hpp"
 #include "QuICC/Transform/Path/I2ScalarNl.hpp"
-#include "QuICC/Model/Boussinesq/Sphere/RTC/TransportKernel.hpp"
+#include "Model/Boussinesq/Sphere/RTC/TransportKernel.hpp"
 
 namespace QuICC {
 

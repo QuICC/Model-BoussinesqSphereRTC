@@ -6,15 +6,9 @@
 #ifndef QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_IRTCMODEL_HPP
 #define QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_IRTCMODEL_HPP
 
-// Configuration includes
-//
-
 // System includes
 //
 #include <string>
-
-// External includes
-//
 
 // Project includes
 //

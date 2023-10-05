@@ -9,8 +9,8 @@
 
 // Project includes
 //
+#include "Model/Boussinesq/Sphere/RTC/Implicit/ModelBackend.hpp"
 #include "QuICC/Enums/Dimensions.hpp"
-#include "QuICC/Model/Boussinesq/Sphere/RTC/Implicit/ModelBackend.hpp"
 #include "QuICC/ModelOperator/Time.hpp"
 #include "QuICC/ModelOperator/ImplicitLinear.hpp"
 #include "QuICC/ModelOperator/ExplicitLinear.hpp"

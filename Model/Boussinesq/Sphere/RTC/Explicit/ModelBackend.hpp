@@ -15,7 +15,7 @@
 
 // Project includes
 //
-#include "QuICC/Model/Boussinesq/Sphere/RTC/IRTCBackend.hpp"
+#include "Model/Boussinesq/Sphere/RTC/IRTCBackend.hpp"
 
 namespace QuICC {
 

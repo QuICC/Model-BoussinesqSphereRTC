@@ -3,23 +3,14 @@
  * @brief Source of the Boussinesq rotating thermal convection in a sphere (Toroidal/Poloidal formulation)
  */
 
-// Configuration includes
-//
-
 // System includes
 //
 
-// External includes
-//
-
-// Class include
-//
-#include "QuICC/Model/Boussinesq/Sphere/RTC/IRTCModel.hpp"
-
 // Project includes
 //
-#include "QuICC/Model/Boussinesq/Sphere/RTC/Transport.hpp"
-#include "QuICC/Model/Boussinesq/Sphere/RTC/Momentum.hpp"
+#include "Model/Boussinesq/Sphere/RTC/IRTCModel.hpp"
+#include "Model/Boussinesq/Sphere/RTC/Transport.hpp"
+#include "Model/Boussinesq/Sphere/RTC/Momentum.hpp"
 #include "Model/Boussinesq/Sphere/RTC/gitHash.hpp"
 #include "QuICC/Enums/FieldIds.hpp"
 #include "QuICC/PhysicalNames/Temperature.hpp"

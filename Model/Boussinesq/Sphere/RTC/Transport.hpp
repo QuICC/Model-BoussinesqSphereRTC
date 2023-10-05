@@ -6,15 +6,9 @@
 #ifndef QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_TRANSPORT_HPP
 #define QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_TRANSPORT_HPP
 
-// Configuration includes
-//
-
 // System includes
 //
 #include <memory>
-
-// External includes
-//
 
 // Project includes
 //
