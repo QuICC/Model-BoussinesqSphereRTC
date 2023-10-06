@@ -319,8 +319,6 @@ namespace RTC {
 
    void IRTCBackend::buildBlock(DecoupledZSparse& decMat, const std::vector<details::BlockDescription>& descr, const SpectralFieldId& rowId, const SpectralFieldId& colId, const int matIdx, const std::size_t bcType, const Resolution& res, const int l0, const int maxL, const BcMap& bcs, const NonDimensional::NdMap& nds, const bool isSplitOperator) const
    {
-      assert(eigs.size() == 1);
-
       // Compute system size
       const auto sysInfo = systemInfo(rowId, colId, l0, maxL, res, bcs, this->useGalerkin(), false);
       const auto& sysN = sysInfo.systemSize;

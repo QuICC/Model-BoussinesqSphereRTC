@@ -521,7 +521,6 @@ namespace Explicit {
             assert(nNr == nNc);
 
             SparseMatrix bMat(nNr, 1);
-            auto& o = *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
 
             Eigen::Triplet<MHDFloat> val = {0, 0, 1.0};
             std::vector<Eigen::Triplet<MHDFloat> > triplets = {val};
