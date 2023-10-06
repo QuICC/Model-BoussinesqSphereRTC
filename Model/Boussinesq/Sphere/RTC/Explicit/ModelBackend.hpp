@@ -111,65 +111,68 @@ namespace Explicit {
 
       protected:
          /**
-          * @brief Build model matrix
+          * @brief Operators are complex?
           *
           * @param fId  Field ID
           */
-         SpectralFieldIds implicitFields(const SpectralFieldId& fId) const;
+         bool isComplex(const SpectralFieldId& fId) const final;
 
          /**
-          * @brief Get operator information
+          * @brief Get coupled fields
           *
-          * @param tN      Tau radial size
-          * @param gN      Galerkin radial truncation
-          * @param shift   Shift in each direction due to Galerkin basis
-          * @param rhs     Numer of RHS
-          * @param fId     ID of the field
-          * @param res     Resolution object
-          * @param eigs    Indexes of other dimensions
-          * @param bcs     Boundary conditions
+          * @param fId  Field ID
           */
-         void blockSize(int& tN, int& gN, ArrayI& shift, int& rhs, const SpectralFieldId& fId, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs) const;
+         SpectralFieldIds implicitFields(const SpectralFieldId& fId) const final;
 
          /**
-          * @brief Build implicit matrix block
+          * @brief Build implicit matrix block description
           *
-          * @param decMat  Ouput matrix
           * @param rowId   Field ID of block matrix row
           * @param colId   Field ID of block matrix column
-          * @param matIdx  Matrix ID
           * @param res     Resolution object
           * @param eigs    Slow indexes
           * @param bcs     Boundary conditions for each field
           * @param nds     Nondimension parameters
           * @param isSplitOperator  Set operator of split system
           */
-         void implicitBlock(DecoupledZSparse& decMat, const SpectralFieldId& rowId, const SpectralFieldId& colId, const int matIdx, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds, const bool isSplitOperator) const;
+         std::vector<details::BlockDescription> implicitBlockBuilder(const SpectralFieldId& rowId, const SpectralFieldId& colId, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds, const bool isSplitOperator) const;
 
          /**
-          * @brief Build time matrix block
+          * @brief Build time matrix block description
           *
-          * @param decMat  Ouput matrix
-          * @param fieldId Field ID (block diagonal matrix)
-          * @param matIdx  Matrix ID
+          * @param rowId   Field ID of block matrix row
+          * @param colId   Field ID of block matrix column
           * @param res     Resolution object
           * @param eigs    Slow indexes
           * @param bcs     Boundary conditions for each field
           * @param nds     Nondimension parameters
           */
-         void timeBlock(DecoupledZSparse& decMat, const SpectralFieldId& fieldId, const int matIdx, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds) const;
+         std::vector<details::BlockDescription> timeBlockBuilder(const SpectralFieldId& rowId, const SpectralFieldId& colId, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds) const;
 
          /**
-          * @brief Build inhomogeneous boundary value for split equation
+          * @brief Build boundary matrix block description
           *
-          * @param decMat  Ouput matrix
-          * @param fieldId Field ID
-          * @param matIdx  Matrix ID
+          * @param rowId   Field ID of block matrix row
+          * @param colId   Field ID of block matrix column
           * @param res     Resolution object
           * @param eigs    Slow indexes
+          * @param bcs     Boundary conditions for each field
+          * @param nds     Nondimension parameters
+          * @param isSplitOperator  Set operator of split system
+          */
+         std::vector<details::BlockDescription> boundaryBlockBuilder(const SpectralFieldId& rowId, const SpectralFieldId& colId, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds, const bool isSplitOperator) const;
+
+         /**
+          * @brief Build boundary matrix block description
+          *
+          * @param rowId   Field ID of block matrix row
+          * @param colId   Field ID of block matrix column
+          * @param res     Resolution object
+          * @param eigs    Slow indexes
+          * @param bcs     Boundary conditions for each field
           * @param nds     Nondimension parameters
           */
-         void splitBoundaryValueBlock(DecoupledZSparse& decMat, const SpectralFieldId& fieldId, const int matIdx, const Resolution& res, const std::vector<MHDFloat>& eigs, const NonDimensional::NdMap& nds) const;
+         std::vector<details::BlockDescription> splitBoundaryValueBlockBuilder(const SpectralFieldId& rowId, const SpectralFieldId& colId, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds) const;
 
       private:
          /**

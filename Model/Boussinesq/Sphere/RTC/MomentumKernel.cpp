@@ -20,15 +20,6 @@ namespace Physical {
 
 namespace Kernel {
 
-   MomentumKernel::MomentumKernel()
-      : IPhysicalKernel()
-   {
-   }
-
-   MomentumKernel::~MomentumKernel()
-   {
-   }
-
    std::size_t MomentumKernel::name() const
    {
       return this->mName;
@@ -67,7 +58,13 @@ namespace Kernel {
       IPhysicalKernel::setMesh(spMesh);
 
       this->mRadius = this->mspMesh->at(0);
-      if(std::visit([&](auto&& v)->bool{return (v->dom(0).res().sim().ss().has(SpatialScheme::Feature::SpectralOrdering132));},this->vector(this->name())))
+      if(
+            std::visit(
+               [&](auto&& v)->bool
+               {
+                  return (v->dom(0).res().sim().ss().has(SpatialScheme::Feature::SpectralOrdering132));
+               },this->vector(this->name()))
+         )
       {
          this->mCosTheta = this->mspMesh->at(1).array().cos();
          this->mSinTheta = this->mspMesh->at(1).array().sin();

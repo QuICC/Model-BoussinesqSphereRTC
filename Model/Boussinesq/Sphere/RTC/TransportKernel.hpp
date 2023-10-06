@@ -29,12 +29,12 @@ namespace Kernel {
          /**
           * @brief Simple constructor
           */
-         explicit TransportKernel();
+         TransportKernel() = default;
 
          /**
           * @brief Simple empty destructor
           */
-         virtual ~TransportKernel();
+         ~TransportKernel() = default;
 
          /**
           * @brief Set the physical mesh on which kernel is working

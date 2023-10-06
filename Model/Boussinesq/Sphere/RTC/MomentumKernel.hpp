@@ -29,12 +29,12 @@ namespace Kernel {
          /**
           * @brief Simple constructor
           */
-         explicit MomentumKernel();
+         MomentumKernel() = default;
 
          /**
           * @brief Simple empty destructor
           */
-         virtual ~MomentumKernel();
+         ~MomentumKernel() = default;
 
          /**
           * @brief Set the physical mesh on which kernel is working

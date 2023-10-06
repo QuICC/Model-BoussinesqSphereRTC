@@ -40,7 +40,7 @@ namespace RTC {
          /**
           * @brief Simple empty destructor
           */
-         virtual ~Momentum();
+         ~Momentum() = default;
 
          /**
           * @brief Initialize constraint kernel

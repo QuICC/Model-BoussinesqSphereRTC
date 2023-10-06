@@ -40,7 +40,7 @@ namespace RTC {
          /**
           * @brief Simple empty destructor
           */
-         virtual ~Transport();
+         ~Transport() = default;
 
          /**
           * @brief Initialize nonlinear interaction kernel

@@ -18,15 +18,6 @@ namespace Physical {
 
 namespace Kernel {
 
-   TransportKernel::TransportKernel()
-      : IPhysicalKernel()
-   {
-   }
-
-   TransportKernel::~TransportKernel()
-   {
-   }
-
    std::size_t TransportKernel::name() const
    {
       return this->mName;

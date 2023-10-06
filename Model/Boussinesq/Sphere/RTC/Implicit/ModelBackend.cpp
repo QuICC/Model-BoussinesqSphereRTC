@@ -74,6 +74,37 @@ namespace RTC {
 
 namespace Implicit {
 
+   namespace implDetails {
+      /**
+       * @brief Specific options for current model
+       */
+      struct BlockOptionsImpl: public details::BlockOptions
+      {
+         /**
+          * @brief default ctor
+          */
+         BlockOptionsImpl() = default;
+
+         /**
+          * @brief default dtor
+          */
+         virtual ~BlockOptionsImpl() = default;
+
+         /// Jones-Worland alpha
+         internal::MHDFloat a;
+         /// Jones-Worland beta
+         internal::MHDFloat b;
+         /// Harmonic order m
+         int m;
+         /// Use truncated quasi-inverse?
+         bool truncateQI;
+         /// Boundary condition
+         std::size_t bcId;
+         /// Split operator for influence matrix?
+         bool isSplitOperator;
+      };
+   }
+
    ModelBackend::ModelBackend()
       : IRTCBackend(),
 #ifdef QUICC_TRANSFORM_WORLAND_TRUNCATE_QI
@@ -96,6 +127,11 @@ namespace Implicit {
       }
    }
 
+   bool ModelBackend::isComplex(const SpectralFieldId& fId) const
+   {
+      return true;
+   }
+
    ModelBackend::SpectralFieldIds ModelBackend::implicitFields(const SpectralFieldId& fId) const
    {
       SpectralFieldId velTor = std::make_pair(PhysicalNames::Velocity::id(), FieldComponents::Spectral::TOR);
@@ -111,7 +147,7 @@ namespace Implicit {
    void ModelBackend::equationInfo(EquationInfo& info, const SpectralFieldId& fId, const Resolution& res) const
    {
       // Operators are real
-      info.isComplex = true;
+      info.isComplex = this->isComplex(fId);
 
       // Splitting 4th poloidal equation into two systems
       if(fId == std::make_pair(PhysicalNames::Velocity::id(), FieldComponents::Spectral::POL))
@@ -173,115 +209,16 @@ namespace Implicit {
       }
    }
 
-   void ModelBackend::buildBlock(DecoupledZSparse& decMat, const std::vector<internal::BlockDescription>& descr, const SpectralFieldId& rowId, const SpectralFieldId& colId, const int matIdx, const std::size_t bcType, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds, const bool isSplitOperator) const
+   std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(const SpectralFieldId& rowId, const SpectralFieldId& colId, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds, const bool isSplitOperator) const
    {
-      assert(eigs.size() == 1);
-      int m = eigs.at(0);
-
-      // Compute system size
-      const auto sysInfo = systemInfo(rowId, colId, m, res, bcs, this->useGalerkin(), false);
-      const auto& sysN = sysInfo.systemSize;
-      const auto& baseRowShift = sysInfo.startRow;
-      const auto& baseColShift = sysInfo.startCol;
-      auto nL = res.counter().dim(Dimensions::Simulation::SIM2D, Dimensions::Space::SPECTRAL, m);
-
-      // Resize matrices the first time
-      if(decMat.real().size() == 0)
-      {
-         decMat.real().resize(sysN,sysN);
-         decMat.imag().resize(sysN,sysN);
-      }
-      assert(decMat.real().rows() == sysN);
-      assert(decMat.real().cols() == sysN);
-      assert(decMat.imag().rows() == sysN);
-      assert(decMat.imag().cols() == sysN);
-
-      int tN, gN, rhs;
-      ArrayI shift(3);
-
-      bool needTau = (bcType == ModelOperatorBoundary::SolverHasBc::id());
-
-      for(auto&& d: descr)
-      {
-         assert(d.nRowShift == 0 ||  d.nColShift == 0);
-
-         // Shift starting row
-         int rowShift = baseRowShift;
-         for(int s = 0; s < d.nRowShift; s++)
-         {
-            this->blockInfo(tN, gN, shift, rhs, rowId, res, m+s, bcs);
-            rowShift += gN;
-         }
-
-         // Shift starting col
-         int colShift = baseColShift;
-         for(int s = 0; s < d.nColShift; s++)
-         {
-            this->blockInfo(tN, gN, shift, rhs, colId, res, m+s, bcs);
-            colShift += gN;
-         }
-
-         int lShift = -d.nRowShift + d.nColShift;
-
-         for(int l = m + d.nRowShift; l < nL - d.nColShift; l++)
-         {
-            auto nNr = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
-            auto nNc = res.counter().dimensions(Dimensions::Space::SPECTRAL, l + lShift)(0);
-
-            //
-            // Build real part of block
-            if(d.realOp)
-            {
-               auto bMat = d.realOp(nNr, nNc, l, d.opts, nds);
-
-               if(this->useGalerkin())
-               {
-                  this->applyGalerkinStencil(bMat, rowId, colId, l, l + lShift, res, bcs, nds);
-               }
-               else if(needTau)
-               {
-                  this->applyTau(bMat, rowId, colId, l + lShift, res, bcs, nds, isSplitOperator);
-               }
-               this->addBlock(decMat.real(), bMat, rowShift, colShift);
-            }
-
-            //
-            // Build imaginary part of block
-            if(d.imagOp)
-            {
-               auto bMat = d.imagOp(nNr, nNc, l, d.opts, nds);
-
-               if(this->useGalerkin())
-               {
-                  this->applyGalerkinStencil(bMat, rowId, colId, l, l + lShift, res, bcs, nds);
-               }
-               else if(needTau)
-               {
-                  this->applyTau(bMat, rowId, colId, l + lShift, res, bcs, nds, isSplitOperator);
-               }
-               this->addBlock(decMat.imag(), bMat, rowShift, colShift);
-            }
-
-            // Shift to next block
-            this->blockInfo(tN, gN, shift, rhs, rowId, res, l, bcs);
-            rowShift += gN;
-
-            this->blockInfo(tN, gN, shift, rhs, colId, res, l + lShift, bcs);
-            colShift += gN;
-         }
-      }
-   }
-
-   std::vector<internal::BlockDescription> ModelBackend::implicitBlockBuilder(const SpectralFieldId& rowId, const SpectralFieldId& colId, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds, const bool isSplitOperator) const
-   {
-      std::vector<internal::BlockDescription> descr;
+      std::vector<details::BlockDescription> descr;
 
       // Create description with common options
-      auto getDescription = [&]()->internal::BlockDescription&
+      auto getDescription = [&]()->details::BlockDescription&
       {
             descr.push_back({});
             auto& d = descr.back();
-            auto opts = std::make_shared<internal::BlockOptionsImpl>();
+            auto opts = std::make_shared<implDetails::BlockOptionsImpl>();
             opts->a = Polynomial::Worland::WorlandBase::ALPHA_CHEBYSHEV;
             opts->b = Polynomial::Worland::WorlandBase::DBETA_CHEBYSHEV;
             opts->m = eigs.at(0);
@@ -298,13 +235,13 @@ namespace Implicit {
          if(rowId == colId)
          {
             // Real part of operator
-            auto realOp = [](const int nNr, const int nNc, const int l, std::shared_ptr<internal::BlockOptions> opts, const NonDimensional::NdMap& nds)
+            auto realOp = [](const int nNr, const int nNc, const int l, std::shared_ptr<details::BlockOptions> opts, const NonDimensional::NdMap& nds)
             {
                SparseMatrix bMat(nNr, nNc);
 
                if(l > 0)
                {
-                  auto& o = *std::dynamic_pointer_cast<internal::BlockOptionsImpl>(opts);
+                  auto& o = *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
                   SparseSM::Worland::I2Lapl i2lapl(nNr, nNc, o.a, o.b, l, 1*o.truncateQI);
                   bMat = i2lapl.mat();
                }
@@ -313,13 +250,13 @@ namespace Implicit {
             };
 
             // Imaginary part of operator
-            auto imagOp = [](const int nNr, const int nNc, const int l, std::shared_ptr<internal::BlockOptions> opts, const NonDimensional::NdMap& nds)
+            auto imagOp = [](const int nNr, const int nNc, const int l, std::shared_ptr<details::BlockOptions> opts, const NonDimensional::NdMap& nds)
             {
                SparseMatrix bMat(nNr, nNc);
 
                if(l > 0)
                {
-                  auto& o = *std::dynamic_pointer_cast<internal::BlockOptionsImpl>(opts);
+                  auto& o = *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
 
                   const auto T = 1.0/nds.find(NonDimensional::Ekman::id())->second->value();
                   const auto dl = static_cast<MHDFloat>(l);
@@ -342,13 +279,13 @@ namespace Implicit {
          else if(colId == std::make_pair(PhysicalNames::Velocity::id(),FieldComponents::Spectral::POL))
          {
             // Real part of first lower diagonal
-            auto realOpLower = [](const int nNr, const int nNc, const int l, std::shared_ptr<internal::BlockOptions> opts, const NonDimensional::NdMap& nds)
+            auto realOpLower = [](const int nNr, const int nNc, const int l, std::shared_ptr<details::BlockOptions> opts, const NonDimensional::NdMap& nds)
             {
                SparseMatrix bMat(nNr, nNc);
 
                if(l > 0)
                {
-                  auto& o = *std::dynamic_pointer_cast<internal::BlockOptionsImpl>(opts);
+                  auto& o = *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
 
                   auto coriolis = [](const int l, const int m){
                      return (l - MHD_MP(1.0))*(l + MHD_MP(1.0))*precision::sqrt(((l - m)*(l + m))/((MHD_MP(2.0)*l - MHD_MP(1.0))*(MHD_MP(2.0)*l + MHD_MP(1.0))));
@@ -356,7 +293,7 @@ namespace Implicit {
 
                   const auto Ek = nds.find(NonDimensional::Ekman::id())->second->value();
                   const auto T = 1.0/Ek;
-                  const auto dl = static_cast<QuICC::internal::MHDFloat>(l);
+                  const auto dl = static_cast<internal::MHDFloat>(l);
                   const auto invlapl = 1.0/(dl*(dl + 1.0));
 
                   SparseSM::Worland::I2Qm corQm(nNr, nNc, o.a, o.b, l, 1*o.truncateQI);
@@ -375,20 +312,20 @@ namespace Implicit {
             dLow.imagOp = nullptr;
 
             // Real part of first upper diagonal
-            auto realOpUpper = [](const int nNr, const int nNc, const int l, std::shared_ptr<internal::BlockOptions> opts, const NonDimensional::NdMap& nds)
+            auto realOpUpper = [](const int nNr, const int nNc, const int l, std::shared_ptr<details::BlockOptions> opts, const NonDimensional::NdMap& nds)
             {
                SparseMatrix bMat(nNr, nNc);
 
                if(l > 0)
                {
-                  auto& o = *std::dynamic_pointer_cast<internal::BlockOptionsImpl>(opts);
+                  auto& o = *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
 
                   auto coriolis = [](const int l, const int m){
                      return (l - MHD_MP(1.0))*(l + MHD_MP(1.0))*precision::sqrt(((l - m)*(l + m))/((MHD_MP(2.0)*l - MHD_MP(1.0))*(MHD_MP(2.0)*l + MHD_MP(1.0))));
                   };
 
                   const auto T = 1.0/nds.find(NonDimensional::Ekman::id())->second->value();
-                  const auto dl = static_cast<QuICC::internal::MHDFloat>(l);
+                  const auto dl = static_cast<internal::MHDFloat>(l);
                   const auto invlapl = MHD_MP(1.0)/(dl*(dl + MHD_MP(1.0)));
                   SparseSM::Worland::I2Qp corQp(nNr, nNc, o.a, o.b, l, 1*o.truncateQI);
                   auto norm = -coriolis(l+1, o.m);
@@ -411,13 +348,13 @@ namespace Implicit {
          if(rowId == colId)
          {
             // Real part of block
-            auto realOp = [](const int nNr, const int nNc, const int l, std::shared_ptr<internal::BlockOptions> opts, const NonDimensional::NdMap& nds)
+            auto realOp = [](const int nNr, const int nNc, const int l, std::shared_ptr<details::BlockOptions> opts, const NonDimensional::NdMap& nds)
             {
                SparseMatrix bMat(nNr, nNc);
 
                if(l > 0)
                {
-                  auto& o = *std::dynamic_pointer_cast<internal::BlockOptionsImpl>(opts);
+                  auto& o = *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
 
                   SparseSM::Worland::I4Lapl2 i4lapl2(nNr, nNc, o.a, o.b, l, 2*o.truncateQI);
                   bMat = i4lapl2.mat();
@@ -427,15 +364,15 @@ namespace Implicit {
             };
 
             // Imaginary part of block
-            auto imagOp = [](const int nNr, const int nNc, const int l, std::shared_ptr<internal::BlockOptions> opts, const NonDimensional::NdMap& nds)
+            auto imagOp = [](const int nNr, const int nNc, const int l, std::shared_ptr<details::BlockOptions> opts, const NonDimensional::NdMap& nds)
             {
                SparseMatrix bMat(nNr, nNc);
 
                if(l > 0)
                {
-                  auto& o = *std::dynamic_pointer_cast<internal::BlockOptionsImpl>(opts);
+                  auto& o = *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
 
-                  const auto dl = static_cast<QuICC::internal::MHDFloat>(l);
+                  const auto dl = static_cast<internal::MHDFloat>(l);
                   const auto invlapl = MHD_MP(1.0)/(dl*(dl + MHD_MP(1.0)));
                   const auto T = 1.0/nds.find(NonDimensional::Ekman::id())->second->value();
                   SparseSM::Worland::I4Lapl coriolis(nNr, nNc, o.a, o.b, l, 2*o.truncateQI);
@@ -471,13 +408,13 @@ namespace Implicit {
          else if(colId == std::make_pair(PhysicalNames::Velocity::id(),FieldComponents::Spectral::TOR))
          {
             // Create real part of block
-            auto realOpLower = [](const int nNr, const int nNc, const int l, std::shared_ptr<internal::BlockOptions> opts, const NonDimensional::NdMap& nds)
+            auto realOpLower = [](const int nNr, const int nNc, const int l, std::shared_ptr<details::BlockOptions> opts, const NonDimensional::NdMap& nds)
             {
                SparseMatrix bMat(nNr, nNc);
 
                if(l > 0)
                {
-                  auto& o = *std::dynamic_pointer_cast<internal::BlockOptionsImpl>(opts);
+                  auto& o = *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
 
                   auto coriolis = [](const int l, const int m){
                      return (l - MHD_MP(1.0))*(l + MHD_MP(1.0))*precision::sqrt(((l - m)*(l + m))/((MHD_MP(2.0)*l - MHD_MP(1.0))*(MHD_MP(2.0)*l + MHD_MP(1.0))));
@@ -503,13 +440,13 @@ namespace Implicit {
             dLow.imagOp = nullptr;
 
             // Create real part of block
-            auto realOpUpper = [](const int nNr, const int nNc, const int l, std::shared_ptr<internal::BlockOptions> opts, const NonDimensional::NdMap& nds)
+            auto realOpUpper = [](const int nNr, const int nNc, const int l, std::shared_ptr<details::BlockOptions> opts, const NonDimensional::NdMap& nds)
             {
                SparseMatrix bMat(nNr, nNc);
 
                if(l > 0)
                {
-                  auto& o = *std::dynamic_pointer_cast<internal::BlockOptionsImpl>(opts);
+                  auto& o = *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
 
                   auto coriolis = [](const int l, const int m){
                      return (l - MHD_MP(1.0))*(l + MHD_MP(1.0))*precision::sqrt(((l - m)*(l + m))/((MHD_MP(2.0)*l - MHD_MP(1.0))*(MHD_MP(2.0)*l + MHD_MP(1.0))));
@@ -538,13 +475,13 @@ namespace Implicit {
                colId == std::make_pair(PhysicalNames::Temperature::id(),FieldComponents::Spectral::SCALAR))
          {
 
-            auto realOp = [](const int nNr, const int nNc, const int l, std::shared_ptr<internal::BlockOptions> opts, const NonDimensional::NdMap& nds)
+            auto realOp = [](const int nNr, const int nNc, const int l, std::shared_ptr<details::BlockOptions> opts, const NonDimensional::NdMap& nds)
             {
                SparseMatrix bMat(nNr, nNc);
 
                if(l > 0)
                {
-                  auto& o = *std::dynamic_pointer_cast<internal::BlockOptionsImpl>(opts);
+                  auto& o = *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
 
                   const auto Ra = nds.find(NonDimensional::Rayleigh::id())->second->value();
                   const auto T = 1.0/nds.find(NonDimensional::Ekman::id())->second->value();
@@ -570,9 +507,9 @@ namespace Implicit {
          if(rowId == colId)
          {
             // Creat real part of block
-            auto realOp = [](const int nNr, const int nNc, const int l, std::shared_ptr<internal::BlockOptions> opts, const NonDimensional::NdMap& nds)
+            auto realOp = [](const int nNr, const int nNc, const int l, std::shared_ptr<details::BlockOptions> opts, const NonDimensional::NdMap& nds)
             {
-               auto& o = *std::dynamic_pointer_cast<internal::BlockOptionsImpl>(opts);
+               auto& o = *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
 
                const auto Pr = nds.find(NonDimensional::Prandtl::id())->second->value();
 
@@ -593,9 +530,9 @@ namespace Implicit {
                colId == std::make_pair(PhysicalNames::Velocity::id(),FieldComponents::Spectral::POL))
          {
             // Create part of block
-            auto realOp = [](const int nNr, const int nNc, const int l, std::shared_ptr<internal::BlockOptions> opts, const NonDimensional::NdMap& nds)
+            auto realOp = [](const int nNr, const int nNc, const int l, std::shared_ptr<details::BlockOptions> opts, const NonDimensional::NdMap& nds)
             {
-               auto& o = *std::dynamic_pointer_cast<internal::BlockOptionsImpl>(opts);
+               auto& o = *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
 
                const auto dl = static_cast<MHDFloat>(l);
                const auto laplh = (dl*(dl + 1.0));
@@ -621,19 +558,19 @@ namespace Implicit {
       return descr;
    }
 
-   std::vector<internal::BlockDescription> ModelBackend::timeBlockBuilder(const SpectralFieldId& rowId, const SpectralFieldId& colId, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds) const
+   std::vector<details::BlockDescription> ModelBackend::timeBlockBuilder(const SpectralFieldId& rowId, const SpectralFieldId& colId, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds) const
    {
       assert(rowId == colId);
       auto fieldId = rowId;
 
-      std::vector<internal::BlockDescription> descr;
+      std::vector<details::BlockDescription> descr;
 
       // Create description with common options
-      auto getDescription = [&]()->internal::BlockDescription&
+      auto getDescription = [&]()->details::BlockDescription&
       {
             descr.push_back({});
             auto& d = descr.back();
-            auto opts = std::make_shared<internal::BlockOptionsImpl>();
+            auto opts = std::make_shared<implDetails::BlockOptionsImpl>();
             opts->a = Polynomial::Worland::WorlandBase::ALPHA_CHEBYSHEV;
             opts->b = Polynomial::Worland::WorlandBase::DBETA_CHEBYSHEV;
             opts->m = eigs.at(0);
@@ -648,12 +585,12 @@ namespace Implicit {
       if(fieldId == std::make_pair(PhysicalNames::Velocity::id(),FieldComponents::Spectral::TOR))
       {
          // Real part of operator
-         auto realOp = [](const int nNr, const int nNc, const int l, std::shared_ptr<internal::BlockOptions> opts, const NonDimensional::NdMap& nds)
+         auto realOp = [](const int nNr, const int nNc, const int l, std::shared_ptr<details::BlockOptions> opts, const NonDimensional::NdMap& nds)
          {
             assert(nNr == nNc);
 
             SparseMatrix bMat;
-            auto& o = *std::dynamic_pointer_cast<internal::BlockOptionsImpl>(opts);
+            auto& o = *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
 
             if(l > 0)
             {
@@ -679,12 +616,12 @@ namespace Implicit {
       else if(fieldId == std::make_pair(PhysicalNames::Velocity::id(),FieldComponents::Spectral::POL))
       {
          // Real part of operator
-         auto realOp = [](const int nNr, const int nNc, const int l, std::shared_ptr<internal::BlockOptions> opts, const NonDimensional::NdMap& nds)
+         auto realOp = [](const int nNr, const int nNc, const int l, std::shared_ptr<details::BlockOptions> opts, const NonDimensional::NdMap& nds)
          {
             assert(nNr == nNc);
 
             SparseMatrix bMat;
-            auto& o = *std::dynamic_pointer_cast<internal::BlockOptionsImpl>(opts);
+            auto& o = *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
 
             if(l > 0)
             {
@@ -725,9 +662,9 @@ namespace Implicit {
       else if(fieldId == std::make_pair(PhysicalNames::Temperature::id(), FieldComponents::Spectral::SCALAR))
       {
          // Real part of operator
-         auto realOp = [](const int nNr, const int nNc, const int l, std::shared_ptr<internal::BlockOptions> opts, const NonDimensional::NdMap& nds)
+         auto realOp = [](const int nNr, const int nNc, const int l, std::shared_ptr<details::BlockOptions> opts, const NonDimensional::NdMap& nds)
          {
-            auto& o = *std::dynamic_pointer_cast<internal::BlockOptionsImpl>(opts);
+            auto& o = *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
 
             SparseSM::Worland::I2 spasm(nNr, nNc, o.a, o.b, l, 1*o.truncateQI);
             SparseMatrix bMat = spasm.mat();
@@ -746,99 +683,12 @@ namespace Implicit {
       return descr;
    }
 
-   void ModelBackend::addBlock(SparseMatrix& mat, const SparseMatrix& block, const int rowShift, const int colShift, const MHDFloat coeff) const
-   {
-      std::vector<Eigen::Triplet<MHDFloat> > triplets;
-      triplets.reserve(block.nonZeros());
-      for(int k = 0; k < block.outerSize(); ++k)
-      {
-         for(SparseMatrix::InnerIterator it(block, k); it; ++it)
-         {
-            triplets.emplace_back(Eigen::Triplet<MHDFloat>(it.row() + rowShift, it.col() + colShift, coeff*it.value()));
-         }
-      }
-      SparseMatrix full(mat.rows(), mat.cols());
-      full.setFromTriplets(triplets.begin(), triplets.end());
-      mat += full;
-   }
-
-   int ModelBackend::blockSize(const SpectralFieldId& fId, const int m, const Resolution& res, const BcMap& bcs, const bool isGalerkin) const
-   {
-      auto nL = res.counter().dim(Dimensions::Simulation::SIM2D, Dimensions::Space::SPECTRAL, m);
-
-      // Compute size
-      auto s = 0;
-      for(int l = m; l < nL; l++)
-      {
-         int tN, gN, rhs;
-         ArrayI shift(3);
-         this->blockInfo(tN, gN, shift, rhs, fId, res, l, bcs);
-         if(isGalerkin)
-         {
-            s += gN;
-         }
-         else
-         {
-            s += tN;
-         }
-      }
-
-      return s;
-   }
-
-   std::pair<int, int> ModelBackend::blockShape(const SpectralFieldId& rowId, const SpectralFieldId& colId, const int m, const Resolution& res, const BcMap& bcs, const bool isGalerkin, const bool dropRows) const
-   {
-      // Compute number of rows
-      auto rows = this->blockSize(rowId, m, res, bcs, isGalerkin || dropRows);
-
-      // Compute number of cols
-      int cols = this->blockSize(colId, m, res, bcs, isGalerkin);
-
-      return std::make_pair(rows, cols);
-   }
-
-   internal::SystemInfo ModelBackend::systemInfo(const SpectralFieldId& rowId, const SpectralFieldId& colId, const int m, const Resolution& res, const BcMap& bcs, const bool isGalerkin, const bool dropRows) const
-   {
-      auto shape = this->blockShape(rowId, colId, m, res, bcs, isGalerkin, dropRows);
-
-      int sysN = 0;
-      bool rowCount = true;
-      bool colCount = true;
-      int rowIdx = 0;
-      int colIdx = 0;
-      const auto& fields = this->implicitFields(rowId);
-      for(auto it = fields.begin(); it != fields.end(); ++it)
-      {
-         int s = this->blockSize(*it, m, res, bcs, isGalerkin);
-         sysN += s;
-
-         // Get block index of rowId
-         if(rowCount && rowId != *it)
-         {
-            rowIdx += s;
-         }
-         else if(rowId == *it)
-         {
-            rowCount = false;
-         }
-
-         // Get block index of colId
-         if(colCount && colId != *it)
-         {
-            colIdx += s;
-         }
-         else if(colId == *it)
-         {
-            colCount = false;
-         }
-      }
-
-      internal::SystemInfo info(sysN, shape.first, shape.second, rowIdx, colIdx);
-      return info;
-   }
-
    void ModelBackend::modelMatrix(DecoupledZSparse& rModelMatrix, const std::size_t opId, const Equations::CouplingInformation::FieldId_range imRange, const int matIdx, const std::size_t bcType, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds) const
    {
+      assert(eigs.size() == 1);
+      int m = eigs.at(0);
+      auto maxL = res.counter().dim(Dimensions::Simulation::SIM2D, Dimensions::Space::SPECTRAL, m) - 1;
+
       // Time operator
       if(opId == ModelOperator::Time::id())
       {
@@ -847,7 +697,7 @@ namespace Implicit {
             auto rowId = *pRowId;
             auto colId = rowId;
             auto descr = timeBlockBuilder(rowId, colId, res, eigs, bcs, nds);
-            buildBlock(rModelMatrix, descr, rowId, colId, matIdx, bcType, res, eigs, bcs, nds, false);
+            buildBlock(rModelMatrix, descr, rowId, colId, matIdx, bcType, res, m, maxL, bcs, nds, false);
          }
       }
       // Linear operator
@@ -862,7 +712,7 @@ namespace Implicit {
                auto rowId = *pRowId;
                auto colId = *pColId;
                auto descr = implicitBlockBuilder(rowId, colId, res, eigs, bcs, nds, isSplit);
-               buildBlock(rModelMatrix, descr, rowId, colId, matIdx, bcType, res, eigs, bcs, nds, isSplit);
+               buildBlock(rModelMatrix, descr, rowId, colId, matIdx, bcType, res, m, maxL, bcs, nds, isSplit);
             }
          }
       }
@@ -878,7 +728,7 @@ namespace Implicit {
                auto rowId = *pRowId;
                auto colId = *pColId;
                auto descr = boundaryBlockBuilder(rowId, colId, res, eigs, bcs, nds, isSplit);
-               buildBlock(rModelMatrix, descr, rowId, colId, matIdx, bcType, res, eigs, bcs, nds, isSplit);
+               buildBlock(rModelMatrix, descr, rowId, colId, matIdx, bcType, res, m, maxL, bcs, nds, isSplit);
             }
          }
       }
@@ -888,16 +738,16 @@ namespace Implicit {
       }
    }
 
-   std::vector<internal::BlockDescription> ModelBackend::boundaryBlockBuilder(const SpectralFieldId& rowId, const SpectralFieldId& colId, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds, const bool isSplit) const
+   std::vector<details::BlockDescription> ModelBackend::boundaryBlockBuilder(const SpectralFieldId& rowId, const SpectralFieldId& colId, const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs, const NonDimensional::NdMap& nds, const bool isSplit) const
    {
-      std::vector<internal::BlockDescription> descr;
+      std::vector<details::BlockDescription> descr;
 
       // Create description with common options
-      auto getDescription = [&]()->internal::BlockDescription&
+      auto getDescription = [&]()->details::BlockDescription&
       {
             descr.push_back({});
             auto& d = descr.back();
-            auto opts = std::make_shared<internal::BlockOptionsImpl>();
+            auto opts = std::make_shared<implDetails::BlockOptionsImpl>();
             opts->a = Polynomial::Worland::WorlandBase::ALPHA_CHEBYSHEV;
             opts->b = Polynomial::Worland::WorlandBase::DBETA_CHEBYSHEV;
             opts->m = eigs.at(0);
@@ -912,7 +762,7 @@ namespace Implicit {
       if(rowId == colId)
       {
          // Real part of operator
-         auto realOp = [](const int nNr, const int nNc, const int l, std::shared_ptr<internal::BlockOptions> opts, const NonDimensional::NdMap& nds)
+         auto realOp = [](const int nNr, const int nNc, const int l, std::shared_ptr<details::BlockOptions> opts, const NonDimensional::NdMap& nds)
          {
             SparseMatrix bMat(nNr, nNc);
 
@@ -944,10 +794,11 @@ namespace Implicit {
       assert(this->useGalerkin());
       assert(eigs.size() == 1);
       int m = eigs.at(0);
+      auto maxL = res.counter().dim(Dimensions::Simulation::SIM2D, Dimensions::Space::SPECTRAL, m) - 1;
 
       // Compute system size
-      const auto sysRows = systemInfo(fieldId, fieldId, m, res, bcs, makeSquare, false).blockRows;
-      const auto sysCols = systemInfo(fieldId, fieldId, m, res, bcs, true, false).blockCols;
+      const auto sysRows = systemInfo(fieldId, fieldId, m, maxL, res, bcs, makeSquare, false).blockRows;
+      const auto sysCols = systemInfo(fieldId, fieldId, m, maxL, res, bcs, true, false).blockCols;
 
       auto nL = res.counter().dim(Dimensions::Simulation::SIM2D, Dimensions::Space::SPECTRAL, m);
 

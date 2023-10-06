@@ -39,10 +39,6 @@ namespace RTC {
       this->setRequirements();
    }
 
-   Momentum::~Momentum()
-   {
-   }
-
    void Momentum::setCoupling()
    {
       int start;

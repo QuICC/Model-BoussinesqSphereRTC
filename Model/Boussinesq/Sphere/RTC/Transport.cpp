@@ -33,10 +33,6 @@ namespace RTC {
       this->setRequirements();
    }
 
-   Transport::~Transport()
-   {
-   }
-
    void Transport::setCoupling()
    {
       auto features = defaultCouplingFeature();
