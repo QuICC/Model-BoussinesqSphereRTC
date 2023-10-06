@@ -27,65 +27,66 @@ namespace Sphere {
 
 namespace RTC {
 
-   namespace details {
-      /**
-       * @brief Struct holding general information on full system size
-       */
-      struct SystemInfo
-      {
-         /// Size of full system
-         int systemSize;
-         /// Rows per block
-         int blockRows;
-         /// Columns per block
-         int blockCols;
-         /// Starting row
-         int startRow;
-         /// Starting column
-         int startCol;
+namespace details {
 
-         /**
-          * @brief ctor
-          */
-         SystemInfo(const int size, const int rows, const int cols, const int row, const int col)
-            : systemSize(size), blockRows(rows), blockCols(cols), startRow(row), startCol(col)
-         {
-         };
-      };
+   /**
+    * @brief Struct holding general information on full system size
+    */
+   struct SystemInfo
+   {
+      /// Size of full system
+      int systemSize;
+      /// Rows per block
+      int blockRows;
+      /// Columns per block
+      int blockCols;
+      /// Starting row
+      int startRow;
+      /// Starting column
+      int startCol;
 
       /**
-       * @brief Base class for proving options for system block builder
+       * @brief ctor
        */
-      struct BlockOptions
+      SystemInfo(const int size, const int rows, const int cols, const int row, const int col)
+         : systemSize(size), blockRows(rows), blockCols(cols), startRow(row), startCol(col)
       {
-         /**
-          * @brief default ctor
-          */
-         BlockOptions() = default;
-
-         /**
-          * @brief default dtor
-          */
-         virtual ~BlockOptions() = default;
       };
+   };
+
+   /**
+    * @brief Base class for proving options for system block builder
+    */
+   struct BlockOptions
+   {
+      /**
+       * @brief default ctor
+       */
+      BlockOptions() = default;
 
       /**
-       * @brief Operator block description
+       * @brief default dtor
        */
-      struct BlockDescription
-      {
-         /// Starting row shift
-         int nRowShift = 0;
-         /// Starting column shift
-         int nColShift = 0;
-         /// Options to build block
-         std::shared_ptr<BlockOptions> opts;
-         /// Builder for real part
-         SparseMatrix (*realOp)(const int nNr, const int nNc, const int l, std::shared_ptr<BlockOptions> opts, const NonDimensional::NdMap& nds) = nullptr;
-         /// Builder for imaginary part
-         SparseMatrix (*imagOp)(const int nNr, const int nNc, const int l, std::shared_ptr<BlockOptions> opts, const NonDimensional::NdMap& nds) = nullptr;
-      };
-   }
+      virtual ~BlockOptions() = default;
+   };
+
+   /**
+    * @brief Operator block description
+    */
+   struct BlockDescription
+   {
+      /// Starting row shift
+      int nRowShift = 0;
+      /// Starting column shift
+      int nColShift = 0;
+      /// Options to build block
+      std::shared_ptr<BlockOptions> opts;
+      /// Builder for real part
+      SparseMatrix (*realOp)(const int nNr, const int nNc, const int l, std::shared_ptr<BlockOptions> opts, const NonDimensional::NdMap& nds) = nullptr;
+      /// Builder for imaginary part
+      SparseMatrix (*imagOp)(const int nNr, const int nNc, const int l, std::shared_ptr<BlockOptions> opts, const NonDimensional::NdMap& nds) = nullptr;
+   };
+}
 
    /**
     * @brief Base model backend for RTC model

@@ -68,38 +68,39 @@ namespace RTC {
 
 namespace Explicit {
 
-   namespace implDetails {
+namespace implDetails {
+
+   /**
+    * @brief Specific options for current model
+    */
+   struct BlockOptionsImpl: public details::BlockOptions
+   {
       /**
-       * @brief Specific options for current model
+       * @brief default ctor
        */
-      struct BlockOptionsImpl: public details::BlockOptions
-      {
-         /**
-          * @brief default ctor
-          */
-         BlockOptionsImpl() = default;
+      BlockOptionsImpl() = default;
 
-         /**
-          * @brief default dtor
-          */
-         virtual ~BlockOptionsImpl() = default;
+      /**
+       * @brief default dtor
+       */
+      virtual ~BlockOptionsImpl() = default;
 
-         /// Jones-Worland alpha
-         internal::MHDFloat a;
-         /// Jones-Worland beta
-         internal::MHDFloat b;
-         /// Harmonic degree l
-         int l;
-         /// Use truncated quasi-inverse?
-         bool truncateQI;
-         /// Boundary condition
-         std::size_t bcId;
-         /// Split operator for influence matrix?
-         bool isSplitOperator;
-         /// Use split equation for influence matrix?
-         bool useSplitEquation;
-      };
-   }
+      /// Jones-Worland alpha
+      internal::MHDFloat a;
+      /// Jones-Worland beta
+      internal::MHDFloat b;
+      /// Harmonic degree l
+      int l;
+      /// Use truncated quasi-inverse?
+      bool truncateQI;
+      /// Boundary condition
+      std::size_t bcId;
+      /// Split operator for influence matrix?
+      bool isSplitOperator;
+      /// Use split equation for influence matrix?
+      bool useSplitEquation;
+   };
+}
 
    ModelBackend::ModelBackend()
       : IRTCBackend(),
