@@ -1,6 +1,8 @@
 /**
  * @file PhysicalModel.hpp
- * @brief Implementation of the Boussinesq rotating thermal convection in a sphere (Toroidal/Poloidal formulation) without coupled solve (standard implementation)
+ * @brief Implementation of the Boussinesq rotating thermal convection in a
+ * sphere (Toroidal/Poloidal formulation) without coupled solve (standard
+ * implementation)
  */
 
 #ifndef QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_EXPLICIT_PHYSICALMODEL_HPP
@@ -27,43 +29,44 @@ namespace RTC {
 
 namespace Explicit {
 
-   /**
-    * @brief Implementation of the Boussinesq rotating thermal convection sphere model (Toroidal/Poloidal formulation) without coupled solve (standard implementation)
-    */
-   class PhysicalModel: public IRTCModel
-   {
-      public:
-         /// Typedef for the spatial scheme used
-         typedef SpatialScheme::WLFl SchemeType;
+/**
+ * @brief Implementation of the Boussinesq rotating thermal convection sphere
+ * model (Toroidal/Poloidal formulation) without coupled solve (standard
+ * implementation)
+ */
+class PhysicalModel : public IRTCModel
+{
+ public:
+    /// Typedef for the spatial scheme used
+    typedef SpatialScheme::WLFl SchemeType;
 
-         /**
-          * @brief Constructor
-          */
-         PhysicalModel() = default;
+    /**
+     * @brief Constructor
+     */
+    PhysicalModel() = default;
 
-         /**
-          * @brief Destructor
-          */
-         virtual ~PhysicalModel() = default;
+    /**
+     * @brief Destructor
+     */
+    virtual ~PhysicalModel() = default;
 
-         /// Python script/module name
-         std::string PYMODULE() final;
+    /// Python script/module name
+    std::string PYMODULE() final;
 
-         /**
-          * @brief Initialize specialized backend
-          */
-         void init() final;
+    /**
+     * @brief Initialize specialized backend
+     */
+    void init() final;
 
-      protected:
+ protected:
+ private:
+};
 
-      private:
-   };
-
-}
-}
-}
-}
-}
-}
+} // namespace Explicit
+} // namespace RTC
+} // namespace Sphere
+} // namespace Boussinesq
+} // namespace Model
+} // namespace QuICC
 
 #endif // QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_EXPLICIT_PHYSICALMODEL_HPP

@@ -1,6 +1,8 @@
 /**
  * @file PhysicalModel.cpp
- * @brief Source of the Boussinesq rotating thermal convection in a sphere (Toroidal/Poloidal formulation) without coupled solve (standard implementation)
+ * @brief Source of the Boussinesq rotating thermal convection in a sphere
+ * (Toroidal/Poloidal formulation) without coupled solve (standard
+ * implementation)
  */
 
 // System includes
@@ -24,27 +26,29 @@ namespace RTC {
 
 namespace Explicit {
 
-   std::string PhysicalModel::PYMODULE()
-   {
-      return "boussinesq.sphere.rtc.explicit.physical_model";
-   }
+std::string PhysicalModel::PYMODULE()
+{
+    return "boussinesq.sphere.rtc.explicit.physical_model";
+}
 
-   void PhysicalModel::init()
-   {
+void PhysicalModel::init()
+{
 #ifdef QUICC_MODEL_BOUSSINESQSPHERERTC_EXPLICIT_BACKEND_CPP
-      IPhysicalModel<Simulation,StateGenerator,VisualizationGenerator>::init();
+    IPhysicalModel<Simulation, StateGenerator, VisualizationGenerator>::init();
 
-      this->mpBackend = std::make_shared<ModelBackend>();
+    this->mpBackend = std::make_shared<ModelBackend>();
 #else
-      IPhysicalPyModel<Simulation,StateGenerator,VisualizationGenerator>::init();
+    IPhysicalPyModel<Simulation, StateGenerator,
+       VisualizationGenerator>::init();
 
-      this->mpBackend = std::make_shared<PyModelBackend>(this->PYMODULE(), this->PYCLASS());
+    this->mpBackend =
+       std::make_shared<PyModelBackend>(this->PYMODULE(), this->PYCLASS());
 #endif
-   }
+}
 
-} // Explicit
-} // RTC
-} // Sphere
-} // Boussinesq
-} // Model
-} // QuICC
+} // namespace Explicit
+} // namespace RTC
+} // namespace Sphere
+} // namespace Boussinesq
+} // namespace Model
+} // namespace QuICC
