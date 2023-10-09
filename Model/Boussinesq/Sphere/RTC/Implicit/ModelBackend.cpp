@@ -10,6 +10,7 @@
 // Project includes
 //
 #include "Model/Boussinesq/Sphere/RTC/Implicit/ModelBackend.hpp"
+#include "Types/Internal/Math.hpp"
 #include "QuICC/Bc/Name/FixedFlux.hpp"
 #include "QuICC/Bc/Name/FixedTemperature.hpp"
 #include "QuICC/Bc/Name/NoSlip.hpp"
@@ -91,9 +92,9 @@ struct BlockOptionsImpl : public details::BlockOptions
     virtual ~BlockOptionsImpl() = default;
 
     /// Jones-Worland alpha
-    internal::MHDFloat a;
+    Internal::MHDFloat a;
     /// Jones-Worland beta
-    internal::MHDFloat b;
+    Internal::MHDFloat b;
     /// Harmonic order m
     int m;
     /// Use truncated quasi-inverse?
@@ -317,7 +318,7 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
                     auto coriolis = [](const int l, const int m)
                     {
                         return (l - MHD_MP(1.0)) * (l + MHD_MP(1.0)) *
-                               precision::sqrt(
+                               Internal::Math::sqrt(
                                   ((l - m) * (l + m)) /
                                   ((MHD_MP(2.0) * l - MHD_MP(1.0)) *
                                      (MHD_MP(2.0) * l + MHD_MP(1.0))));
@@ -326,7 +327,7 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
                     const auto Ek =
                        nds.find(NonDimensional::Ekman::id())->second->value();
                     const auto T = 1.0 / Ek;
-                    const auto dl = static_cast<internal::MHDFloat>(l);
+                    const auto dl = static_cast<Internal::MHDFloat>(l);
                     const auto invlapl = 1.0 / (dl * (dl + 1.0));
 
                     SparseSM::Worland::I2Qm corQm(nNr, nNc, o.a, o.b, l,
@@ -361,7 +362,7 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
                     auto coriolis = [](const int l, const int m)
                     {
                         return (l - MHD_MP(1.0)) * (l + MHD_MP(1.0)) *
-                               precision::sqrt(
+                               Internal::Math::sqrt(
                                   ((l - m) * (l + m)) /
                                   ((MHD_MP(2.0) * l - MHD_MP(1.0)) *
                                      (MHD_MP(2.0) * l + MHD_MP(1.0))));
@@ -370,7 +371,7 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
                     const auto T =
                        1.0 /
                        nds.find(NonDimensional::Ekman::id())->second->value();
-                    const auto dl = static_cast<internal::MHDFloat>(l);
+                    const auto dl = static_cast<Internal::MHDFloat>(l);
                     const auto invlapl =
                        MHD_MP(1.0) / (dl * (dl + MHD_MP(1.0)));
                     SparseSM::Worland::I2Qp corQp(nNr, nNc, o.a, o.b, l,
@@ -428,7 +429,7 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
                     auto& o = *std::dynamic_pointer_cast<
                        implDetails::BlockOptionsImpl>(opts);
 
-                    const auto dl = static_cast<internal::MHDFloat>(l);
+                    const auto dl = static_cast<Internal::MHDFloat>(l);
                     const auto invlapl =
                        MHD_MP(1.0) / (dl * (dl + MHD_MP(1.0)));
                     const auto T =
@@ -484,7 +485,7 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
                     auto coriolis = [](const int l, const int m)
                     {
                         return (l - MHD_MP(1.0)) * (l + MHD_MP(1.0)) *
-                               precision::sqrt(
+                               Internal::Math::sqrt(
                                   ((l - m) * (l + m)) /
                                   ((MHD_MP(2.0) * l - MHD_MP(1.0)) *
                                      (MHD_MP(2.0) * l + MHD_MP(1.0))));
@@ -528,7 +529,7 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
                     auto coriolis = [](const int l, const int m)
                     {
                         return (l - MHD_MP(1.0)) * (l + MHD_MP(1.0)) *
-                               precision::sqrt(
+                               Internal::Math::sqrt(
                                   ((l - m) * (l + m)) /
                                   ((MHD_MP(2.0) * l - MHD_MP(1.0)) *
                                      (MHD_MP(2.0) * l + MHD_MP(1.0))));
