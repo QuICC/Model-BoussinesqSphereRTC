@@ -86,9 +86,9 @@ struct BlockOptionsImpl : public details::BlockOptions
     virtual ~BlockOptionsImpl() = default;
 
     /// Jones-Worland alpha
-    internal::MHDFloat a;
+    Internal::MHDFloat a;
     /// Jones-Worland beta
-    internal::MHDFloat b;
+    Internal::MHDFloat b;
     /// Harmonic degree l
     int l;
     /// Use truncated quasi-inverse?

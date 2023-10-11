@@ -16,7 +16,6 @@
 // Project includes
 //
 #include "Model/Boussinesq/Sphere/RTC/IRTCBackend.hpp"
-#include "Types/Precision.hpp"
 
 namespace QuICC {
 
