@@ -378,9 +378,9 @@ void IRTCBackend::buildBlock(DecoupledZSparse& decMat,
     int tN, gN, rhs;
     ArrayI shift(3);
 
-    bool needStencil = (this->useGalerkin() &&
-                        bcType == ModelOperatorBoundary::SolverNoTau::id());
-    bool needTau = (bcType == ModelOperatorBoundary::SolverHasBc::id());
+    bool needStencil = (this->useGalerkin());
+    bool needTau = (bcType == ModelOperatorBoundary::SolverHasBc::id() &&
+                     !this->useGalerkin());
 
     for (auto&& d: descr)
     {
