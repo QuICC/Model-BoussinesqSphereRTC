@@ -324,9 +324,7 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
                                      (MHD_MP(2.0) * l + MHD_MP(1.0))));
                     };
 
-                    const auto Ek =
-                       nds.find(NonDimensional::Ekman::id())->second->value();
-                    const auto T = 1.0 / Ek;
+                    const auto T = 1.0 / nds.find(NonDimensional::Ekman::id())->second->value();
                     const auto dl = static_cast<Internal::MHDFloat>(l);
                     const auto invlapl = 1.0 / (dl * (dl + 1.0));
 
@@ -703,7 +701,7 @@ std::vector<details::BlockDescription> ModelBackend::timeBlockBuilder(
         {
             assert(nNr == nNc);
 
-            SparseMatrix bMat;
+            SparseMatrix bMat(nNr, nNc);
             auto& o =
                *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
 
@@ -739,7 +737,7 @@ std::vector<details::BlockDescription> ModelBackend::timeBlockBuilder(
         {
             assert(nNr == nNc);
 
-            SparseMatrix bMat;
+            SparseMatrix bMat(nNr, nNc);
             auto& o =
                *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
 

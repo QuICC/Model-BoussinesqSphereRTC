@@ -69,8 +69,8 @@ class IRTCBackend : public ISphericalModelBackend
  protected:
     /**
      * @brief Number of boundary conditions
-+          *
-+          * @fId  Field ID
+     *
+     * @fId  Field ID
      */
     int nBc(const SpectralFieldId& fId) const override;
 
