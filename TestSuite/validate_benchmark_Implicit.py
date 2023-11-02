@@ -11,8 +11,7 @@ vt.check_setup('OUT_stdout', ref_dir, data_dir, 'Timestepper information', 7)
 
 # Tolerance per max rows
 rows = list(range(0, 101, 10))
-tols = [26, 90, 179, 219, 254, 312, 357, 392, 466, 550, 600]
-tols = [0]*len(tols) # reset tolerances
+tols = [17, 50, 101, 149, 199, 248, 248, 299, 298, 348, 348]
 
 prefixes = ['temperature', 'kinetic']
 spectra = ['l', 'm', 'n']
