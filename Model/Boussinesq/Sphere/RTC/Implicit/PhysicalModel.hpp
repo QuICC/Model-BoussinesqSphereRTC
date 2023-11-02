@@ -1,6 +1,7 @@
 /**
  * @file PhysicalModel.hpp
- * @brief Implementation of the Boussinesq rotating thermal convection in a sphere (Toroidal/Poloidal formulation)
+ * @brief Implementation of the Boussinesq rotating thermal convection in a
+ * sphere (Toroidal/Poloidal formulation)
  */
 
 #ifndef QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_IMPLICIT_PHYSICALMODEL_HPP
@@ -27,43 +28,43 @@ namespace RTC {
 
 namespace Implicit {
 
+/**
+ * @brief Implementation of the Boussinesq rotating thermal convection sphere
+ * model (Toroidal/Poloidal formulation)
+ */
+class PhysicalModel : public IRTCModel
+{
+public:
+   /// Typedef for the spatial scheme used
+   typedef SpatialScheme::WLFm SchemeType;
+
    /**
-    * @brief Implementation of the Boussinesq rotating thermal convection sphere model (Toroidal/Poloidal formulation)
+    * @brief Constructor
     */
-   class PhysicalModel: public IRTCModel
-   {
-      public:
-         /// Typedef for the spatial scheme used
-         typedef SpatialScheme::WLFm SchemeType;
+   PhysicalModel() = default;
 
-         /**
-          * @brief Constructor
-          */
-         PhysicalModel() = default;
+   /**
+    * @brief Destructor
+    */
+   virtual ~PhysicalModel() = default;
 
-         /**
-          * @brief Destructor
-          */
-         virtual ~PhysicalModel() = default;
+   /// Python script/module name
+   virtual std::string PYMODULE() override;
 
-         /// Python script/module name
-         virtual std::string PYMODULE() override;
+   /**
+    * @brief Initialize specialized backend
+    */
+   void init() final;
 
-         /**
-          * @brief Initialize specialized backend
-          */
-         void init() final;
+protected:
+private:
+};
 
-      protected:
-
-      private:
-   };
-
-} // Implicit
-} // RTC
-} // Sphere
-} // Boussinesq
-} // Model
-} // QuICC
+} // namespace Implicit
+} // namespace RTC
+} // namespace Sphere
+} // namespace Boussinesq
+} // namespace Model
+} // namespace QuICC
 
 #endif // QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_IMPLICIT_PHYSICALMODEL_HPP

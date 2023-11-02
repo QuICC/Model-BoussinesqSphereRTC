@@ -61,60 +61,60 @@ namespace RTC {
 
 std::vector<std::string> IRTCBackend::fieldNames() const
 {
-    std::vector<std::string> names = {PhysicalNames::Velocity().tag(),
-       PhysicalNames::Temperature().tag()};
+   std::vector<std::string> names = {PhysicalNames::Velocity().tag(),
+      PhysicalNames::Temperature().tag()};
 
-    return names;
+   return names;
 }
 
 std::vector<std::string> IRTCBackend::paramNames() const
 {
-    std::vector<std::string> names = {NonDimensional::Prandtl().tag(),
-       NonDimensional::Rayleigh().tag(), NonDimensional::Ekman().tag()};
+   std::vector<std::string> names = {NonDimensional::Prandtl().tag(),
+      NonDimensional::Rayleigh().tag(), NonDimensional::Ekman().tag()};
 
-    return names;
+   return names;
 }
 
 std::vector<bool> IRTCBackend::isPeriodicBox() const
 {
-    std::vector<bool> periodic = {false, false, false};
+   std::vector<bool> periodic = {false, false, false};
 
-    return periodic;
+   return periodic;
 }
 
 std::map<std::string, MHDFloat> IRTCBackend::automaticParameters(
    const std::map<std::string, MHDFloat>& cfg) const
 {
-    auto E = cfg.find(NonDimensional::Ekman().tag())->second;
+   auto E = cfg.find(NonDimensional::Ekman().tag())->second;
 
-    std::map<std::string, MHDFloat> params = {
-       {NonDimensional::CflInertial().tag(), 0.1 * E}};
+   std::map<std::string, MHDFloat> params = {
+      {NonDimensional::CflInertial().tag(), 0.1 * E}};
 
-    return params;
+   return params;
 }
 
 int IRTCBackend::nBc(const SpectralFieldId& fId) const
 {
-    int nBc = 0;
+   int nBc = 0;
 
-    if (fId == std::make_pair(PhysicalNames::Velocity::id(),
-                  FieldComponents::Spectral::TOR) ||
-        fId == std::make_pair(PhysicalNames::Temperature::id(),
-                  FieldComponents::Spectral::SCALAR))
-    {
-        nBc = 1;
-    }
-    else if (fId == std::make_pair(PhysicalNames::Velocity::id(),
-                       FieldComponents::Spectral::POL))
-    {
-        nBc = 2;
-    }
-    else
-    {
-        nBc = 0;
-    }
+   if (fId == std::make_pair(PhysicalNames::Velocity::id(),
+                 FieldComponents::Spectral::TOR) ||
+       fId == std::make_pair(PhysicalNames::Temperature::id(),
+                 FieldComponents::Spectral::SCALAR))
+   {
+      nBc = 1;
+   }
+   else if (fId == std::make_pair(PhysicalNames::Velocity::id(),
+                      FieldComponents::Spectral::POL))
+   {
+      nBc = 2;
+   }
+   else
+   {
+      nBc = 0;
+   }
 
-    return nBc;
+   return nBc;
 }
 
 void IRTCBackend::applyTau(SparseMatrix& mat, const SpectralFieldId& rowId,
@@ -122,182 +122,182 @@ void IRTCBackend::applyTau(SparseMatrix& mat, const SpectralFieldId& rowId,
    const BcMap& bcs, const NonDimensional::NdMap& nds,
    const bool isSplitOperator) const
 {
-    auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
+   auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
 
-    auto a = Polynomial::Worland::WorlandBase::ALPHA_CHEBYSHEV;
-    auto b = Polynomial::Worland::WorlandBase::DBETA_CHEBYSHEV;
+   auto a = Polynomial::Worland::WorlandBase::ALPHA_CHEBYSHEV;
+   auto b = Polynomial::Worland::WorlandBase::DBETA_CHEBYSHEV;
 
-    auto bcId = bcs.find(rowId.first)->second;
+   auto bcId = bcs.find(rowId.first)->second;
 
-    SparseSM::Worland::Boundary::Operator bcOp(nN, nN, a, b, l);
+   SparseSM::Worland::Boundary::Operator bcOp(nN, nN, a, b, l);
 
-    if (rowId == std::make_pair(PhysicalNames::Velocity::id(),
-                    FieldComponents::Spectral::TOR) &&
-        rowId == colId)
-    {
-        if (l > 0)
-        {
-            if (bcId == Bc::Name::NoSlip::id())
+   if (rowId == std::make_pair(PhysicalNames::Velocity::id(),
+                   FieldComponents::Spectral::TOR) &&
+       rowId == colId)
+   {
+      if (l > 0)
+      {
+         if (bcId == Bc::Name::NoSlip::id())
+         {
+            bcOp.addRow<SparseSM::Worland::Boundary::Value>();
+         }
+         else if (bcId == Bc::Name::StressFree::id())
+         {
+            bcOp.addRow<SparseSM::Worland::Boundary::R1D1DivR1>();
+         }
+         else
+         {
+            throw std::logic_error("Boundary conditions for Velocity "
+                                   "Toroidal component not implemented");
+         }
+      }
+   }
+   else if (rowId == std::make_pair(PhysicalNames::Velocity::id(),
+                        FieldComponents::Spectral::POL) &&
+            rowId == colId)
+   {
+      if (l > 0)
+      {
+         if (this->useSplitEquation())
+         {
+            if (isSplitOperator)
             {
-                bcOp.addRow<SparseSM::Worland::Boundary::Value>();
+               bcOp.addRow<SparseSM::Worland::Boundary::Value>();
+            }
+            else if (bcId == Bc::Name::NoSlip::id())
+            {
+               bcOp.addRow<SparseSM::Worland::Boundary::D1>();
             }
             else if (bcId == Bc::Name::StressFree::id())
             {
-                bcOp.addRow<SparseSM::Worland::Boundary::R1D1DivR1>();
+               bcOp.addRow<SparseSM::Worland::Boundary::D2>();
             }
             else
             {
-                throw std::logic_error("Boundary conditions for Velocity "
-                                       "Toroidal component not implemented");
+               throw std::logic_error(
+                  "Boundary conditions for Velocity Poloidal component "
+                  "not implemented");
             }
-        }
-    }
-    else if (rowId == std::make_pair(PhysicalNames::Velocity::id(),
-                         FieldComponents::Spectral::POL) &&
-             rowId == colId)
-    {
-        if (l > 0)
-        {
-            if (this->useSplitEquation())
+         }
+         else
+         {
+            if (bcId == Bc::Name::NoSlip::id())
             {
-                if (isSplitOperator)
-                {
-                    bcOp.addRow<SparseSM::Worland::Boundary::Value>();
-                }
-                else if (bcId == Bc::Name::NoSlip::id())
-                {
-                    bcOp.addRow<SparseSM::Worland::Boundary::D1>();
-                }
-                else if (bcId == Bc::Name::StressFree::id())
-                {
-                    bcOp.addRow<SparseSM::Worland::Boundary::D2>();
-                }
-                else
-                {
-                    throw std::logic_error(
-                       "Boundary conditions for Velocity Poloidal component "
-                       "not implemented");
-                }
+               bcOp.addRow<SparseSM::Worland::Boundary::Value>();
+               bcOp.addRow<SparseSM::Worland::Boundary::D1>();
+            }
+            else if (bcId == Bc::Name::StressFree::id())
+            {
+               bcOp.addRow<SparseSM::Worland::Boundary::Value>();
+               bcOp.addRow<SparseSM::Worland::Boundary::D2>();
             }
             else
             {
-                if (bcId == Bc::Name::NoSlip::id())
-                {
-                    bcOp.addRow<SparseSM::Worland::Boundary::Value>();
-                    bcOp.addRow<SparseSM::Worland::Boundary::D1>();
-                }
-                else if (bcId == Bc::Name::StressFree::id())
-                {
-                    bcOp.addRow<SparseSM::Worland::Boundary::Value>();
-                    bcOp.addRow<SparseSM::Worland::Boundary::D2>();
-                }
-                else
-                {
-                    throw std::logic_error(
-                       "Boundary conditions for Velocity Poloidal component "
-                       "not implemented");
-                }
+               throw std::logic_error(
+                  "Boundary conditions for Velocity Poloidal component "
+                  "not implemented");
             }
-        }
-    }
-    else if (rowId == std::make_pair(PhysicalNames::Temperature::id(),
-                         FieldComponents::Spectral::SCALAR) &&
-             rowId == colId)
-    {
-        if (bcId == Bc::Name::FixedTemperature::id())
-        {
-            bcOp.addRow<SparseSM::Worland::Boundary::Value>();
-        }
-        else if (bcId == Bc::Name::FixedFlux::id())
-        {
-            bcOp.addRow<SparseSM::Worland::Boundary::D1>();
-        }
-        else
-        {
-            throw std::logic_error(
-               "Boundary conditions for Temperature not implemented (" +
-               std::to_string(bcId) + ")");
-        }
-    }
+         }
+      }
+   }
+   else if (rowId == std::make_pair(PhysicalNames::Temperature::id(),
+                        FieldComponents::Spectral::SCALAR) &&
+            rowId == colId)
+   {
+      if (bcId == Bc::Name::FixedTemperature::id())
+      {
+         bcOp.addRow<SparseSM::Worland::Boundary::Value>();
+      }
+      else if (bcId == Bc::Name::FixedFlux::id())
+      {
+         bcOp.addRow<SparseSM::Worland::Boundary::D1>();
+      }
+      else
+      {
+         throw std::logic_error(
+            "Boundary conditions for Temperature not implemented (" +
+            std::to_string(bcId) + ")");
+      }
+   }
 
-    mat.real() += bcOp.mat();
+   mat.real() += bcOp.mat();
 }
 
 void IRTCBackend::stencil(SparseMatrix& mat, const SpectralFieldId& fieldId,
    const int l, const Resolution& res, const bool makeSquare, const BcMap& bcs,
    const NonDimensional::NdMap& nds) const
 {
-    auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
+   auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
 
-    auto a = Polynomial::Worland::WorlandBase::ALPHA_CHEBYSHEV;
-    auto b = Polynomial::Worland::WorlandBase::DBETA_CHEBYSHEV;
+   auto a = Polynomial::Worland::WorlandBase::ALPHA_CHEBYSHEV;
+   auto b = Polynomial::Worland::WorlandBase::DBETA_CHEBYSHEV;
 
-    auto bcId = bcs.find(fieldId.first)->second;
+   auto bcId = bcs.find(fieldId.first)->second;
 
-    int s = this->nBc(fieldId);
-    if (fieldId == std::make_pair(PhysicalNames::Velocity::id(),
-                      FieldComponents::Spectral::TOR))
-    {
-        if (bcId == Bc::Name::NoSlip::id())
-        {
-            SparseSM::Worland::Stencil::Value bc(nN, nN - s, a, b, l);
-            mat = bc.mat();
-        }
-        else if (bcId == Bc::Name::StressFree::id())
-        {
-            SparseSM::Worland::Stencil::R1D1DivR1 bc(nN, nN - s, a, b, l);
-            mat = bc.mat();
-        }
-        else
-        {
-            throw std::logic_error("Galerkin boundary conditions for Velocity "
-                                   "Toroidal component not implemented");
-        }
-    }
-    else if (fieldId == std::make_pair(PhysicalNames::Velocity::id(),
-                           FieldComponents::Spectral::POL))
-    {
-        if (bcId == Bc::Name::NoSlip::id())
-        {
-            SparseSM::Worland::Stencil::ValueD1 bc(nN, nN - s, a, b, l);
-            mat = bc.mat();
-        }
-        else if (bcId == Bc::Name::StressFree::id())
-        {
-            SparseSM::Worland::Stencil::ValueD2 bc(nN, nN - s, a, b, l);
-            mat = bc.mat();
-        }
-        else
-        {
-            throw std::logic_error("Galerin boundary conditions for Velocity "
-                                   "Poloidal component not implemented");
-        }
-    }
-    else if (fieldId == std::make_pair(PhysicalNames::Temperature::id(),
-                           FieldComponents::Spectral::SCALAR))
-    {
-        if (bcId == Bc::Name::FixedTemperature::id())
-        {
-            SparseSM::Worland::Stencil::Value bc(nN, nN - s, a, b, l);
-            mat = bc.mat();
-        }
-        else if (bcId == Bc::Name::FixedFlux::id())
-        {
-            SparseSM::Worland::Stencil::D1 bc(nN, nN - s, a, b, l);
-            mat = bc.mat();
-        }
-        else
-        {
-            throw std::logic_error(
-               "Galerkin boundary conditions for Temperature not implemented");
-        }
-    }
+   int s = this->nBc(fieldId);
+   if (fieldId == std::make_pair(PhysicalNames::Velocity::id(),
+                     FieldComponents::Spectral::TOR))
+   {
+      if (bcId == Bc::Name::NoSlip::id())
+      {
+         SparseSM::Worland::Stencil::Value bc(nN, nN - s, a, b, l);
+         mat = bc.mat();
+      }
+      else if (bcId == Bc::Name::StressFree::id())
+      {
+         SparseSM::Worland::Stencil::R1D1DivR1 bc(nN, nN - s, a, b, l);
+         mat = bc.mat();
+      }
+      else
+      {
+         throw std::logic_error("Galerkin boundary conditions for Velocity "
+                                "Toroidal component not implemented");
+      }
+   }
+   else if (fieldId == std::make_pair(PhysicalNames::Velocity::id(),
+                          FieldComponents::Spectral::POL))
+   {
+      if (bcId == Bc::Name::NoSlip::id())
+      {
+         SparseSM::Worland::Stencil::ValueD1 bc(nN, nN - s, a, b, l);
+         mat = bc.mat();
+      }
+      else if (bcId == Bc::Name::StressFree::id())
+      {
+         SparseSM::Worland::Stencil::ValueD2 bc(nN, nN - s, a, b, l);
+         mat = bc.mat();
+      }
+      else
+      {
+         throw std::logic_error("Galerin boundary conditions for Velocity "
+                                "Poloidal component not implemented");
+      }
+   }
+   else if (fieldId == std::make_pair(PhysicalNames::Temperature::id(),
+                          FieldComponents::Spectral::SCALAR))
+   {
+      if (bcId == Bc::Name::FixedTemperature::id())
+      {
+         SparseSM::Worland::Stencil::Value bc(nN, nN - s, a, b, l);
+         mat = bc.mat();
+      }
+      else if (bcId == Bc::Name::FixedFlux::id())
+      {
+         SparseSM::Worland::Stencil::D1 bc(nN, nN - s, a, b, l);
+         mat = bc.mat();
+      }
+      else
+      {
+         throw std::logic_error(
+            "Galerkin boundary conditions for Temperature not implemented");
+      }
+   }
 
-    if (makeSquare)
-    {
-        SparseSM::Worland::Id qId(nN - s, nN, a, b, l);
-        mat = qId.mat() * mat;
-    }
+   if (makeSquare)
+   {
+      SparseSM::Worland::Id qId(nN - s, nN, a, b, l);
+      mat = qId.mat() * mat;
+   }
 }
 
 void IRTCBackend::applyGalerkinStencil(SparseMatrix& mat,
@@ -305,17 +305,17 @@ void IRTCBackend::applyGalerkinStencil(SparseMatrix& mat,
    const int lc, const Resolution& res, const BcMap& bcs,
    const NonDimensional::NdMap& nds) const
 {
-    auto nNr = res.counter().dimensions(Dimensions::Space::SPECTRAL, lr)(0);
+   auto nNr = res.counter().dimensions(Dimensions::Space::SPECTRAL, lr)(0);
 
-    auto a = Polynomial::Worland::WorlandBase::ALPHA_CHEBYSHEV;
-    auto b = Polynomial::Worland::WorlandBase::DBETA_CHEBYSHEV;
+   auto a = Polynomial::Worland::WorlandBase::ALPHA_CHEBYSHEV;
+   auto b = Polynomial::Worland::WorlandBase::DBETA_CHEBYSHEV;
 
-    auto S = mat;
-    this->stencil(S, colId, lc, res, false, bcs, nds);
+   auto S = mat;
+   this->stencil(S, colId, lc, res, false, bcs, nds);
 
-    auto s = this->nBc(rowId);
-    SparseSM::Worland::Id qId(nNr - s, nNr, a, b, lr, 0, s);
-    mat = qId.mat() * (mat * S);
+   auto s = this->nBc(rowId);
+   SparseSM::Worland::Id qId(nNr - s, nNr, a, b, lr, 0, s);
+   mat = qId.mat() * (mat * S);
 }
 
 } // namespace RTC

@@ -35,61 +35,61 @@ namespace RTC {
 class IRTCModel : public IPhysicalPyModel<Simulation, StateGenerator,
                      VisualizationGenerator>
 {
- public:
-    /**
-     * @brief Constructor
-     */
-    IRTCModel() = default;
+public:
+   /**
+    * @brief Constructor
+    */
+   IRTCModel() = default;
 
-    /**
-     * @brief Destructor
-     */
-    virtual ~IRTCModel() = default;
+   /**
+    * @brief Destructor
+    */
+   virtual ~IRTCModel() = default;
 
-    /// Formulation used for vector fields
-    virtual VectorFormulation::Id SchemeFormulation() override;
+   /// Formulation used for vector fields
+   virtual VectorFormulation::Id SchemeFormulation() override;
 
-    /**
-     * @brief Version string
-     */
-    std::string version() const final;
+   /**
+    * @brief Version string
+    */
+   std::string version() const final;
 
-    /**
-     * @brief Add the required equations
-     *
-     * @param spSim   Shared simulation object
-     */
-    virtual void addEquations(SharedSimulation spSim) override;
+   /**
+    * @brief Add the required equations
+    *
+    * @param spSim   Shared simulation object
+    */
+   virtual void addEquations(SharedSimulation spSim) override;
 
-    /**
-     * @brief Add the initial state generation equations
-     *
-     * @param spGen   Shared generator object
-     */
-    virtual void addStates(SharedStateGenerator spGen) override;
+   /**
+    * @brief Add the initial state generation equations
+    *
+    * @param spGen   Shared generator object
+    */
+   virtual void addStates(SharedStateGenerator spGen) override;
 
-    /**
-     * @brief Add the visualization generation equations
-     *
-     * @param spGen   Shared visualization generator
-     */
-    virtual void addVisualizers(SharedVisualizationGenerator spVis) override;
+   /**
+    * @brief Add the visualization generation equations
+    *
+    * @param spGen   Shared visualization generator
+    */
+   virtual void addVisualizers(SharedVisualizationGenerator spVis) override;
 
-    /**
-     * @brief Add the required ASCII output files
-     *
-     * @param spSim   Shared simulation object
-     */
-    virtual void addAsciiOutputFiles(SharedSimulation spSim) override;
+   /**
+    * @brief Add the required ASCII output files
+    *
+    * @param spSim   Shared simulation object
+    */
+   virtual void addAsciiOutputFiles(SharedSimulation spSim) override;
 
-    /**
-     * @brief XML configuration tags
-     */
-    virtual std::map<std::string, std::map<std::string, int>>
-    configTags() const override;
+   /**
+    * @brief XML configuration tags
+    */
+   virtual std::map<std::string, std::map<std::string, int>>
+   configTags() const override;
 
- protected:
- private:
+protected:
+private:
 };
 
 } // namespace RTC
