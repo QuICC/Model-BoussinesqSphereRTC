@@ -36,30 +36,30 @@ namespace Explicit {
  */
 class PhysicalModel : public IRTCModel
 {
- public:
-    /// Typedef for the spatial scheme used
-    typedef SpatialScheme::WLFl SchemeType;
+public:
+   /// Typedef for the spatial scheme used
+   typedef SpatialScheme::WLFl SchemeType;
 
-    /**
-     * @brief Constructor
-     */
-    PhysicalModel() = default;
+   /**
+    * @brief Constructor
+    */
+   PhysicalModel() = default;
 
-    /**
-     * @brief Destructor
-     */
-    virtual ~PhysicalModel() = default;
+   /**
+    * @brief Destructor
+    */
+   virtual ~PhysicalModel() = default;
 
-    /// Python script/module name
-    std::string PYMODULE() final;
+   /// Python script/module name
+   std::string PYMODULE() final;
 
-    /**
-     * @brief Initialize specialized backend
-     */
-    void init() final;
+   /**
+    * @brief Initialize specialized backend
+    */
+   void init() final;
 
- protected:
- private:
+protected:
+private:
 };
 
 } // namespace Explicit

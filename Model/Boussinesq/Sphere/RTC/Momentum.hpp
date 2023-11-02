@@ -31,51 +31,51 @@ namespace RTC {
  */
 class Momentum : public IVectorEquation
 {
- public:
-    /**
-     * @brief Simple constructor
-     *
-     * @param spEqParams  Shared equation parameters
-     */
-    Momentum(SharedEquationParameters spEqParams,
-       SpatialScheme::SharedCISpatialScheme spScheme,
-       std::shared_ptr<Model::IModelBackend> spBackend);
+public:
+   /**
+    * @brief Simple constructor
+    *
+    * @param spEqParams  Shared equation parameters
+    */
+   Momentum(SharedEquationParameters spEqParams,
+      SpatialScheme::SharedCISpatialScheme spScheme,
+      std::shared_ptr<Model::IModelBackend> spBackend);
 
-    /**
-     * @brief Simple empty destructor
-     */
-    ~Momentum() = default;
+   /**
+    * @brief Simple empty destructor
+    */
+   ~Momentum() = default;
 
-    /**
-     * @brief Initialize constraint kernel
-     *
-     * @param spMesh  Physical space mesh
-     */
-    void initConstraintKernel(
-       const std::shared_ptr<std::vector<Array>> spMesh) final;
+   /**
+    * @brief Initialize constraint kernel
+    *
+    * @param spMesh  Physical space mesh
+    */
+   void initConstraintKernel(
+      const std::shared_ptr<std::vector<Array>> spMesh) final;
 
-    /**
-     * @brief Initialize nonlinear interaction kernel
-     */
-    void initNLKernel(const bool force = false) final;
+   /**
+    * @brief Initialize nonlinear interaction kernel
+    */
+   void initNLKernel(const bool force = false) final;
 
- protected:
-    /**
-     * @brief Set variable requirements
-     */
-    void setRequirements() final;
+protected:
+   /**
+    * @brief Set variable requirements
+    */
+   void setRequirements() final;
 
-    /**
-     * @brief Set the equation coupling information
-     */
-    void setCoupling() final;
+   /**
+    * @brief Set the equation coupling information
+    */
+   void setCoupling() final;
 
-    /**
-     * @brief Set the nonlinear integration components
-     */
-    void setNLComponents() final;
+   /**
+    * @brief Set the nonlinear integration components
+    */
+   void setNLComponents() final;
 
- private:
+private:
 };
 
 } // namespace RTC

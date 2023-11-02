@@ -31,43 +31,43 @@ namespace RTC {
  */
 class Transport : public IScalarEquation
 {
- public:
-    /**
-     * @brief Simple constructor
-     *
-     * @param spEqParams  Shared equation parameters
-     */
-    Transport(SharedEquationParameters spEqParams,
-       SpatialScheme::SharedCISpatialScheme spScheme,
-       std::shared_ptr<Model::IModelBackend> spBackend);
+public:
+   /**
+    * @brief Simple constructor
+    *
+    * @param spEqParams  Shared equation parameters
+    */
+   Transport(SharedEquationParameters spEqParams,
+      SpatialScheme::SharedCISpatialScheme spScheme,
+      std::shared_ptr<Model::IModelBackend> spBackend);
 
-    /**
-     * @brief Simple empty destructor
-     */
-    ~Transport() = default;
+   /**
+    * @brief Simple empty destructor
+    */
+   ~Transport() = default;
 
-    /**
-     * @brief Initialize nonlinear interaction kernel
-     */
-    void initNLKernel(const bool force = false) final;
+   /**
+    * @brief Initialize nonlinear interaction kernel
+    */
+   void initNLKernel(const bool force = false) final;
 
- protected:
-    /**
-     * @brief Set variable requirements
-     */
-    void setNLComponents() final;
+protected:
+   /**
+    * @brief Set variable requirements
+    */
+   void setNLComponents() final;
 
-    /**
-     * @brief Set variable requirements
-     */
-    void setRequirements() final;
+   /**
+    * @brief Set variable requirements
+    */
+   void setRequirements() final;
 
-    /**
-     * @brief Set the equation coupling information
-     */
-    void setCoupling() final;
+   /**
+    * @brief Set the equation coupling information
+    */
+   void setCoupling() final;
 
- private:
+private:
 };
 
 } // namespace RTC
