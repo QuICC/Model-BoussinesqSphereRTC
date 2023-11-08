@@ -16,7 +16,7 @@ $$
 Pr = \frac{\nu}{\kappa};\quad E=\frac{\nu}{2\Omega r_o^2};\quad Ra=\frac{\gamma \alpha \beta r_o^4}{2\nu\Omega}
 $$
 
-where $\nu$, $\kappa$, $\alpha$ are the kinematic viscosity, thermal conductivity, and thermal expansion coefficents; $\Omega$ is the rotation rate and $r_o$ is the radius of the sphere; $\gamma$ and $\beta$ are defined via the gravitational acceleration, ${\bf g} = -\gamma {\bf r}$, and the background temperature profile for internal heating, $\nabla\Theta_b = -\beta {\bf r}$.
+where $\nu$, $\kappa$, $\alpha$ are the kinematic viscosity, thermal conductivity, and thermal expansion coefficents; $\Omega$ is the rotation rate and $r_o$ is the radius of the sphere; $\gamma$ and $\beta$ are defined via the gravitational acceleration, ${\bf g} = -\gamma {\bf r}$, and the background temperature profile for internal heating, $\nabla\Theta_b = -\beta {\bf r}$. The equations have been non-dimensionalised via the viscous time-scale.
 
 
 The system is solved using a Toroidal/Poloidal decomposition of the velocity
