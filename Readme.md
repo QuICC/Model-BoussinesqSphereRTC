@@ -7,7 +7,7 @@ $$
 $$
 
 $$
-(\partial_t -\frac{1}{Pr}\Delta)\Theta = -{\bf u}\cdot\nabla\Theta + \frac{1}{Pr}{\bf u}\cdot{\bf r}
+(\partial_t -\frac{1}{Pr}\Delta)\Theta = -{\bf u}\cdot\nabla\Theta + {\bf u}\cdot{\bf r}
 $$
 
 with the parameters defined as
