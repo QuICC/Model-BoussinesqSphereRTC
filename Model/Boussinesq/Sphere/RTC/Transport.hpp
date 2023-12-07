@@ -51,6 +51,16 @@ public:
     */
    void initNLKernel(const bool force = false) final;
 
+   /**
+    * @brief Generic boundary value implementation
+    *
+    * @param compId  ID of the spectral component
+    * @param i       Fastest index
+    * @param j       Second index
+    * @param k       Slowest index
+    */
+   virtual MHDVariant boundaryValue(FieldComponents::Spectral::Id compId, const int i, const int j, const int k) const;
+
 protected:
    /**
     * @brief Set variable requirements
