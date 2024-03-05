@@ -34,7 +34,7 @@
 #include "QuICC/NonDimensional/Rayleigh.hpp"
 #include "QuICC/PhysicalNames/Temperature.hpp"
 #include "QuICC/PhysicalNames/Velocity.hpp"
-#include "QuICC/Polynomial/Worland/WorlandBase.hpp"
+#include "QuICC/Polynomial/Worland/WorlandTypes.hpp"
 #include "QuICC/Resolutions/Tools/IndexCounter.hpp"
 #include "QuICC/SparseSM/Worland/Boundary/D1.hpp"
 #include "QuICC/SparseSM/Worland/Boundary/D2.hpp"
@@ -124,8 +124,8 @@ void IRTCBackend::applyTau(SparseMatrix& mat, const SpectralFieldId& rowId,
 {
    auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
 
-   auto a = Polynomial::Worland::WorlandBase::ALPHA_CHEBYSHEV;
-   auto b = Polynomial::Worland::WorlandBase::DBETA_CHEBYSHEV;
+   auto a = Polynomial::Worland::worland_default_t::ALPHA;
+   auto b = Polynomial::Worland::worland_default_t::DBETA;
 
    auto bcId = bcs.find(rowId.first)->second;
 
@@ -229,8 +229,8 @@ void IRTCBackend::stencil(SparseMatrix& mat, const SpectralFieldId& fieldId,
 {
    auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
 
-   auto a = Polynomial::Worland::WorlandBase::ALPHA_CHEBYSHEV;
-   auto b = Polynomial::Worland::WorlandBase::DBETA_CHEBYSHEV;
+   auto a = Polynomial::Worland::worland_default_t::ALPHA;
+   auto b = Polynomial::Worland::worland_default_t::DBETA;
 
    auto bcId = bcs.find(fieldId.first)->second;
 
@@ -307,8 +307,8 @@ void IRTCBackend::applyGalerkinStencil(SparseMatrix& mat,
 {
    auto nNr = res.counter().dimensions(Dimensions::Space::SPECTRAL, lr)(0);
 
-   auto a = Polynomial::Worland::WorlandBase::ALPHA_CHEBYSHEV;
-   auto b = Polynomial::Worland::WorlandBase::DBETA_CHEBYSHEV;
+   auto a = Polynomial::Worland::worland_default_t::ALPHA;
+   auto b = Polynomial::Worland::worland_default_t::DBETA;
 
    auto S = mat;
    this->stencil(S, colId, lc, res, false, bcs, nds);
