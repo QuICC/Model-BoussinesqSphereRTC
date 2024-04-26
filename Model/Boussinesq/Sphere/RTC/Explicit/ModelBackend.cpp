@@ -36,25 +36,12 @@
 #include "QuICC/NonDimensional/Rayleigh.hpp"
 #include "QuICC/PhysicalNames/Temperature.hpp"
 #include "QuICC/PhysicalNames/Velocity.hpp"
-#include "QuICC/Polynomial/Worland/WorlandTypes.hpp"
 #include "QuICC/Resolutions/Tools/IndexCounter.hpp"
-#include "QuICC/SparseSM/Worland/Boundary/D1.hpp"
-#include "QuICC/SparseSM/Worland/Boundary/D2.hpp"
-#include "QuICC/SparseSM/Worland/Boundary/Operator.hpp"
-#include "QuICC/SparseSM/Worland/Boundary/R1D1DivR1.hpp"
-#include "QuICC/SparseSM/Worland/Boundary/Value.hpp"
-#include "QuICC/SparseSM/Worland/I2.hpp"
-#include "QuICC/SparseSM/Worland/I2Lapl.hpp"
-#include "QuICC/SparseSM/Worland/I4.hpp"
-#include "QuICC/SparseSM/Worland/I4Lapl.hpp"
-#include "QuICC/SparseSM/Worland/I4Lapl2.hpp"
-#include "QuICC/SparseSM/Worland/Id.hpp"
-#include "QuICC/SparseSM/Worland/Stencil/D1.hpp"
-#include "QuICC/SparseSM/Worland/Stencil/R1D1DivR1.hpp"
-#include "QuICC/SparseSM/Worland/Stencil/Value.hpp"
-#include "QuICC/SparseSM/Worland/Stencil/ValueD1.hpp"
-#include "QuICC/SparseSM/Worland/Stencil/ValueD2.hpp"
 #include "QuICC/Tools/IdToHuman.hpp"
+#include "QuICC/SparseSM/Bessel/BesselKind.hpp"
+#include "QuICC/SparseSM/Id.hpp"
+#include "QuICC/SparseSM/Bessel/SphLapl.hpp"
+#include "QuICC/SparseSM/Bessel/SphLapl2.hpp"
 
 namespace QuICC {
 
@@ -85,10 +72,6 @@ struct BlockOptionsImpl : public details::BlockOptions
     */
    virtual ~BlockOptionsImpl() = default;
 
-   /// Jones-Worland alpha
-   Internal::MHDFloat a;
-   /// Jones-Worland beta
-   Internal::MHDFloat b;
    /// Harmonic degree l
    int l;
    /// Use truncated quasi-inverse?
@@ -207,8 +190,6 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
       descr.push_back({});
       auto& d = descr.back();
       auto opts = std::make_shared<implDetails::BlockOptionsImpl>();
-      opts->a = Polynomial::Worland::worland_default_t::ALPHA;
-      opts->b = Polynomial::Worland::worland_default_t::DBETA;
       opts->l = eigs.at(0);
       opts->bcId = bcs.find(colId.first)->second;
       opts->truncateQI = this->mcTruncateQI;
@@ -234,9 +215,8 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
          {
             auto& o =
                *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
-            SparseSM::Worland::I2Lapl i2lapl(nNr, nNc, o.a, o.b, l,
-               1 * o.truncateQI);
-            bMat = i2lapl.mat();
+            SparseSM::Bessel::SphLapl lapl(nNr, nNc, SparseSM::Bessel::BesselKind::VALUE, l);
+            bMat = lapl.mat();
          }
 
          return bMat;
@@ -268,22 +248,20 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
             {
                if (o.isSplitOperator)
                {
-                  SparseSM::Worland::I2Lapl i2lapl(nNr, nNc, o.a, o.b, l,
-                     1 * o.truncateQI);
-                  bMat = i2lapl.mat();
+                  SparseSM::Bessel::SphLapl lapl(nNr, nNc, SparseSM::Bessel::BesselKind::VALUE, l);
+                  bMat = lapl.mat();
                }
                else
                {
-                  SparseSM::Worland::I2Lapl i2lapl(nNr, nNc, o.a, o.b, l,
-                     1 * o.truncateQI);
-                  bMat = i2lapl.mat();
+                  SparseSM::Bessel::SphLapl lapl(nNr, nNc, SparseSM::Bessel::BesselKind::VALUE, l);
+                  bMat = lapl.mat();
                }
             }
             else
             {
-               SparseSM::Worland::I4Lapl2 i4lapl2(nNr, nNc, o.a, o.b, l,
-                  2 * o.truncateQI);
-               bMat = i4lapl2.mat();
+               SparseSM::Bessel::SphLapl2 lapl2(nNr, nNc, SparseSM::Bessel::BesselKind::VALUE, l);
+               SparseSM::Id qid(nNr, nNc, -1);
+               bMat = qid.mat()*lapl2.mat();
             }
          }
 
@@ -312,9 +290,8 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
          const auto Pr =
             nds.find(NonDimensional::Prandtl::id())->second->value();
 
-         SparseSM::Worland::I2Lapl i2lapl(nNr, nNc, o.a, o.b, l,
-            1 * o.truncateQI);
-         SparseMatrix bMat = (1.0 / Pr) * i2lapl.mat();
+         SparseSM::Bessel::SphLapl lapl(nNr, nNc, SparseSM::Bessel::BesselKind::VALUE, l);
+         SparseMatrix bMat = (1.0 / Pr) * lapl.mat();
 
          return bMat;
       };
@@ -350,8 +327,6 @@ std::vector<details::BlockDescription> ModelBackend::timeBlockBuilder(
       descr.push_back({});
       auto& d = descr.back();
       auto opts = std::make_shared<implDetails::BlockOptionsImpl>();
-      opts->a = Polynomial::Worland::worland_default_t::ALPHA;
-      opts->b = Polynomial::Worland::worland_default_t::DBETA;
       opts->l = eigs.at(0);
       opts->bcId = bcs.find(colId.first)->second;
       opts->truncateQI = this->mcTruncateQI;
@@ -378,13 +353,12 @@ std::vector<details::BlockDescription> ModelBackend::timeBlockBuilder(
 
          if (l > 0)
          {
-            SparseSM::Worland::I2 spasm(nNr, nNc, o.a, o.b, l,
-               1 * o.truncateQI);
-            bMat = spasm.mat();
+            SparseSM::Id qid(nNr, nNc);
+            bMat = qid.mat();
          }
          else
          {
-            SparseSM::Worland::Id qid(nNr, nNc, o.a, o.b, l);
+            SparseSM::Id qid(nNr, nNc);
             bMat = qid.mat();
          }
 
@@ -416,35 +390,19 @@ std::vector<details::BlockDescription> ModelBackend::timeBlockBuilder(
          {
             if (o.useSplitEquation)
             {
-               SparseSM::Worland::I2 spasm(nNr, nNc, o.a, o.b, l,
-                  1 * o.truncateQI);
-               bMat = spasm.mat();
+               SparseSM::Id qid(nNr, nNc);
+               bMat = qid.mat();
             }
             else
             {
-               SparseSM::Worland::I4Lapl spasm(nNr, nNc, o.a, o.b, l,
-                  2 * o.truncateQI);
-
-               // Correct Laplacian for 4th order system according to:
-               // McFadden,Murray,Boisvert,
-               // Elimination of Spurious Eigenvalues in the
-               // Chebyshev Tau Spectral Method,
-               // JCP 91, 228-239 (1990)
-               // We simply drop the last column
-               if (o.bcId == Bc::Name::NoSlip::id())
-               {
-                  SparseSM::Worland::Id qid(nNr, nNc, o.a, o.b, l, -1);
-                  bMat = spasm.mat() * qid.mat();
-               }
-               else
-               {
-                  bMat = spasm.mat();
-               }
+               SparseSM::Bessel::SphLapl spasm(nNr, nNc, SparseSM::Bessel::BesselKind::VALUE, l);
+               SparseSM::Id qid(nNr, nNc, -1);
+               bMat = qid.mat()*spasm.mat();
             }
          }
          else
          {
-            SparseSM::Worland::Id qid(nNr, nNc, o.a, o.b, l);
+            SparseSM::Id qid(nNr, nNc);
             bMat = qid.mat();
          }
 
@@ -469,8 +427,8 @@ std::vector<details::BlockDescription> ModelBackend::timeBlockBuilder(
          auto& o =
             *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
 
-         SparseSM::Worland::I2 spasm(nNr, nNc, o.a, o.b, l, 1 * o.truncateQI);
-         SparseMatrix bMat = spasm.mat();
+         SparseSM::Id qid(nNr, nNc);
+         SparseMatrix bMat = qid.mat();
 
          return bMat;
       };
@@ -499,8 +457,6 @@ std::vector<details::BlockDescription> ModelBackend::boundaryBlockBuilder(
       descr.push_back({});
       auto& d = descr.back();
       auto opts = std::make_shared<implDetails::BlockOptionsImpl>();
-      opts->a = Polynomial::Worland::worland_default_t::ALPHA;
-      opts->b = Polynomial::Worland::worland_default_t::DBETA;
       opts->l = eigs.at(0);
       opts->bcId = bcs.find(colId.first)->second;
       opts->truncateQI = this->mcTruncateQI;
@@ -551,8 +507,6 @@ ModelBackend::splitBoundaryValueBlockBuilder(const SpectralFieldId& rowId,
       descr.push_back({});
       auto& d = descr.back();
       auto opts = std::make_shared<implDetails::BlockOptionsImpl>();
-      opts->a = Polynomial::Worland::worland_default_t::ALPHA;
-      opts->b = Polynomial::Worland::worland_default_t::DBETA;
       opts->l = eigs.at(0);
       opts->bcId = bcs.find(colId.first)->second;
       opts->truncateQI = this->mcTruncateQI;

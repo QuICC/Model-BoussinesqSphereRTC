@@ -43,6 +43,8 @@
 #include "QuICC/PhysicalNames/Temperature.hpp"
 #include "QuICC/PhysicalNames/Velocity.hpp"
 #include "QuICC/SpectralKernels/MakeRandom.hpp"
+#include "QuICC/Transform/Path/ValueScalar.hpp"
+#include "QuICC/Transform/Path/NoSlipTorPol.hpp"
 
 namespace QuICC {
 
@@ -88,6 +90,8 @@ void IRTCModel::addStates(SharedStateGenerator spGen)
    spScalar =
       spGen->addEquation<Equations::SphereExactScalarState>(this->spBackend());
    spScalar->setIdentity(PhysicalNames::Temperature::id());
+   spScalar->setBackwardPath(Transform::Path::ValueScalar::id());
+   spScalar->setForwardPath(Transform::Path::ValueScalar::id());
    switch (3)
    {
    case 0: {
@@ -143,6 +147,8 @@ void IRTCModel::addStates(SharedStateGenerator spGen)
    spVector =
       spGen->addEquation<Equations::SphereExactVectorState>(this->spBackend());
    spVector->setIdentity(PhysicalNames::Velocity::id());
+   spVector->setBackwardPath(Transform::Path::NoSlipTorPol::id());
+   spVector->setForwardPath(Transform::Path::NoSlipTorPol::id());
    switch (3)
    {
    // Toroidal only
@@ -282,41 +288,67 @@ void IRTCModel::addAsciiOutputFiles(SharedSimulation spSim)
    this->enableAsciiFile<Io::Variable::SphereNusseltWriter>("nusselt", "",
       PhysicalNames::Temperature::id(), spSim);
 
+   auto tempPathId = Transform::Path::ValueScalar::id();
    // Create temperature energy writer
-   this->enableAsciiFile<Io::Variable::SphereScalarEnergyWriter>(
-      "temperature_energy", "temperature", PhysicalNames::Temperature::id(),
-      spSim);
+   {
+      auto spF = this->enableAsciiFile<Io::Variable::SphereScalarEnergyWriter>(
+         "temperature_energy", "temperature", PhysicalNames::Temperature::id(),
+         spSim);
+      spF->setTransformPath(tempPathId);
+   }
 
    // Create temperature L energy spectrum writer
-   this->enableAsciiFile<Io::Variable::SphereScalarLSpectrumWriter>(
-      "temperature_l_spectrum", "temperature", PhysicalNames::Temperature::id(),
-      spSim);
+   {
+      auto spF = this->enableAsciiFile<Io::Variable::SphereScalarLSpectrumWriter>(
+         "temperature_l_spectrum", "temperature", PhysicalNames::Temperature::id(),
+         spSim);
+         spF->setTransformPath(tempPathId);
+   }
 
    // Create temperature M energy spectrum writer
-   this->enableAsciiFile<Io::Variable::SphereScalarMSpectrumWriter>(
-      "temperature_m_spectrum", "temperature", PhysicalNames::Temperature::id(),
-      spSim);
+   {   
+      auto spF = this->enableAsciiFile<Io::Variable::SphereScalarMSpectrumWriter>(
+         "temperature_m_spectrum", "temperature", PhysicalNames::Temperature::id(),
+         spSim);
+      spF->setTransformPath(tempPathId);
+   }
 
    // Create temperature N power spectrum writer
-   this->enableAsciiFile<Io::Variable::SphereScalarNSpectrumWriter>(
-      "temperature_n_spectrum", "temperature", PhysicalNames::Temperature::id(),
-      spSim);
+   {   
+      auto spF = this->enableAsciiFile<Io::Variable::SphereScalarNSpectrumWriter>(
+            "temperature_n_spectrum", "temperature", PhysicalNames::Temperature::id(),
+            spSim);
+      spF->setTransformPath(tempPathId);
+   }
 
+   auto velPathId = Transform::Path::NoSlipTorPol::id();
    // Create kinetic energy writer
-   this->enableAsciiFile<Io::Variable::SphereTorPolEnergyWriter>(
-      "kinetic_energy", "kinetic", PhysicalNames::Velocity::id(), spSim);
+   {
+      auto spF = this->enableAsciiFile<Io::Variable::SphereTorPolEnergyWriter>(
+         "kinetic_energy", "kinetic", PhysicalNames::Velocity::id(), spSim);
+      spF->setTransformPath(velPathId);
+   }
 
    // Create kinetic L energy spectrum writer
-   this->enableAsciiFile<Io::Variable::SphereTorPolLSpectrumWriter>(
-      "kinetic_l_spectrum", "kinetic", PhysicalNames::Velocity::id(), spSim);
+   {
+      auto spF = this->enableAsciiFile<Io::Variable::SphereTorPolLSpectrumWriter>(
+         "kinetic_l_spectrum", "kinetic", PhysicalNames::Velocity::id(), spSim);
+         spF->setTransformPath(velPathId);
+   }
 
    // Create kinetic M energy spectrum writer
-   this->enableAsciiFile<Io::Variable::SphereTorPolMSpectrumWriter>(
-      "kinetic_m_spectrum", "kinetic", PhysicalNames::Velocity::id(), spSim);
+   {
+      auto spF = this->enableAsciiFile<Io::Variable::SphereTorPolMSpectrumWriter>(
+         "kinetic_m_spectrum", "kinetic", PhysicalNames::Velocity::id(), spSim);
+         spF->setTransformPath(velPathId);
+   }
 
    // Create kinetic N power spectrum writer
-   this->enableAsciiFile<Io::Variable::SphereTorPolNSpectrumWriter>(
-      "kinetic_n_spectrum", "kinetic", PhysicalNames::Velocity::id(), spSim);
+   {
+      auto spF = this->enableAsciiFile<Io::Variable::SphereTorPolNSpectrumWriter>(
+         "kinetic_n_spectrum", "kinetic", PhysicalNames::Velocity::id(), spSim);
+         spF->setTransformPath(velPathId);
+   }
 
    // Create angular momentum writer
    this->enableAsciiFile<Io::Variable::SphereAngularMomentumWriter>(

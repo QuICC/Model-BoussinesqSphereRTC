@@ -11,6 +11,7 @@
 //
 #include "Model/Boussinesq/Sphere/RTC/Momentum.hpp"
 #include "Model/Boussinesq/Sphere/RTC/MomentumKernel.hpp"
+#include "QuICC/Bc/Name/NoSlip.hpp"
 #include "QuICC/Bc/Name/StressFree.hpp"
 #include "QuICC/NonDimensional/Ekman.hpp"
 #include "QuICC/NonDimensional/Rayleigh.hpp"
@@ -19,9 +20,11 @@
 #include "QuICC/SolveTiming/Prognostic.hpp"
 #include "QuICC/SpatialScheme/ISpatialScheme.hpp"
 #include "QuICC/SpectralKernels/Sphere/ConserveAngularMomentum.hpp"
-#include "QuICC/Transform/Path/I2CurlNl.hpp"
-#include "QuICC/Transform/Path/NegI2CurlCurlNl.hpp"
-#include "QuICC/Transform/Path/NegI4CurlCurlNl.hpp"
+#include "QuICC/Transform/Path/NoSlipTorPol.hpp"
+#include "QuICC/Transform/Path/StressFreeTorPol.hpp"
+#include "QuICC/Transform/Path/ValueCurlNl.hpp"
+#include "QuICC/Transform/Path/StressFreeCurlNl.hpp"
+#include "QuICC/Transform/Path/ValueBc1NegCurlCurlNl.hpp"
 
 namespace QuICC {
 
@@ -71,19 +74,54 @@ void Momentum::setCoupling()
 
 void Momentum::setNLComponents()
 {
-   this->addNLComponent(FieldComponents::Spectral::TOR,
-      Transform::Path::I2CurlNl::id());
-
-   if (this->couplingInfo(FieldComponents::Spectral::POL).isSplitEquation())
+   std::size_t torPathId;
+   std::size_t polPathId;
+   auto bcId = this->bcIds().bcId(this->name());
+   if(bcId == Bc::Name::NoSlip::id())
    {
-      this->addNLComponent(FieldComponents::Spectral::POL,
-         Transform::Path::NegI2CurlCurlNl::id());
+      torPathId = Transform::Path::ValueCurlNl::id();
+      polPathId = Transform::Path::ValueBc1NegCurlCurlNl::id();
+   }
+   else if(bcId == Bc::Name::StressFree::id())
+   {
+      torPathId = Transform::Path::StressFreeCurlNl::id();
+      polPathId = Transform::Path::ValueBc1NegCurlCurlNl::id();
    }
    else
    {
-      this->addNLComponent(FieldComponents::Spectral::POL,
-         Transform::Path::NegI4CurlCurlNl::id());
+      throw std::logic_error("Unknown Boundary condition");
    }
+
+   this->addNLComponent(FieldComponents::Spectral::TOR, torPathId);
+
+   if (this->couplingInfo(FieldComponents::Spectral::POL).isSplitEquation())
+   {
+      this->addNLComponent(FieldComponents::Spectral::POL, polPathId);
+   }
+   else
+   {
+      this->addNLComponent(FieldComponents::Spectral::POL, polPathId);
+   }
+}
+
+std::vector<Transform::TransformPath> Momentum::backwardPaths()
+{
+   std::size_t pathId;
+   auto bcId = this->bcIds().bcId(this->name());
+   if(bcId == Bc::Name::NoSlip::id())
+   {
+      pathId = Transform::Path::NoSlipTorPol::id();
+   }
+   else if(bcId == Bc::Name::StressFree::id())
+   {
+      pathId = Transform::Path::StressFreeTorPol::id();
+   }
+   else
+   {
+      throw std::logic_error("Unknown Boundary condition");
+   }
+
+   return this->defaultBackwardPaths(pathId);
 }
 
 void Momentum::initNLKernel(const bool force)

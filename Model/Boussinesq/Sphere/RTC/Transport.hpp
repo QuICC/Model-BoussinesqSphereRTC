@@ -51,6 +51,11 @@ public:
     */
    void initNLKernel(const bool force = false) final;
 
+   /**
+    * @brief Get backward transform paths
+    */
+   virtual std::vector<Transform::TransformPath> backwardPaths() override;
+
 protected:
    /**
     * @brief Set variable requirements
