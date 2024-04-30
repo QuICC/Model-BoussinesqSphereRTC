@@ -43,6 +43,7 @@
 #include "QuICC/PhysicalNames/Temperature.hpp"
 #include "QuICC/PhysicalNames/Velocity.hpp"
 #include "QuICC/SpectralKernels/MakeRandom.hpp"
+#include "QuICC/Generator/States/Kernels/Sphere/TorPolHarmonic.hpp"
 
 namespace QuICC {
 
@@ -88,7 +89,7 @@ void IRTCModel::addStates(SharedStateGenerator spGen)
    spScalar =
       spGen->addEquation<Equations::SphereExactScalarState>(this->spBackend());
    spScalar->setIdentity(PhysicalNames::Temperature::id());
-   switch (3)
+   switch (2)
    {
    case 0: {
       spScalar->setPhysicalNoise(1e-15);
@@ -143,7 +144,7 @@ void IRTCModel::addStates(SharedStateGenerator spGen)
    spVector =
       spGen->addEquation<Equations::SphereExactVectorState>(this->spBackend());
    spVector->setIdentity(PhysicalNames::Velocity::id());
-   switch (3)
+   switch (5)
    {
    // Toroidal only
    case 0: {
@@ -209,6 +210,30 @@ void IRTCModel::addStates(SharedStateGenerator spGen)
       spKernel->init(-1e-4, 1e-4);
       spVector->setSrcKernel(FieldComponents::Spectral::TOR, spKernel);
       spVector->setSrcKernel(FieldComponents::Spectral::POL, spKernel);
+   }
+   break;
+
+   case 5: {
+      auto spKernel = std::make_shared<Physical::Kernel::Sphere::TorPolHarmonic>();
+      // Toroidal
+      tSH.clear();
+      ptSH = tSH.insert(
+         std::make_pair(std::make_pair(1, 1), std::map<int, MHDComplex>()));
+      ptSH.first->second.insert(std::make_pair(0, MHDComplex(1.0, 1.0)));
+      ptSH.first->second.insert(std::make_pair(1, MHDComplex(1.0, 1.0)));
+      ptSH.first->second.insert(std::make_pair(2, MHDComplex(1.0, 1.0)));
+      ptSH.first->second.insert(std::make_pair(3, MHDComplex(-3.0, -3.0)));
+      spKernel->setModes(FieldComponents::Spectral::TOR, tSH);
+      // Poloidal
+      tSH.clear();
+      ptSH = tSH.insert(
+         std::make_pair(std::make_pair(1, 1), std::map<int, MHDComplex>()));
+      ptSH.first->second.insert(std::make_pair(0, MHDComplex(1.0,1.0)));
+      ptSH.first->second.insert(std::make_pair(1, MHDComplex(1.0,1.0)));
+      ptSH.first->second.insert(std::make_pair(2, MHDComplex(-5.0,-5.0)));
+      ptSH.first->second.insert(std::make_pair(3, MHDComplex(3.0,3.0)));
+      spKernel->setModes(FieldComponents::Spectral::POL, tSH);
+      spVector->setPhysicalKernel(spKernel);
    }
    break;
    }
