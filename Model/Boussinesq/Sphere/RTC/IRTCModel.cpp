@@ -45,6 +45,10 @@
 #include "QuICC/SpectralKernels/MakeRandom.hpp"
 #include "QuICC/Transform/Path/ValueScalar.hpp"
 #include "QuICC/Transform/Path/NoSlipTorPol.hpp"
+#include "QuICC/Bc/Name/FixedTemperature.hpp"
+#include "QuICC/Bc/Name/NoSlip.hpp"
+#include "QuICC/Bc/Name/StressFree.hpp"
+#include "QuICC/Generator/States/Kernels/Sphere/TorPolHarmonic.hpp"
 
 namespace QuICC {
 
@@ -79,6 +83,30 @@ void IRTCModel::addEquations(SharedSimulation spSim)
 
 void IRTCModel::addStates(SharedStateGenerator spGen)
 {
+   std::size_t tempPathId = 0;
+   std::size_t velPathId = 0;
+
+   // Create boundary object
+   auto spBcs = spGen->createBoundary();
+   // Temperature
+   if(spBcs->bcId(PhysicalNames::Temperature::id()) == Bc::Name::FixedTemperature::id())
+   {
+      tempPathId = Transform::Path::ValueScalar::id();
+   }
+   else
+   {
+      throw std::logic_error("Boundary condition for Temperature not implemented");
+   }
+   // Velocity
+   if(spBcs->bcId(PhysicalNames::Velocity::id()) == Bc::Name::NoSlip::id())
+   {
+      velPathId = Transform::Path::NoSlipTorPol::id();
+   }
+   else
+   {
+      throw std::logic_error("Boundary condition for Temperature not implemented");
+   }
+
    // Shared pointer to equation
    Equations::SharedSphereExactScalarState spScalar;
    Equations::SharedSphereExactVectorState spVector;
@@ -90,9 +118,9 @@ void IRTCModel::addStates(SharedStateGenerator spGen)
    spScalar =
       spGen->addEquation<Equations::SphereExactScalarState>(this->spBackend());
    spScalar->setIdentity(PhysicalNames::Temperature::id());
-   spScalar->setBackwardPath(Transform::Path::ValueScalar::id());
-   spScalar->setForwardPath(Transform::Path::ValueScalar::id());
-   switch (3)
+   spScalar->setBackwardPath(tempPathId);
+   spScalar->setForwardPath(tempPathId);
+   switch (2)
    {
    case 0: {
       spScalar->setPhysicalNoise(1e-15);
@@ -147,9 +175,9 @@ void IRTCModel::addStates(SharedStateGenerator spGen)
    spVector =
       spGen->addEquation<Equations::SphereExactVectorState>(this->spBackend());
    spVector->setIdentity(PhysicalNames::Velocity::id());
-   spVector->setBackwardPath(Transform::Path::NoSlipTorPol::id());
-   spVector->setForwardPath(Transform::Path::NoSlipTorPol::id());
-   switch (3)
+   spVector->setBackwardPath(velPathId);
+   spVector->setForwardPath(velPathId);
+   switch (5)
    {
    // Toroidal only
    case 0: {
@@ -217,6 +245,30 @@ void IRTCModel::addStates(SharedStateGenerator spGen)
       spVector->setSrcKernel(FieldComponents::Spectral::POL, spKernel);
    }
    break;
+
+   case 5: {
+      auto spKernel = std::make_shared<Physical::Kernel::Sphere::TorPolHarmonic>();
+      // Toroidal
+      tSH.clear();
+      ptSH = tSH.insert(
+         std::make_pair(std::make_pair(1, 1), std::map<int, MHDComplex>()));
+      ptSH.first->second.insert(std::make_pair(0, MHDComplex(1.0,1.0)));
+      ptSH.first->second.insert(std::make_pair(1, MHDComplex(1.0,1.0)));
+      ptSH.first->second.insert(std::make_pair(2, MHDComplex(1.0,1.0)));
+      ptSH.first->second.insert(std::make_pair(3, MHDComplex(-3.0,-3.0)));
+      spKernel->setModes(FieldComponents::Spectral::TOR, tSH);
+      // Poloidal
+      tSH.clear();
+      ptSH = tSH.insert(
+         std::make_pair(std::make_pair(1, 1), std::map<int, MHDComplex>()));
+      ptSH.first->second.insert(std::make_pair(0, MHDComplex(1.0,1.0)));
+      ptSH.first->second.insert(std::make_pair(1, MHDComplex(1.0,1.0)));
+      ptSH.first->second.insert(std::make_pair(2, MHDComplex(-5.0,-5.0)));
+      ptSH.first->second.insert(std::make_pair(3, MHDComplex(3.0,3.0)));
+      spKernel->setModes(FieldComponents::Spectral::POL, tSH);
+      spVector->setPhysicalKernel(spKernel);
+   }
+   break;
    }
 
    // Add output file
@@ -230,6 +282,30 @@ void IRTCModel::addStates(SharedStateGenerator spGen)
 
 void IRTCModel::addVisualizers(SharedVisualizationGenerator spVis)
 {
+   std::size_t tempPathId = 0;
+   std::size_t velPathId = 0;
+
+   // Create boundary object
+   auto spBcs = spVis->createBoundary();
+   // Temperature
+   if(spBcs->bcId(PhysicalNames::Temperature::id()) == Bc::Name::FixedTemperature::id())
+   {
+      tempPathId = Transform::Path::ValueScalar::id();
+   }
+   else
+   {
+      throw std::logic_error("Boundary condition for Temperature not implemented");
+   }
+   // Velocity
+   if(spBcs->bcId(PhysicalNames::Velocity::id()) == Bc::Name::NoSlip::id())
+   {
+      velPathId = Transform::Path::NoSlipTorPol::id();
+   }
+   else
+   {
+      throw std::logic_error("Boundary condition for Temperature not implemented");
+   }
+
    // Shared pointer to basic field visualizer
    Equations::SharedScalarFieldVisualizer spScalar;
    Equations::SharedVectorFieldVisualizer spVector;
@@ -239,12 +315,16 @@ void IRTCModel::addVisualizers(SharedVisualizationGenerator spVis)
       spVis->addEquation<Equations::ScalarFieldVisualizer>(this->spBackend());
    spScalar->setFields(true, true);
    spScalar->setIdentity(PhysicalNames::Temperature::id());
+   spScalar->setBackwardPath(tempPathId);
+   spScalar->setForwardPath(tempPathId);
 
    // Add velocity field visualization
    spVector =
       spVis->addEquation<Equations::VectorFieldVisualizer>(this->spBackend());
    spVector->setFields(true, false, true);
    spVector->setIdentity(PhysicalNames::Velocity::id());
+   spVector->setBackwardPath(velPathId);
+   spVector->setForwardPath(velPathId);
 
    // Add output file
    auto spOut = std::make_shared<Io::Variable::VisualizationFileWriter>(
@@ -284,11 +364,34 @@ std::map<std::string, std::map<std::string, int>> IRTCModel::configTags() const
 
 void IRTCModel::addAsciiOutputFiles(SharedSimulation spSim)
 {
+   std::size_t tempPathId = 0;
+   std::size_t velPathId = 0;
+
+   // Create boundary object
+   auto spBcs = spSim->createBoundary();
+   // Temperature
+   if(spBcs->bcId(PhysicalNames::Temperature::id()) == Bc::Name::FixedTemperature::id())
+   {
+      tempPathId = Transform::Path::ValueScalar::id();
+   }
+   else
+   {
+      throw std::logic_error("Boundary condition for Temperature not implemented");
+   }
+   // Velocity
+   if(spBcs->bcId(PhysicalNames::Velocity::id()) == Bc::Name::NoSlip::id())
+   {
+      velPathId = Transform::Path::NoSlipTorPol::id();
+   }
+   else
+   {
+      throw std::logic_error("Boundary condition for Temperature not implemented");
+   }
+
    // Create Nusselt writer
    this->enableAsciiFile<Io::Variable::SphereNusseltWriter>("nusselt", "",
       PhysicalNames::Temperature::id(), spSim);
 
-   auto tempPathId = Transform::Path::ValueScalar::id();
    // Create temperature energy writer
    {
       auto spF = this->enableAsciiFile<Io::Variable::SphereScalarEnergyWriter>(
@@ -321,7 +424,6 @@ void IRTCModel::addAsciiOutputFiles(SharedSimulation spSim)
       spF->setTransformPath(tempPathId);
    }
 
-   auto velPathId = Transform::Path::NoSlipTorPol::id();
    // Create kinetic energy writer
    {
       auto spF = this->enableAsciiFile<Io::Variable::SphereTorPolEnergyWriter>(
