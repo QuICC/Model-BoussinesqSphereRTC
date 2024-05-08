@@ -10,10 +10,6 @@
 // Project includes
 //
 #include "Model/Boussinesq/Sphere/RTC/Explicit/ModelBackend.hpp"
-#include "QuICC/Bc/Name/FixedFlux.hpp"
-#include "QuICC/Bc/Name/FixedTemperature.hpp"
-#include "QuICC/Bc/Name/NoSlip.hpp"
-#include "QuICC/Bc/Name/StressFree.hpp"
 #include "QuICC/Enums/FieldIds.hpp"
 #include "QuICC/Equations/CouplingIndexType.hpp"
 #include "QuICC/ModelOperator/Boundary.hpp"

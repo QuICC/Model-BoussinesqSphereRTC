@@ -45,6 +45,7 @@
 #include "QuICC/SpectralKernels/MakeRandom.hpp"
 #include "QuICC/Transform/Path/ValueScalar.hpp"
 #include "QuICC/Transform/Path/NoSlipTorPol.hpp"
+#include "QuICC/Transform/Path/StressFreeTorPol.hpp"
 #include "QuICC/Bc/Name/FixedTemperature.hpp"
 #include "QuICC/Bc/Name/NoSlip.hpp"
 #include "QuICC/Bc/Name/StressFree.hpp"
@@ -101,6 +102,10 @@ void IRTCModel::addStates(SharedStateGenerator spGen)
    if(spBcs->bcId(PhysicalNames::Velocity::id()) == Bc::Name::NoSlip::id())
    {
       velPathId = Transform::Path::NoSlipTorPol::id();
+   }
+   else if(spBcs->bcId(PhysicalNames::Velocity::id()) == Bc::Name::StressFree::id())
+   {
+      velPathId = Transform::Path::StressFreeTorPol::id();
    }
    else
    {
@@ -301,6 +306,10 @@ void IRTCModel::addVisualizers(SharedVisualizationGenerator spVis)
    {
       velPathId = Transform::Path::NoSlipTorPol::id();
    }
+   else if(spBcs->bcId(PhysicalNames::Velocity::id()) == Bc::Name::StressFree::id())
+   {
+      velPathId = Transform::Path::StressFreeTorPol::id();
+   }
    else
    {
       throw std::logic_error("Boundary condition for Temperature not implemented");
@@ -382,6 +391,10 @@ void IRTCModel::addAsciiOutputFiles(SharedSimulation spSim)
    if(spBcs->bcId(PhysicalNames::Velocity::id()) == Bc::Name::NoSlip::id())
    {
       velPathId = Transform::Path::NoSlipTorPol::id();
+   }
+   else if(spBcs->bcId(PhysicalNames::Velocity::id()) == Bc::Name::StressFree::id())
+   {
+      velPathId = Transform::Path::StressFreeTorPol::id();
    }
    else
    {
