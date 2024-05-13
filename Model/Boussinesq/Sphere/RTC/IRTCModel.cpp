@@ -44,7 +44,8 @@
 #include "QuICC/PhysicalNames/Velocity.hpp"
 #include "QuICC/SpectralKernels/MakeRandom.hpp"
 #include "QuICC/Transform/Path/ValueScalar.hpp"
-#include "QuICC/Transform/Path/NoSlipTorPol.hpp"
+#include "QuICC/Transform/Path/ValueTorPol.hpp"
+#include "QuICC/Transform/Path/InsulatingTorPol.hpp"
 #include "QuICC/Transform/Path/StressFreeTorPol.hpp"
 #include "QuICC/Bc/Name/FixedTemperature.hpp"
 #include "QuICC/Bc/Name/NoSlip.hpp"
@@ -101,7 +102,13 @@ void IRTCModel::addStates(SharedStateGenerator spGen)
    // Velocity
    if(spBcs->bcId(PhysicalNames::Velocity::id()) == Bc::Name::NoSlip::id())
    {
-      velPathId = Transform::Path::NoSlipTorPol::id();
+#if defined QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_VALUE_POL
+      velPathId = Transform::Path::ValueTorPol::id();
+#elif defined QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_INSULATING_POL
+      velPathId = Transform::Path::InsulatingTorPol::id();
+#else
+#error "Unknown basis setup for Velocity field"
+#endif
    }
    else if(spBcs->bcId(PhysicalNames::Velocity::id()) == Bc::Name::StressFree::id())
    {
@@ -304,7 +311,13 @@ void IRTCModel::addVisualizers(SharedVisualizationGenerator spVis)
    // Velocity
    if(spBcs->bcId(PhysicalNames::Velocity::id()) == Bc::Name::NoSlip::id())
    {
-      velPathId = Transform::Path::NoSlipTorPol::id();
+#if defined QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_VALUE_POL
+      velPathId = Transform::Path::ValueTorPol::id();
+#elif defined QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_INSULATING_POL
+      velPathId = Transform::Path::InsulatingTorPol::id();
+#else
+#error "Unknown basis setup for Velocity field"
+#endif
    }
    else if(spBcs->bcId(PhysicalNames::Velocity::id()) == Bc::Name::StressFree::id())
    {
@@ -390,7 +403,13 @@ void IRTCModel::addAsciiOutputFiles(SharedSimulation spSim)
    // Velocity
    if(spBcs->bcId(PhysicalNames::Velocity::id()) == Bc::Name::NoSlip::id())
    {
-      velPathId = Transform::Path::NoSlipTorPol::id();
+#if defined QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_VALUE_POL
+      velPathId = Transform::Path::ValueTorPol::id();
+#elif defined QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_INSULATING_POL
+      velPathId = Transform::Path::InsulatingTorPol::id();
+#else
+#error "Unknown basis setup for Velocity field"
+#endif
    }
    else if(spBcs->bcId(PhysicalNames::Velocity::id()) == Bc::Name::StressFree::id())
    {
