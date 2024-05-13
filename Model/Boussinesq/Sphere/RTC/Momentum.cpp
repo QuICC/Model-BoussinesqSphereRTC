@@ -22,9 +22,11 @@
 #include "QuICC/SpectralKernels/Sphere/ConserveAngularMomentum.hpp"
 #include "QuICC/Transform/Path/NoSlipTorPol.hpp"
 #include "QuICC/Transform/Path/StressFreeTorPol.hpp"
+#include "QuICC/Transform/Path/InsulatingTorPol.hpp"
 #include "QuICC/Transform/Path/ValueCurlNl.hpp"
 #include "QuICC/Transform/Path/StressFreeCurlNl.hpp"
 #include "QuICC/Transform/Path/ValueBc1NegCurlCurlNl.hpp"
+#include "QuICC/Transform/Path/InsulatingBc2NegCurlCurlNl.hpp"
 
 namespace QuICC {
 
@@ -79,8 +81,15 @@ void Momentum::setNLComponents()
    auto bcId = this->bcIds().bcId(this->name());
    if(bcId == Bc::Name::NoSlip::id())
    {
+#if defined QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_VALUE_POL
       torPathId = Transform::Path::ValueCurlNl::id();
       polPathId = Transform::Path::ValueBc1NegCurlCurlNl::id();
+#elif defined QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_INSULATING_POL
+      torPathId = Transform::Path::ValueCurlNl::id();
+      polPathId = Transform::Path::InsulatingBc2NegCurlCurlNl::id();
+#else
+#error "Unknown basis setup for Velocity field"
+#endif
    }
    else if(bcId == Bc::Name::StressFree::id())
    {
@@ -110,7 +119,13 @@ std::vector<Transform::TransformPath> Momentum::backwardPaths()
    auto bcId = this->bcIds().bcId(this->name());
    if(bcId == Bc::Name::NoSlip::id())
    {
-      pathId = Transform::Path::NoSlipTorPol::id();
+#if defined QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_VALUE_POL
+      pathId = Transform::Path::ValueTorPol::id();
+#elif defined QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_INSULATING_POL
+      pathId = Transform::Path::InsulatingTorPol::id();
+#else
+#error "Unknown basis setup for Velocity field"
+#endif
    }
    else if(bcId == Bc::Name::StressFree::id())
    {

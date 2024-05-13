@@ -38,8 +38,10 @@
 #include "QuICC/Tools/IdToHuman.hpp"
 #include "QuICC/SparseSM/Id.hpp"
 #include "QuICC/SparseSM/Bessel/Boundary/Operator.hpp"
+#include "QuICC/SparseSM/Bessel/Boundary/Value.hpp"
 #include "QuICC/SparseSM/Bessel/Boundary/D1.hpp"
 #include "QuICC/SparseSM/Bessel/Boundary/D2.hpp"
+#include "QuICC/SparseSM/Bessel/Boundary/R1D1DivR1.hpp"
 
 namespace QuICC {
 
@@ -85,6 +87,39 @@ std::map<std::string, MHDFloat> IRTCBackend::automaticParameters(
    return params;
 }
 
+SparseSM::Bessel::BesselKind IRTCBackend::bKind(const SpectralFieldId& fId) const
+{
+   if (fId == std::make_pair(PhysicalNames::Velocity::id(),
+                 FieldComponents::Spectral::TOR))
+   {
+#if defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_VALUE_POL) || defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_INSULATING_POL)
+      return SparseSM::Bessel::BesselKind::VALUE;
+#else
+#error "Velocity Bessel basis not set"
+#endif
+   }
+   else if (fId == std::make_pair(PhysicalNames::Velocity::id(),
+                 FieldComponents::Spectral::POL))
+   {
+#if defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_VALUE_POL)
+      return SparseSM::Bessel::BesselKind::VALUE;
+#elif defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_INSULATING_POL)
+      return SparseSM::Bessel::BesselKind::INSULATING;
+#else
+#error "Velocity Bessel basis not set"
+#endif
+   }
+   else if (fId == std::make_pair(PhysicalNames::Temperature::id(),
+                 FieldComponents::Spectral::SCALAR))
+   {
+      return SparseSM::Bessel::BesselKind::VALUE;
+   }
+   else
+   {
+      throw std::logic_error("Unknown spectral field");
+   }
+}
+
 int IRTCBackend::nBc(const SpectralFieldId& fId) const
 {
    int nBc = 0;
@@ -99,7 +134,13 @@ int IRTCBackend::nBc(const SpectralFieldId& fId) const
    else if (fId == std::make_pair(PhysicalNames::Velocity::id(),
                       FieldComponents::Spectral::POL))
    {
+#if defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_VALUE_POL)
       nBc = 1;
+#elif defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_INSULATING_POL)
+      nBc = 2;
+#else
+#error "Velocity Bessel basis not set"
+#endif
    }
    else
    {
@@ -129,11 +170,16 @@ void IRTCBackend::applyTau(SparseMatrix& mat, const SpectralFieldId& rowId,
    {
       if (l > 0)
       {
-         SparseSM::Bessel::Boundary::Operator bcOp(nN, nN, SparseSM::Bessel::BesselKind::VALUE, l, false);
+         SparseSM::Bessel::Boundary::Operator bcOp(nN, nN, this->bKind(colId), l, false);
          if (this->useSplitEquation())
          {
             if (isSplitOperator)
             {
+               if(this->nBc(colId) == 2)
+               {
+                  bcOp.addRow<SparseSM::Bessel::Boundary::Value>();
+               }
+
             }
             else if (bcId == Bc::Name::NoSlip::id())
             {
@@ -152,6 +198,11 @@ void IRTCBackend::applyTau(SparseMatrix& mat, const SpectralFieldId& rowId,
          }
          else
          {
+            if(this->nBc(colId) == 2)
+            {
+               bcOp.addRow<SparseSM::Bessel::Boundary::Value>();
+            }
+
             if (bcId == Bc::Name::NoSlip::id())
             {
                bcOp.addRow<SparseSM::Bessel::Boundary::D1>();

@@ -78,6 +78,10 @@ struct BlockOptionsImpl : public details::BlockOptions
    bool isSplitOperator;
    /// Use split equation for influence matrix?
    bool useSplitEquation;
+   /// Bessel basis kind
+   SparseSM::Bessel::BesselKind bKind;
+   /// Number of boundary conditions
+   int nBc;
 };
 } // namespace implDetails
 
@@ -191,6 +195,8 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
       opts->truncateQI = this->mcTruncateQI;
       opts->isSplitOperator = isSplitOperator;
       opts->useSplitEquation = this->useSplitEquation();
+      opts->bKind = this->bKind(colId);
+      opts->nBc = this->nBc(colId);
       d.opts = opts;
 
       return d;
@@ -211,7 +217,7 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
          {
             auto& o =
                *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
-            SparseSM::Bessel::SphLapl lapl(nNr, nNc, SparseSM::Bessel::BesselKind::VALUE, l);
+            SparseSM::Bessel::SphLapl lapl(nNr, nNc, o.bKind, l);
             bMat = lapl.mat();
          }
 
@@ -244,19 +250,19 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
             {
                if (o.isSplitOperator)
                {
-                  SparseSM::Bessel::SphLapl lapl(nNr, nNc, SparseSM::Bessel::BesselKind::VALUE, l);
+                  SparseSM::Bessel::SphLapl lapl(nNr, nNc, o.bKind, l);
                   bMat = lapl.mat();
                }
                else
                {
-                  SparseSM::Bessel::SphLapl lapl(nNr, nNc, SparseSM::Bessel::BesselKind::VALUE, l);
+                  SparseSM::Bessel::SphLapl lapl(nNr, nNc, o.bKind, l);
                   bMat = lapl.mat();
                }
             }
             else
             {
-               SparseSM::Bessel::SphLapl2 lapl2(nNr, nNc, SparseSM::Bessel::BesselKind::VALUE, l);
-               SparseSM::Id qid(nNr, nNc, -1);
+               SparseSM::Bessel::SphLapl2 lapl2(nNr, nNc, o.bKind, l);
+               SparseSM::Id qid(nNr, nNc, -o.nBc);
                bMat = qid.mat()*lapl2.mat();
             }
          }
@@ -286,7 +292,7 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
          const auto Pr =
             nds.find(NonDimensional::Prandtl::id())->second->value();
 
-         SparseSM::Bessel::SphLapl lapl(nNr, nNc, SparseSM::Bessel::BesselKind::VALUE, l);
+         SparseSM::Bessel::SphLapl lapl(nNr, nNc, o.bKind, l);
          SparseMatrix bMat = (1.0 / Pr) * lapl.mat();
 
          return bMat;
@@ -328,6 +334,8 @@ std::vector<details::BlockDescription> ModelBackend::timeBlockBuilder(
       opts->truncateQI = this->mcTruncateQI;
       opts->isSplitOperator = false;
       opts->useSplitEquation = this->useSplitEquation();
+      opts->bKind = this->bKind(colId);
+      opts->nBc = this->nBc(colId);
       d.opts = opts;
 
       return d;
@@ -391,8 +399,8 @@ std::vector<details::BlockDescription> ModelBackend::timeBlockBuilder(
             }
             else
             {
-               SparseSM::Bessel::SphLapl spasm(nNr, nNc, SparseSM::Bessel::BesselKind::VALUE, l);
-               SparseSM::Id qid(nNr, nNc, -1);
+               SparseSM::Bessel::SphLapl spasm(nNr, nNc, o.bKind, l);
+               SparseSM::Id qid(nNr, nNc, -o.nBc);
                bMat = qid.mat()*spasm.mat();
             }
          }
