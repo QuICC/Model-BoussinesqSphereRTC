@@ -14,8 +14,10 @@
 #include "QuICC/PhysicalNames/Temperature.hpp"
 #include "QuICC/PhysicalNames/Velocity.hpp"
 #include "QuICC/SolveTiming/Prognostic.hpp"
-#include "QuICC/Transform/Path/I2ScalarNl.hpp"
-#include "QuICC/Transform/Path/Scalar.hpp"
+#include "QuICC/Transform/Path/ValueScalarNl.hpp"
+#include "QuICC/Transform/Path/ValueScalar.hpp"
+#include "QuICC/Bc/Name/FixedTemperature.hpp"
+#include "QuICC/Bc/Name/FixedFlux.hpp"
 
 namespace QuICC {
 
@@ -47,8 +49,42 @@ void Transport::setCoupling()
 
 void Transport::setNLComponents()
 {
+   std::size_t pathId;
+   auto bcId = this->bcIds().bcId(this->name());
+   if(bcId == Bc::Name::FixedTemperature::id())
+   {
+      pathId = Transform::Path::ValueScalarNl::id();
+   }
+   else if(bcId == Bc::Name::FixedFlux::id())
+   {
+      throw std::logic_error("Fixed flux boundary condition is not implemented");
+   }
+   else
+   {
+      throw std::logic_error("Unknown Boundary condition");
+   }
+
    this->addNLComponent(FieldComponents::Spectral::SCALAR,
-      Transform::Path::I2ScalarNl::id());
+      pathId);
+}
+
+std::vector<Transform::TransformPath> Transport::backwardPaths()
+{
+   std::size_t pathId;
+   auto bcId = this->bcIds().bcId(this->name());
+   if(bcId == Bc::Name::FixedTemperature::id())
+   {
+      pathId = Transform::Path::ValueScalar::id();
+   }
+   else if(bcId == Bc::Name::FixedFlux::id())
+   {
+      throw std::logic_error("Fixed flux boundary condition is not implemented");
+   }
+   else
+   {
+      throw std::logic_error("Unknown Boundary condition");
+   }
+   return this->defaultBackwardPaths(pathId);
 }
 
 void Transport::initNLKernel(const bool force)
