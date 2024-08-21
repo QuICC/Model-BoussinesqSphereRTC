@@ -262,7 +262,15 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
             else
             {
                SparseSM::Bessel::SphLapl2 lapl2(nNr, nNc, o.bKind, l);
+#if defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_VALUE_POL)
                SparseSM::Id qid(nNr, nNc, -o.nBc);
+#elif defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_INSULATING_POL)
+               SparseSM::Id qid(nNr, nNc, -o.nBc);
+#elif defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_NS_POL)
+               SparseSM::Id qid(nNr, nNc, o.nBc);
+#else
+#error "Velocity Bessel basis not set"
+#endif
                bMat = qid.mat()*lapl2.mat();
             }
          }
@@ -400,7 +408,15 @@ std::vector<details::BlockDescription> ModelBackend::timeBlockBuilder(
             else
             {
                SparseSM::Bessel::SphLapl spasm(nNr, nNc, o.bKind, l);
+#if defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_VALUE_POL)
                SparseSM::Id qid(nNr, nNc, -o.nBc);
+#elif defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_INSULATING_POL)
+               SparseSM::Id qid(nNr, nNc, -o.nBc);
+#elif defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_NS_POL)
+               SparseSM::Id qid(nNr, nNc, o.nBc);
+#else
+#error "Velocity Bessel basis not set"
+#endif
                bMat = qid.mat()*spasm.mat();
             }
          }

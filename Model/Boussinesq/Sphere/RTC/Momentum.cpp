@@ -20,6 +20,7 @@
 #include "QuICC/SolveTiming/Prognostic.hpp"
 #include "QuICC/SpatialScheme/ISpatialScheme.hpp"
 #include "QuICC/SpectralKernels/Sphere/ConserveAngularMomentum.hpp"
+#include "QuICC/Transform/Path/ValueTorPol.hpp"
 #include "QuICC/Transform/Path/NoSlipTorPol.hpp"
 #include "QuICC/Transform/Path/StressFreeTorPol.hpp"
 #include "QuICC/Transform/Path/InsulatingTorPol.hpp"
@@ -27,6 +28,7 @@
 #include "QuICC/Transform/Path/StressFreeCurlNl.hpp"
 #include "QuICC/Transform/Path/ValueBc1NegCurlCurlNl.hpp"
 #include "QuICC/Transform/Path/InsulatingBc2NegCurlCurlNl.hpp"
+#include "QuICC/Transform/Path/NoSlipBc1NegCurlCurlNl.hpp"
 
 namespace QuICC {
 
@@ -87,6 +89,9 @@ void Momentum::setNLComponents()
 #elif defined QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_INSULATING_POL
       torPathId = Transform::Path::ValueCurlNl::id();
       polPathId = Transform::Path::InsulatingBc2NegCurlCurlNl::id();
+#elif defined QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_NS_POL
+      torPathId = Transform::Path::ValueCurlNl::id();
+      polPathId = Transform::Path::NoSlipBc1NegCurlCurlNl::id();
 #else
 #error "Unknown basis setup for Velocity field"
 #endif
@@ -123,6 +128,8 @@ std::vector<Transform::TransformPath> Momentum::backwardPaths()
       pathId = Transform::Path::ValueTorPol::id();
 #elif defined QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_INSULATING_POL
       pathId = Transform::Path::InsulatingTorPol::id();
+#elif defined QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_NS_POL
+      pathId = Transform::Path::NoSlipTorPol::id();
 #else
 #error "Unknown basis setup for Velocity field"
 #endif

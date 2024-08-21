@@ -45,6 +45,7 @@
 #include "QuICC/SpectralKernels/MakeRandom.hpp"
 #include "QuICC/Transform/Path/ValueScalar.hpp"
 #include "QuICC/Transform/Path/ValueTorPol.hpp"
+#include "QuICC/Transform/Path/NoSlipTorPol.hpp"
 #include "QuICC/Transform/Path/InsulatingTorPol.hpp"
 #include "QuICC/Transform/Path/StressFreeTorPol.hpp"
 #include "QuICC/Bc/Name/FixedTemperature.hpp"
@@ -83,41 +84,56 @@ void IRTCModel::addEquations(SharedSimulation spSim)
       this->spBackend());
 }
 
-void IRTCModel::addStates(SharedStateGenerator spGen)
+std::size_t IRTCModel::pathId(std::shared_ptr<SimulationBoundary> spBcs, const std::size_t fieldId) const
 {
-   std::size_t tempPathId = 0;
-   std::size_t velPathId = 0;
+   std::size_t pathId;
 
-   // Create boundary object
-   auto spBcs = spGen->createBoundary();
    // Temperature
-   if(spBcs->bcId(PhysicalNames::Temperature::id()) == Bc::Name::FixedTemperature::id())
+   if(fieldId == PhysicalNames::Temperature::id())
    {
-      tempPathId = Transform::Path::ValueScalar::id();
-   }
-   else
-   {
-      throw std::logic_error("Boundary condition for Temperature not implemented");
+      if(spBcs->bcId(fieldId) == Bc::Name::FixedTemperature::id())
+      {
+         pathId = Transform::Path::ValueScalar::id();
+      }
+      else
+      {
+         throw std::logic_error("Boundary condition for Temperature not implemented");
+      }
    }
    // Velocity
-   if(spBcs->bcId(PhysicalNames::Velocity::id()) == Bc::Name::NoSlip::id())
+   else if(fieldId == PhysicalNames::Velocity::id())
    {
+      if(spBcs->bcId(fieldId) == Bc::Name::NoSlip::id())
+      {
 #if defined QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_VALUE_POL
-      velPathId = Transform::Path::ValueTorPol::id();
+         pathId = Transform::Path::ValueTorPol::id();
 #elif defined QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_INSULATING_POL
-      velPathId = Transform::Path::InsulatingTorPol::id();
+         pathId = Transform::Path::InsulatingTorPol::id();
+#elif defined QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_NS_POL
+         pathId = Transform::Path::NoSlipTorPol::id();
 #else
 #error "Unknown basis setup for Velocity field"
 #endif
+      }
+      else if(spBcs->bcId(fieldId) == Bc::Name::StressFree::id())
+      {
+         pathId = Transform::Path::StressFreeTorPol::id();
+      }
+      else
+      {
+         throw std::logic_error("Boundary condition for Temperature not implemented");
+      }
    }
-   else if(spBcs->bcId(PhysicalNames::Velocity::id()) == Bc::Name::StressFree::id())
-   {
-      velPathId = Transform::Path::StressFreeTorPol::id();
-   }
-   else
-   {
-      throw std::logic_error("Boundary condition for Temperature not implemented");
-   }
+
+   return pathId;
+}
+
+void IRTCModel::addStates(SharedStateGenerator spGen)
+{
+   // Create boundary object
+   auto spBcs = spGen->createBoundary();
+   std::size_t tempPathId = this->pathId(spBcs, PhysicalNames::Temperature::id());
+   std::size_t velPathId = this->pathId(spBcs, PhysicalNames::Velocity::id());
 
    // Shared pointer to equation
    Equations::SharedSphereExactScalarState spScalar;
@@ -132,7 +148,7 @@ void IRTCModel::addStates(SharedStateGenerator spGen)
    spScalar->setIdentity(PhysicalNames::Temperature::id());
    spScalar->setBackwardPath(tempPathId);
    spScalar->setForwardPath(tempPathId);
-   switch (2)
+   switch (3)
    {
    case 0: {
       spScalar->setPhysicalNoise(1e-15);
@@ -189,7 +205,7 @@ void IRTCModel::addStates(SharedStateGenerator spGen)
    spVector->setIdentity(PhysicalNames::Velocity::id());
    spVector->setBackwardPath(velPathId);
    spVector->setForwardPath(velPathId);
-   switch (5)
+   switch (3)
    {
    // Toroidal only
    case 0: {
@@ -294,39 +310,10 @@ void IRTCModel::addStates(SharedStateGenerator spGen)
 
 void IRTCModel::addVisualizers(SharedVisualizationGenerator spVis)
 {
-   std::size_t tempPathId = 0;
-   std::size_t velPathId = 0;
-
    // Create boundary object
    auto spBcs = spVis->createBoundary();
-   // Temperature
-   if(spBcs->bcId(PhysicalNames::Temperature::id()) == Bc::Name::FixedTemperature::id())
-   {
-      tempPathId = Transform::Path::ValueScalar::id();
-   }
-   else
-   {
-      throw std::logic_error("Boundary condition for Temperature not implemented");
-   }
-   // Velocity
-   if(spBcs->bcId(PhysicalNames::Velocity::id()) == Bc::Name::NoSlip::id())
-   {
-#if defined QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_VALUE_POL
-      velPathId = Transform::Path::ValueTorPol::id();
-#elif defined QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_INSULATING_POL
-      velPathId = Transform::Path::InsulatingTorPol::id();
-#else
-#error "Unknown basis setup for Velocity field"
-#endif
-   }
-   else if(spBcs->bcId(PhysicalNames::Velocity::id()) == Bc::Name::StressFree::id())
-   {
-      velPathId = Transform::Path::StressFreeTorPol::id();
-   }
-   else
-   {
-      throw std::logic_error("Boundary condition for Temperature not implemented");
-   }
+   std::size_t tempPathId = this->pathId(spBcs, PhysicalNames::Temperature::id());
+   std::size_t velPathId = this->pathId(spBcs, PhysicalNames::Velocity::id());
 
    // Shared pointer to basic field visualizer
    Equations::SharedScalarFieldVisualizer spScalar;
@@ -386,39 +373,10 @@ std::map<std::string, std::map<std::string, int>> IRTCModel::configTags() const
 
 void IRTCModel::addAsciiOutputFiles(SharedSimulation spSim)
 {
-   std::size_t tempPathId = 0;
-   std::size_t velPathId = 0;
-
    // Create boundary object
    auto spBcs = spSim->createBoundary();
-   // Temperature
-   if(spBcs->bcId(PhysicalNames::Temperature::id()) == Bc::Name::FixedTemperature::id())
-   {
-      tempPathId = Transform::Path::ValueScalar::id();
-   }
-   else
-   {
-      throw std::logic_error("Boundary condition for Temperature not implemented");
-   }
-   // Velocity
-   if(spBcs->bcId(PhysicalNames::Velocity::id()) == Bc::Name::NoSlip::id())
-   {
-#if defined QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_VALUE_POL
-      velPathId = Transform::Path::ValueTorPol::id();
-#elif defined QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_INSULATING_POL
-      velPathId = Transform::Path::InsulatingTorPol::id();
-#else
-#error "Unknown basis setup for Velocity field"
-#endif
-   }
-   else if(spBcs->bcId(PhysicalNames::Velocity::id()) == Bc::Name::StressFree::id())
-   {
-      velPathId = Transform::Path::StressFreeTorPol::id();
-   }
-   else
-   {
-      throw std::logic_error("Boundary condition for Temperature not implemented");
-   }
+   std::size_t tempPathId = this->pathId(spBcs, PhysicalNames::Temperature::id());
+   std::size_t velPathId = this->pathId(spBcs, PhysicalNames::Velocity::id());
 
    // Create Nusselt writer
    this->enableAsciiFile<Io::Variable::SphereNusseltWriter>("nusselt", "",

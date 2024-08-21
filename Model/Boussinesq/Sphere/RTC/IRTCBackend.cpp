@@ -92,7 +92,7 @@ SparseSM::Bessel::BesselKind IRTCBackend::bKind(const SpectralFieldId& fId) cons
    if (fId == std::make_pair(PhysicalNames::Velocity::id(),
                  FieldComponents::Spectral::TOR))
    {
-#if defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_VALUE_POL) || defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_INSULATING_POL)
+#if defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_VALUE_POL) || defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_INSULATING_POL) || defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_NS_POL)
       return SparseSM::Bessel::BesselKind::VALUE;
 #else
 #error "Velocity Bessel basis not set"
@@ -105,6 +105,8 @@ SparseSM::Bessel::BesselKind IRTCBackend::bKind(const SpectralFieldId& fId) cons
       return SparseSM::Bessel::BesselKind::VALUE;
 #elif defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_INSULATING_POL)
       return SparseSM::Bessel::BesselKind::INSULATING;
+#elif defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_NS_POL)
+      return SparseSM::Bessel::BesselKind::NOSLIP;
 #else
 #error "Velocity Bessel basis not set"
 #endif
@@ -138,6 +140,8 @@ int IRTCBackend::nBc(const SpectralFieldId& fId) const
       nBc = 1;
 #elif defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_INSULATING_POL)
       nBc = 2;
+#elif defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_NS_POL)
+      nBc = 1;
 #else
 #error "Velocity Bessel basis not set"
 #endif
@@ -170,7 +174,16 @@ void IRTCBackend::applyTau(SparseMatrix& mat, const SpectralFieldId& rowId,
    {
       if (l > 0)
       {
-         SparseSM::Bessel::Boundary::Operator bcOp(nN, nN, this->bKind(colId), l, false);
+#if defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_VALUE_POL)
+      bool atTop = false;
+#elif defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_INSULATING_POL)
+      bool atTop = false;
+#elif defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_NS_POL)
+      bool atTop = true;
+#else
+#error "Velocity Bessel basis not set"
+#endif
+         SparseSM::Bessel::Boundary::Operator bcOp(nN, nN, this->bKind(colId), l, atTop);
          if (this->useSplitEquation())
          {
             if (isSplitOperator)
@@ -183,7 +196,15 @@ void IRTCBackend::applyTau(SparseMatrix& mat, const SpectralFieldId& rowId,
             }
             else if (bcId == Bc::Name::NoSlip::id())
             {
+#if defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_VALUE_POL)
                bcOp.addRow<SparseSM::Bessel::Boundary::D1>();
+#elif defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_INSULATING_POL)
+               bcOp.addRow<SparseSM::Bessel::Boundary::D1>();
+#elif defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_NS_POL)
+               bcOp.addRow<SparseSM::Bessel::Boundary::Value>();
+#else
+#error "Velocity Bessel basis not set"
+#endif
             }
             else if (bcId == Bc::Name::StressFree::id())
             {
@@ -205,7 +226,15 @@ void IRTCBackend::applyTau(SparseMatrix& mat, const SpectralFieldId& rowId,
 
             if (bcId == Bc::Name::NoSlip::id())
             {
+#if defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_VALUE_POL)
                bcOp.addRow<SparseSM::Bessel::Boundary::D1>();
+#elif defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_INSULATING_POL)
+               bcOp.addRow<SparseSM::Bessel::Boundary::D1>();
+#elif defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_NS_POL)
+               bcOp.addRow<SparseSM::Bessel::Boundary::Value>();
+#else
+#error "Velocity Bessel basis not set"
+#endif
             }
             else if (bcId == Bc::Name::StressFree::id())
             {
