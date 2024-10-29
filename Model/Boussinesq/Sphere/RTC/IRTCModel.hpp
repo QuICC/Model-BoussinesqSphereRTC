@@ -55,6 +55,11 @@ public:
    std::string version() const final;
 
    /**
+    * @brief Initialize model
+    */
+   void init() override;
+
+   /**
     * @brief Add the required equations
     *
     * @param spSim   Shared simulation object
@@ -67,6 +72,13 @@ public:
     * @param spGen   Shared generator object
     */
    virtual void addStates(SharedStateGenerator spGen) override;
+
+   /**
+    * @brief Set the initial for state generator
+    *
+    * @param spGen   Shared generator object
+    */
+   virtual void setGeneratorState(SharedStateGenerator spGen) override;
 
    /**
     * @brief Add the visualization generation equations
@@ -89,6 +101,11 @@ public:
    configTags() const override;
 
 protected:
+   /**
+    * @brief Load initial state for state generator?
+    */
+   bool mGeneratorNeedsState;
+
 private:
    /**
     * @brief Get transform path

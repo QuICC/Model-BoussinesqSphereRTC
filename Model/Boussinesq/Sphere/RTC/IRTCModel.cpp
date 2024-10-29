@@ -43,6 +43,7 @@
 #include "QuICC/PhysicalNames/Temperature.hpp"
 #include "QuICC/PhysicalNames/Velocity.hpp"
 #include "QuICC/SpectralKernels/MakeRandom.hpp"
+#include "QuICC/SpectralKernels/Sphere/ConvertWorland2Bessel.hpp"
 #include "QuICC/Transform/Path/ValueScalar.hpp"
 #include "QuICC/Transform/Path/ValueTorPol.hpp"
 #include "QuICC/Transform/Path/NoSlipTorPol.hpp"
@@ -73,6 +74,11 @@ std::string IRTCModel::version() const
    return std::string(gitHash);
 }
 
+void IRTCModel::init()
+{
+   this->mGeneratorNeedsState = false;
+}
+
 void IRTCModel::addEquations(SharedSimulation spSim)
 {
    // Add transport equation
@@ -82,6 +88,14 @@ void IRTCModel::addEquations(SharedSimulation spSim)
    // Add Navier-Stokes equation
    spSim->addEquation<Equations::Boussinesq::Sphere::RTC::Momentum>(
       this->spBackend());
+}
+
+void IRTCModel::setGeneratorState(SharedStateGenerator spGen)
+{
+   if(this->mGeneratorNeedsState)
+   {
+      this->setDefaultGeneratorState(spGen);
+   }
 }
 
 std::size_t IRTCModel::pathId(std::shared_ptr<SimulationBoundary> spBcs, const std::size_t fieldId) const
@@ -105,15 +119,7 @@ std::size_t IRTCModel::pathId(std::shared_ptr<SimulationBoundary> spBcs, const s
    {
       if(spBcs->bcId(fieldId) == Bc::Name::NoSlip::id())
       {
-#if defined QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_VALUE_POL
-         pathId = Transform::Path::ValueTorPol::id();
-#elif defined QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_INSULATING_POL
-         pathId = Transform::Path::InsulatingTorPol::id();
-#elif defined QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_NS_POL
          pathId = Transform::Path::NoSlipTorPol::id();
-#else
-#error "Unknown basis setup for Velocity field"
-#endif
       }
       else if(spBcs->bcId(fieldId) == Bc::Name::StressFree::id())
       {
@@ -195,6 +201,15 @@ void IRTCModel::addStates(SharedStateGenerator spGen)
       const int m = 3;
       spKernel->init(amplitude_bg, eps, m);
       spScalar->setPhysicalKernel(spKernel);
+   }
+   break;
+
+   case 6: {
+      auto spKernel = std::make_shared<Spectral::Kernel::Sphere::ConvertWorland2Bessel>(
+         spGen->ss().has(SpatialScheme::Feature::ComplexSpectrum));
+      spKernel->init(FieldComponents::Spectral::SCALAR, Spectral::Kernel::Sphere::ConvertWorland2Bessel::WorlandKind::Chebyshev, Spectral::Kernel::Sphere::ConvertWorland2Bessel::BesselKind::Value);
+      spScalar->setConstraintKernel(spKernel);
+      this->mGeneratorNeedsState = true;
    }
    break;
    }
@@ -295,6 +310,19 @@ void IRTCModel::addStates(SharedStateGenerator spGen)
       ptSH.first->second.insert(std::make_pair(3, MHDComplex(3.0,3.0)));
       spKernel->setModes(FieldComponents::Spectral::POL, tSH);
       spVector->setPhysicalKernel(spKernel);
+   }
+   break;
+
+   case 6: {
+      auto spTorKernel = std::make_shared<Spectral::Kernel::Sphere::ConvertWorland2Bessel>(
+         spGen->ss().has(SpatialScheme::Feature::ComplexSpectrum));
+      spTorKernel->init(FieldComponents::Spectral::TOR, Spectral::Kernel::Sphere::ConvertWorland2Bessel::WorlandKind::Chebyshev, Spectral::Kernel::Sphere::ConvertWorland2Bessel::BesselKind::Value);
+      spVector->setConstraintKernel(FieldComponents::Spectral::TOR, spTorKernel);
+      auto spPolKernel = std::make_shared<Spectral::Kernel::Sphere::ConvertWorland2Bessel>(
+         spGen->ss().has(SpatialScheme::Feature::ComplexSpectrum));
+      spPolKernel->init(FieldComponents::Spectral::POL, Spectral::Kernel::Sphere::ConvertWorland2Bessel::WorlandKind::Chebyshev, Spectral::Kernel::Sphere::ConvertWorland2Bessel::BesselKind::NoSlip);
+      spVector->setConstraintKernel(FieldComponents::Spectral::POL, spPolKernel);
+      this->mGeneratorNeedsState = true;
    }
    break;
    }

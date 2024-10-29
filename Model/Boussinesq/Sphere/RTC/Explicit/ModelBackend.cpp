@@ -36,6 +36,7 @@
 #include "QuICC/Tools/IdToHuman.hpp"
 #include "QuICC/SparseSM/Bessel/BesselKind.hpp"
 #include "QuICC/SparseSM/Id.hpp"
+#include "QuICC/SparseSM/Bessel/Id.hpp"
 #include "QuICC/SparseSM/Bessel/SphLapl.hpp"
 #include "QuICC/SparseSM/Bessel/SphLapl2.hpp"
 
@@ -262,15 +263,7 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
             else
             {
                SparseSM::Bessel::SphLapl2 lapl2(nNr, nNc, o.bKind, l);
-#if defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_VALUE_POL)
                SparseSM::Id qid(nNr, nNc, -o.nBc);
-#elif defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_INSULATING_POL)
-               SparseSM::Id qid(nNr, nNc, -o.nBc);
-#elif defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_NS_POL)
-               SparseSM::Id qid(nNr, nNc, o.nBc);
-#else
-#error "Velocity Bessel basis not set"
-#endif
                bMat = qid.mat()*lapl2.mat();
             }
          }
@@ -370,7 +363,7 @@ std::vector<details::BlockDescription> ModelBackend::timeBlockBuilder(
          }
          else
          {
-            SparseSM::Id qid(nNr, nNc);
+            SparseSM::Bessel::Id qid(nNr, nNc, o.bKind, l);
             bMat = qid.mat();
          }
 
@@ -408,15 +401,7 @@ std::vector<details::BlockDescription> ModelBackend::timeBlockBuilder(
             else
             {
                SparseSM::Bessel::SphLapl spasm(nNr, nNc, o.bKind, l);
-#if defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_VALUE_POL)
                SparseSM::Id qid(nNr, nNc, -o.nBc);
-#elif defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_INSULATING_POL)
-               SparseSM::Id qid(nNr, nNc, -o.nBc);
-#elif defined(QUICC_BESSEL_VELOCITY_BC_VALUE_TOR_NS_POL)
-               SparseSM::Id qid(nNr, nNc, o.nBc);
-#else
-#error "Velocity Bessel basis not set"
-#endif
                bMat = qid.mat()*spasm.mat();
             }
          }
@@ -447,7 +432,7 @@ std::vector<details::BlockDescription> ModelBackend::timeBlockBuilder(
          auto& o =
             *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
 
-         SparseSM::Id qid(nNr, nNc);
+         SparseSM::Bessel::Id qid(nNr, nNc, o.bKind, l);
          SparseMatrix bMat = qid.mat();
 
          return bMat;
