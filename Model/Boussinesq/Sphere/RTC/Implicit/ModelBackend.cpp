@@ -10,6 +10,7 @@
 // Project includes
 //
 #include "Model/Boussinesq/Sphere/RTC/Implicit/ModelBackend.hpp"
+#include "Model/Boussinesq/Sphere/RTC/Utils.hpp"
 #include "QuICC/Bc/Name/FixedFlux.hpp"
 #include "QuICC/Bc/Name/FixedTemperature.hpp"
 #include "QuICC/Bc/Name/NoSlip.hpp"
@@ -37,30 +38,16 @@
 #include "QuICC/NonDimensional/Rayleigh.hpp"
 #include "QuICC/PhysicalNames/Temperature.hpp"
 #include "QuICC/PhysicalNames/Velocity.hpp"
-#include "QuICC/Polynomial/Worland/WorlandTypes.hpp"
 #include "QuICC/Resolutions/Tools/IndexCounter.hpp"
-#include "QuICC/SparseSM/Worland/Boundary/D1.hpp"
-#include "QuICC/SparseSM/Worland/Boundary/D2.hpp"
-#include "QuICC/SparseSM/Worland/Boundary/Operator.hpp"
-#include "QuICC/SparseSM/Worland/Boundary/R1D1DivR1.hpp"
-#include "QuICC/SparseSM/Worland/Boundary/Value.hpp"
-#include "QuICC/SparseSM/Worland/I2.hpp"
-#include "QuICC/SparseSM/Worland/I2Lapl.hpp"
-#include "QuICC/SparseSM/Worland/I2Qm.hpp"
-#include "QuICC/SparseSM/Worland/I2Qp.hpp"
-#include "QuICC/SparseSM/Worland/I4.hpp"
-#include "QuICC/SparseSM/Worland/I4Lapl.hpp"
-#include "QuICC/SparseSM/Worland/I4Lapl2.hpp"
-#include "QuICC/SparseSM/Worland/I4Qm.hpp"
-#include "QuICC/SparseSM/Worland/I4Qp.hpp"
-#include "QuICC/SparseSM/Worland/Id.hpp"
-#include "QuICC/SparseSM/Worland/Stencil/D1.hpp"
-#include "QuICC/SparseSM/Worland/Stencil/R1D1DivR1.hpp"
-#include "QuICC/SparseSM/Worland/Stencil/Value.hpp"
-#include "QuICC/SparseSM/Worland/Stencil/ValueD1.hpp"
-#include "QuICC/SparseSM/Worland/Stencil/ValueD2.hpp"
 #include "QuICC/Tools/IdToHuman.hpp"
 #include "Types/Internal/Math.hpp"
+#include "QuICC/SparseSM/Bessel/BesselKind.hpp"
+#include "QuICC/SparseSM/Id.hpp"
+#include "QuICC/SparseSM/Bessel/Id.hpp"
+#include "QuICC/SparseSM/Bessel/SphLapl.hpp"
+#include "QuICC/SparseSM/Bessel/SphLapl2.hpp"
+#include "DenseSM/Bessel/CoriolisQp.hpp"
+#include "DenseSM/Bessel/CoriolisQm.hpp"
 
 namespace QuICC {
 
@@ -91,10 +78,6 @@ struct BlockOptionsImpl : public details::BlockOptions
     */
    virtual ~BlockOptionsImpl() = default;
 
-   /// Jones-Worland alpha
-   Internal::MHDFloat a;
-   /// Jones-Worland beta
-   Internal::MHDFloat b;
    /// Harmonic order m
    int m;
    /// Use truncated quasi-inverse?
@@ -103,6 +86,12 @@ struct BlockOptionsImpl : public details::BlockOptions
    std::size_t bcId;
    /// Split operator for influence matrix?
    bool isSplitOperator;
+   /// Bessel row basis kind
+   SparseSM::Bessel::BesselKind rbKind;
+   /// Bessel col basis
+   SparseSM::Bessel::BesselKind cbKind;
+   /// Number of boundary conditions
+   int nBc;
 };
 } // namespace implDetails
 
@@ -232,12 +221,13 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
       descr.push_back({});
       auto& d = descr.back();
       auto opts = std::make_shared<implDetails::BlockOptionsImpl>();
-      opts->a = Polynomial::Worland::worland_default_t::ALPHA;
-      opts->b = Polynomial::Worland::worland_default_t::DBETA;
       opts->m = eigs.at(0);
       opts->bcId = bcs.find(colId.first)->second;
       opts->truncateQI = this->mcTruncateQI;
       opts->isSplitOperator = isSplitOperator;
+      opts->rbKind = bKind(rowId);
+      opts->cbKind = bKind(colId);
+      opts->nBc = this->nBc(rowId);
       d.opts = opts;
 
       return d;
@@ -260,9 +250,9 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
                auto& o =
                   *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(
                      opts);
-               SparseSM::Worland::I2Lapl i2lapl(nNr, nNc, o.a, o.b, l,
-                  1 * o.truncateQI);
-               bMat = i2lapl.mat();
+               SparseSM::Bessel::SphLapl lapl(nNr, nNc, o.cbKind, l);
+               SparseSM::Id qid(nNr, nNc, -o.nBc);
+               bMat = qid.mat()* lapl.mat();
             }
 
             return bMat;
@@ -286,9 +276,9 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
                const auto dl = static_cast<MHDFloat>(l);
                const auto invlapl = 1.0 / (dl * (dl + 1.0));
 
-               SparseSM::Worland::I2 i2(nNr, nNc, o.a, o.b, l,
-                  1 * o.truncateQI);
-               bMat = o.m * T * invlapl * i2.mat();
+               SparseSM::Bessel::Id id(nNr, nNc, o.cbKind, l);
+               SparseSM::Id qid(nNr, nNc, -o.nBc);
+               bMat = o.m * T * invlapl * qid.mat() * id.mat();
             }
 
             return bMat;
@@ -331,10 +321,11 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
                const auto dl = static_cast<Internal::MHDFloat>(l);
                const auto invlapl = 1.0 / (dl * (dl + 1.0));
 
-               SparseSM::Worland::I2Qm corQm(nNr, nNc, o.a, o.b, l,
-                  1 * o.truncateQI);
+               DenseSM::Bessel::CoriolisQm corQm(bBasis(o.rbKind), bBasis(o.cbKind), nNr, nNc, l);
+               SparseSM::Id qid(nNr, nNc, -o.nBc);
                auto norm = coriolis(l, o.m);
-               bMat = -static_cast<MHDFloat>(norm * T * invlapl) * corQm.mat();
+               SparseMatrix spQm = corQm.mat().sparseView();
+               bMat = -static_cast<MHDFloat>(norm * T * invlapl) * qid.mat() * spQm;
             }
 
             return bMat;
@@ -373,10 +364,11 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
                   1.0 / nds.find(NonDimensional::Ekman::id())->second->value();
                const auto dl = static_cast<Internal::MHDFloat>(l);
                const auto invlapl = MHD_MP(1.0) / (dl * (dl + MHD_MP(1.0)));
-               SparseSM::Worland::I2Qp corQp(nNr, nNc, o.a, o.b, l,
-                  1 * o.truncateQI);
+               DenseSM::Bessel::CoriolisQp corQp(bBasis(o.rbKind), bBasis(o.cbKind), nNr, nNc, l);
+               SparseSM::Id qid(nNr, nNc, -o.nBc);
                auto norm = -coriolis(l + 1, o.m);
-               bMat = -static_cast<MHDFloat>(norm * T * invlapl) * corQp.mat();
+               SparseMatrix spQp = corQp.mat().sparseView();
+               bMat = -static_cast<MHDFloat>(norm * T * invlapl) * qid.mat() * spQp;
             }
 
             return bMat;
@@ -408,9 +400,9 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
                   *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(
                      opts);
 
-               SparseSM::Worland::I4Lapl2 i4lapl2(nNr, nNc, o.a, o.b, l,
-                  2 * o.truncateQI);
-               bMat = i4lapl2.mat();
+               SparseSM::Bessel::SphLapl2 lapl2(nNr, nNc, o.cbKind, l);
+               SparseSM::Id qid(nNr, nNc, -o.nBc);
+               bMat = qid.mat() * lapl2.mat();
             }
 
             return bMat;
@@ -433,9 +425,10 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
                const auto invlapl = MHD_MP(1.0) / (dl * (dl + MHD_MP(1.0)));
                const auto T =
                   1.0 / nds.find(NonDimensional::Ekman::id())->second->value();
-               SparseSM::Worland::I4Lapl coriolis(nNr, nNc, o.a, o.b, l,
-                  2 * o.truncateQI);
+               SparseSM::Bessel::SphLapl lapl(nNr, nNc, o.cbKind, l);
+               SparseSM::Id qid(nNr, nNc, -o.nBc);
 
+#if 0
                // Correct Laplacian for 4th order system according to:
                // McFadden,Murray,Boisvert,
                // Elimination of Spurious Eigenvalues in the
@@ -444,15 +437,19 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
                // We simply drop the last column
                if (o.bcId == Bc::Name::NoSlip::id())
                {
-                  SparseSM::Worland::Id qid(nNr, nNc, o.a, o.b, l, -1);
+                  SparseSM::Id qtrunc(nNr, nNc, -1);
                   bMat = static_cast<MHDFloat>(o.m * T * invlapl) *
-                         coriolis.mat() * qid.mat();
+                         qid.mat()* lapl.mat() * qtrunc.mat();
                }
                else
                {
                   bMat =
-                     static_cast<MHDFloat>(o.m * T * invlapl) * coriolis.mat();
+                     static_cast<MHDFloat>(o.m * T * invlapl) * qid.mat() * lapl.mat();
                }
+#else
+               bMat =
+                  static_cast<MHDFloat>(o.m * T * invlapl) * qid.mat() * lapl.mat();
+#endif
             }
 
             return bMat;
@@ -495,10 +492,11 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
 
                const auto dl = static_cast<MHDFloat>(l);
                const auto invlapl = 1.0 / (dl * (dl + 1.0));
-               SparseSM::Worland::I4Qm corQm(nNr, nNc, o.a, o.b, l,
-                  2 * o.truncateQI);
+               DenseSM::Bessel::CoriolisQm corQm(bBasis(o.rbKind), bBasis(o.cbKind), nNr, nNc, l);
+               SparseSM::Id qid(nNr, nNc, -o.nBc);
                auto norm = coriolis(l, o.m);
-               bMat = static_cast<MHDFloat>(norm * T * invlapl) * corQm.mat();
+               SparseMatrix spQm = corQm.mat().sparseView();
+               bMat = static_cast<MHDFloat>(norm * T * invlapl) * qid.mat() * spQm;
             }
 
             return bMat;
@@ -538,10 +536,11 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
 
                const auto dl = static_cast<MHDFloat>(l);
                const auto invlapl = 1.0 / (dl * (dl + 1.0));
-               SparseSM::Worland::I4Qp corQp(nNr, nNc, o.a, o.b, l,
-                  2 * o.truncateQI);
+               DenseSM::Bessel::CoriolisQp corQp(bBasis(o.rbKind), bBasis(o.cbKind), nNr, nNc, l);
+               SparseSM::Id qid(nNr, nNc, -o.nBc);
                auto norm = -coriolis(l + 1, o.m);
-               bMat = static_cast<MHDFloat>(norm * T * invlapl) * corQp.mat();
+               SparseMatrix spQp = corQp.mat().sparseView();
+               bMat = static_cast<MHDFloat>(norm * T * invlapl) * qid.mat() * spQp;
             }
 
             return bMat;
@@ -577,9 +576,10 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
                   1.0 / nds.find(NonDimensional::Ekman::id())->second->value();
                const auto forcing = Ra * T;
 
-               SparseSM::Worland::I4 i4(nNr, nNc, o.a, o.b, l,
-                  2 * o.truncateQI);
-               bMat = -forcing * i4.mat();
+               assert(o.rbKind == o.cbKind);
+               SparseSM::Bessel::Id id(nNr, nNc, o.cbKind, l);
+               SparseSM::Id qid(nNr, nNc, -o.nBc);
+               bMat = -forcing * qid.mat() * id.mat();
             }
 
             return bMat;
@@ -609,9 +609,9 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
             const auto Pr =
                nds.find(NonDimensional::Prandtl::id())->second->value();
 
-            SparseSM::Worland::I2Lapl i2lapl(nNr, nNc, o.a, o.b, l,
-               1 * o.truncateQI);
-            SparseMatrix bMat = (1.0 / Pr) * i2lapl.mat();
+            SparseSM::Bessel::SphLapl lapl(nNr, nNc, o.cbKind, l);
+            SparseSM::Id qid(nNr, nNc, -o.nBc);
+            SparseMatrix bMat = (1.0 / Pr) * qid.mat() * lapl.mat();
 
             return bMat;
          };
@@ -637,8 +637,10 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
 
             const auto dl = static_cast<MHDFloat>(l);
             const auto laplh = (dl * (dl + 1.0));
-            SparseSM::Worland::I2 i2(nNr, nNc, o.a, o.b, l, 1 * o.truncateQI);
-            SparseMatrix bMat = laplh * i2.mat();
+            assert(o.rbKind == o.cbKind);
+            SparseSM::Bessel::Id id(nNr, nNc, o.cbKind,l);
+            SparseSM::Id qid(nNr, nNc, -o.nBc);
+            SparseMatrix bMat = laplh * qid.mat() * id.mat();
 
             return bMat;
          };
@@ -675,12 +677,13 @@ std::vector<details::BlockDescription> ModelBackend::timeBlockBuilder(
       descr.push_back({});
       auto& d = descr.back();
       auto opts = std::make_shared<implDetails::BlockOptionsImpl>();
-      opts->a = Polynomial::Worland::worland_default_t::ALPHA;
-      opts->b = Polynomial::Worland::worland_default_t::DBETA;
       opts->m = eigs.at(0);
       opts->bcId = bcs.find(colId.first)->second;
       opts->truncateQI = this->mcTruncateQI;
       opts->isSplitOperator = false;
+      opts->rbKind = bKind(rowId);
+      opts->cbKind = bKind(colId);
+      opts->nBc = this->nBc(rowId);
       d.opts = opts;
 
       return d;
@@ -702,13 +705,13 @@ std::vector<details::BlockDescription> ModelBackend::timeBlockBuilder(
 
          if (l > 0)
          {
-            SparseSM::Worland::I2 spasm(nNr, nNc, o.a, o.b, l,
-               1 * o.truncateQI);
-            bMat = spasm.mat();
+            SparseSM::Bessel::Id id(nNr, nNc, o.cbKind, l);
+            SparseSM::Id qid(nNr, nNc, -o.nBc);
+            bMat = qid.mat() * id.mat();
          }
          else
          {
-            SparseSM::Worland::Id qid(nNr, nNc, o.a, o.b, l);
+            SparseSM::Id qid(nNr, nNc);
             bMat = qid.mat();
          }
 
@@ -738,9 +741,10 @@ std::vector<details::BlockDescription> ModelBackend::timeBlockBuilder(
 
          if (l > 0)
          {
-            SparseSM::Worland::I4Lapl spasm(nNr, nNc, o.a, o.b, l,
-               2 * o.truncateQI);
+            SparseSM::Bessel::SphLapl lapl(nNr, nNc, o.cbKind, l);
+            SparseSM::Id qid(nNr, nNc, -o.nBc);
 
+#if 0
             // Correct Laplacian for 4th order system according to:
             // McFadden,Murray,Boisvert,
             // Elimination of Spurious Eigenvalues in the
@@ -749,17 +753,20 @@ std::vector<details::BlockDescription> ModelBackend::timeBlockBuilder(
             // We simply drop the last column
             if (o.bcId == Bc::Name::NoSlip::id())
             {
-               SparseSM::Worland::Id qid(nNr, nNc, o.a, o.b, l, -1);
-               bMat = spasm.mat() * qid.mat();
+               SparseSM::Id qtrunc(nNr, nNc, -1);
+               bMat = qid.mat() * lapl.mat() * qtrunc.mat();
             }
             else
             {
-               bMat = spasm.mat();
+               bMat = qid.mat() * lapl.mat();
             }
+#else
+             bMat = qid.mat() * lapl.mat();
+#endif
          }
          else
          {
-            SparseSM::Worland::Id qid(nNr, nNc, o.a, o.b, l);
+            SparseSM::Id qid(nNr, nNc);
             bMat = qid.mat();
          }
 
@@ -784,8 +791,9 @@ std::vector<details::BlockDescription> ModelBackend::timeBlockBuilder(
          auto& o =
             *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
 
-         SparseSM::Worland::I2 spasm(nNr, nNc, o.a, o.b, l, 1 * o.truncateQI);
-         SparseMatrix bMat = spasm.mat();
+         SparseSM::Bessel::Id id(nNr, nNc, o.cbKind, l);
+         SparseSM::Id qid(nNr, nNc, -o.nBc);
+         SparseMatrix bMat = qid.mat() * id.mat();
 
          return bMat;
       };
@@ -886,8 +894,6 @@ std::vector<details::BlockDescription> ModelBackend::boundaryBlockBuilder(
       descr.push_back({});
       auto& d = descr.back();
       auto opts = std::make_shared<implDetails::BlockOptionsImpl>();
-      opts->a = Polynomial::Worland::worland_default_t::ALPHA;
-      opts->b = Polynomial::Worland::worland_default_t::DBETA;
       opts->m = eigs.at(0);
       opts->bcId = bcs.find(colId.first)->second;
       opts->truncateQI = this->mcTruncateQI;

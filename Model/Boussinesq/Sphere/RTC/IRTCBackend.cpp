@@ -5,11 +5,14 @@
 
 // System includes
 //
+#include <exception>
+#include <functional>
 #include <stdexcept>
 
 // Project includes
 //
 #include "Model/Boussinesq/Sphere/RTC/IRTCBackend.hpp"
+#include "Model/Boussinesq/Sphere/RTC/Utils.hpp"
 #include "QuICC/Bc/Name/FixedFlux.hpp"
 #include "QuICC/Bc/Name/FixedTemperature.hpp"
 #include "QuICC/Bc/Name/NoSlip.hpp"
@@ -35,6 +38,7 @@
 #include "QuICC/PhysicalNames/Temperature.hpp"
 #include "QuICC/PhysicalNames/Velocity.hpp"
 #include "QuICC/Resolutions/Tools/IndexCounter.hpp"
+#include "QuICC/SparseSM/Bessel/BesselKind.hpp"
 #include "QuICC/Tools/IdToHuman.hpp"
 #include "QuICC/SparseSM/Id.hpp"
 #include "QuICC/SparseSM/Bessel/Boundary/Operator.hpp"
@@ -87,29 +91,6 @@ std::map<std::string, MHDFloat> IRTCBackend::automaticParameters(
    return params;
 }
 
-SparseSM::Bessel::BesselKind IRTCBackend::bKind(const SpectralFieldId& fId) const
-{
-   if (fId == std::make_pair(PhysicalNames::Velocity::id(),
-                 FieldComponents::Spectral::TOR))
-   {
-      return SparseSM::Bessel::BesselKind::VALUE;
-   }
-   else if (fId == std::make_pair(PhysicalNames::Velocity::id(),
-                 FieldComponents::Spectral::POL))
-   {
-      return SparseSM::Bessel::BesselKind::NOSLIP;
-   }
-   else if (fId == std::make_pair(PhysicalNames::Temperature::id(),
-                 FieldComponents::Spectral::SCALAR))
-   {
-      return SparseSM::Bessel::BesselKind::VALUE;
-   }
-   else
-   {
-      throw std::logic_error("Unknown spectral field");
-   }
-}
-
 int IRTCBackend::nBc(const SpectralFieldId& fId) const
 {
    int nBc = 0;
@@ -119,12 +100,26 @@ int IRTCBackend::nBc(const SpectralFieldId& fId) const
        fId == std::make_pair(PhysicalNames::Temperature::id(),
                  FieldComponents::Spectral::SCALAR))
    {
-      nBc = 0;
+      if(bKind(fId) == SparseSM::Bessel::BesselKind::JlK0)
+      {
+         nBc = 0;
+      }
+      else
+      {
+         nBc = 1;
+      }
    }
    else if (fId == std::make_pair(PhysicalNames::Velocity::id(),
                       FieldComponents::Spectral::POL))
    {
-      nBc = 2;
+      if(bKind(fId) == SparseSM::Bessel::BesselKind::JlK2)
+      {
+         nBc = 2;
+      }
+      else
+      {
+         nBc = 1;
+      }
    }
    else
    {
@@ -147,6 +142,29 @@ void IRTCBackend::applyTau(SparseMatrix& mat, const SpectralFieldId& rowId,
                    FieldComponents::Spectral::TOR) &&
        rowId == colId)
    {
+      if (l > 0)
+      {
+         if(this->nBc(colId) == 1)
+         {
+            bool atTop = false;
+            SparseSM::Bessel::Boundary::Operator bcOp(nN, nN, bKind(colId), l, atTop);
+            if (bcId == Bc::Name::NoSlip::id())
+            {
+               bcOp.addRow<SparseSM::Bessel::Boundary::Value>();
+            }
+            else if (bcId == Bc::Name::StressFree::id())
+            {
+               throw std::logic_error("Stress-free tau line is not implemented yet");
+            }
+            else
+            {
+               throw std::logic_error(
+                  "Boundary conditions for Velocity Toroidal component "
+                  "not implemented");
+            }
+            mat.real() += bcOp.mat();
+         }
+      }
    }
    else if (rowId == std::make_pair(PhysicalNames::Velocity::id(),
                         FieldComponents::Spectral::POL) &&
@@ -155,7 +173,7 @@ void IRTCBackend::applyTau(SparseMatrix& mat, const SpectralFieldId& rowId,
       if (l > 0)
       {
          bool atTop = false;
-         SparseSM::Bessel::Boundary::Operator bcOp(nN, nN, this->bKind(colId), l, atTop);
+         SparseSM::Bessel::Boundary::Operator bcOp(nN, nN, bKind(colId), l, atTop);
          if (this->useSplitEquation())
          {
             if (isSplitOperator)
@@ -210,6 +228,26 @@ void IRTCBackend::applyTau(SparseMatrix& mat, const SpectralFieldId& rowId,
                         FieldComponents::Spectral::SCALAR) &&
             rowId == colId)
    {
+      if(this->nBc(colId) == 1)
+      {
+         bool atTop = false;
+         SparseSM::Bessel::Boundary::Operator bcOp(nN, nN, bKind(colId), l, atTop);
+         if (bcId == Bc::Name::FixedTemperature::id())
+         {
+            bcOp.addRow<SparseSM::Bessel::Boundary::Value>();
+         }
+         else if (bcId == Bc::Name::FixedFlux::id())
+         {
+            bcOp.addRow<SparseSM::Bessel::Boundary::D1>();
+         }
+         else
+         {
+            throw std::logic_error(
+                  "Boundary conditions for temperature "
+                  "not implemented");
+         }
+         mat.real() += bcOp.mat();
+      }
    }
 }
 

@@ -9,15 +9,12 @@
 
 // Project includes
 //
+#include "Model/Boussinesq/Sphere/RTC/Utils.hpp"
 #include "Model/Boussinesq/Sphere/RTC/Transport.hpp"
 #include "Model/Boussinesq/Sphere/RTC/TransportKernel.hpp"
 #include "QuICC/PhysicalNames/Temperature.hpp"
 #include "QuICC/PhysicalNames/Velocity.hpp"
 #include "QuICC/SolveTiming/Prognostic.hpp"
-#include "QuICC/Transform/Path/ValueScalarNl.hpp"
-#include "QuICC/Transform/Path/ValueScalar.hpp"
-#include "QuICC/Bc/Name/FixedTemperature.hpp"
-#include "QuICC/Bc/Name/FixedFlux.hpp"
 
 namespace QuICC {
 
@@ -49,20 +46,8 @@ void Transport::setCoupling()
 
 void Transport::setNLComponents()
 {
-   std::size_t pathId;
-   auto bcId = this->bcIds().bcId(this->name());
-   if(bcId == Bc::Name::FixedTemperature::id())
-   {
-      pathId = Transform::Path::ValueScalarNl::id();
-   }
-   else if(bcId == Bc::Name::FixedFlux::id())
-   {
-      throw std::logic_error("Fixed flux boundary condition is not implemented");
-   }
-   else
-   {
-      throw std::logic_error("Unknown Boundary condition");
-   }
+   using Model::Boussinesq::Sphere::RTC::getPathId;
+   std::size_t pathId = getPathId(this->mspBcIds, this->name(), true, FieldComponents::Spectral::SCALAR);
 
    this->addNLComponent(FieldComponents::Spectral::SCALAR,
       pathId);
@@ -70,20 +55,9 @@ void Transport::setNLComponents()
 
 std::vector<Transform::TransformPath> Transport::backwardPaths()
 {
-   std::size_t pathId;
-   auto bcId = this->bcIds().bcId(this->name());
-   if(bcId == Bc::Name::FixedTemperature::id())
-   {
-      pathId = Transform::Path::ValueScalar::id();
-   }
-   else if(bcId == Bc::Name::FixedFlux::id())
-   {
-      throw std::logic_error("Fixed flux boundary condition is not implemented");
-   }
-   else
-   {
-      throw std::logic_error("Unknown Boundary condition");
-   }
+   using Model::Boussinesq::Sphere::RTC::getPathId;
+   std::size_t pathId = getPathId(this->mspBcIds, this->name(), false);
+
    return this->defaultBackwardPaths(pathId);
 }
 

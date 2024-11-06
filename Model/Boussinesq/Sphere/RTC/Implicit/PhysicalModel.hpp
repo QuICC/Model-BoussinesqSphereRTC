@@ -14,7 +14,7 @@
 // Project includes
 //
 #include "Model/Boussinesq/Sphere/RTC/IRTCModel.hpp"
-#include "QuICC/SpatialScheme/3D/WLFm.hpp"
+#include "QuICC/SpatialScheme/3D/JLFm.hpp"
 
 namespace QuICC {
 
@@ -36,7 +36,7 @@ class PhysicalModel : public IRTCModel
 {
 public:
    /// Typedef for the spatial scheme used
-   typedef SpatialScheme::WLFm SchemeType;
+   typedef SpatialScheme::JLFm SchemeType;
 
    /**
     * @brief Constructor

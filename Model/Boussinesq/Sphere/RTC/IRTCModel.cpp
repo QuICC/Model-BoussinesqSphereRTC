@@ -10,6 +10,7 @@
 // Project includes
 //
 #include "Model/Boussinesq/Sphere/RTC/IRTCModel.hpp"
+#include "Model/Boussinesq/Sphere/RTC/Utils.hpp"
 #include "Model/Boussinesq/Sphere/RTC/Momentum.hpp"
 #include "Model/Boussinesq/Sphere/RTC/Transport.hpp"
 #include "Model/Boussinesq/Sphere/RTC/gitHash.hpp"
@@ -42,13 +43,13 @@
 #include "QuICC/NonDimensional/Rayleigh.hpp"
 #include "QuICC/PhysicalNames/Temperature.hpp"
 #include "QuICC/PhysicalNames/Velocity.hpp"
+#include "QuICC/SparseSM/Bessel/BesselKind.hpp"
 #include "QuICC/SpectralKernels/MakeRandom.hpp"
 #include "QuICC/SpectralKernels/Sphere/ConvertWorland2Bessel.hpp"
-#include "QuICC/Transform/Path/ValueScalar.hpp"
-#include "QuICC/Transform/Path/ValueTorPol.hpp"
-#include "QuICC/Transform/Path/NoSlipTorPol.hpp"
-#include "QuICC/Transform/Path/InsulatingTorPol.hpp"
-#include "QuICC/Transform/Path/StressFreeTorPol.hpp"
+#include "QuICC/Transform/Path/JlK0Scalar.hpp"
+#include "QuICC/Transform/Path/JlK0JlK2TorPol.hpp"
+#include "QuICC/Transform/Path/JlK2Scalar.hpp"
+#include "QuICC/Transform/Path/JlK2TorPol.hpp"
 #include "QuICC/Bc/Name/FixedTemperature.hpp"
 #include "QuICC/Bc/Name/NoSlip.hpp"
 #include "QuICC/Bc/Name/StressFree.hpp"
@@ -98,48 +99,12 @@ void IRTCModel::setGeneratorState(SharedStateGenerator spGen)
    }
 }
 
-std::size_t IRTCModel::pathId(std::shared_ptr<SimulationBoundary> spBcs, const std::size_t fieldId) const
-{
-   std::size_t pathId;
-
-   // Temperature
-   if(fieldId == PhysicalNames::Temperature::id())
-   {
-      if(spBcs->bcId(fieldId) == Bc::Name::FixedTemperature::id())
-      {
-         pathId = Transform::Path::ValueScalar::id();
-      }
-      else
-      {
-         throw std::logic_error("Boundary condition for Temperature not implemented");
-      }
-   }
-   // Velocity
-   else if(fieldId == PhysicalNames::Velocity::id())
-   {
-      if(spBcs->bcId(fieldId) == Bc::Name::NoSlip::id())
-      {
-         pathId = Transform::Path::NoSlipTorPol::id();
-      }
-      else if(spBcs->bcId(fieldId) == Bc::Name::StressFree::id())
-      {
-         pathId = Transform::Path::StressFreeTorPol::id();
-      }
-      else
-      {
-         throw std::logic_error("Boundary condition for Temperature not implemented");
-      }
-   }
-
-   return pathId;
-}
-
 void IRTCModel::addStates(SharedStateGenerator spGen)
 {
    // Create boundary object
    auto spBcs = spGen->createBoundary();
-   std::size_t tempPathId = this->pathId(spBcs, PhysicalNames::Temperature::id());
-   std::size_t velPathId = this->pathId(spBcs, PhysicalNames::Velocity::id());
+   std::size_t tempPathId = getPathId(spBcs, PhysicalNames::Temperature::id(), false);
+   std::size_t velPathId = getPathId(spBcs, PhysicalNames::Velocity::id(), false);
 
    // Shared pointer to equation
    Equations::SharedSphereExactScalarState spScalar;
@@ -207,7 +172,17 @@ void IRTCModel::addStates(SharedStateGenerator spGen)
    case 6: {
       auto spKernel = std::make_shared<Spectral::Kernel::Sphere::ConvertWorland2Bessel>(
          spGen->ss().has(SpatialScheme::Feature::ComplexSpectrum));
-      spKernel->init(FieldComponents::Spectral::SCALAR, Spectral::Kernel::Sphere::ConvertWorland2Bessel::WorlandKind::Chebyshev, Spectral::Kernel::Sphere::ConvertWorland2Bessel::BesselKind::Value);
+      auto bK = bKind(std::make_pair(PhysicalNames::Temperature::id(), FieldComponents::Spectral::SCALAR));
+      Spectral::Kernel::Sphere::ConvertWorland2Bessel::BesselKind cK;
+      if(bK == SparseSM::Bessel::BesselKind::JlK0)
+      {
+         cK = Spectral::Kernel::Sphere::ConvertWorland2Bessel::BesselKind::JlK0;
+      }
+      else if(bK == SparseSM::Bessel::BesselKind::JlK2)
+      {
+         cK = Spectral::Kernel::Sphere::ConvertWorland2Bessel::BesselKind::JlK2;
+      }
+      spKernel->init(FieldComponents::Spectral::SCALAR, Spectral::Kernel::Sphere::ConvertWorland2Bessel::WorlandKind::Chebyshev, cK);
       spScalar->setConstraintKernel(spKernel);
       this->mGeneratorNeedsState = true;
    }
@@ -316,11 +291,38 @@ void IRTCModel::addStates(SharedStateGenerator spGen)
    case 6: {
       auto spTorKernel = std::make_shared<Spectral::Kernel::Sphere::ConvertWorland2Bessel>(
          spGen->ss().has(SpatialScheme::Feature::ComplexSpectrum));
-      spTorKernel->init(FieldComponents::Spectral::TOR, Spectral::Kernel::Sphere::ConvertWorland2Bessel::WorlandKind::Chebyshev, Spectral::Kernel::Sphere::ConvertWorland2Bessel::BesselKind::Value);
+      auto bK = bKind(std::make_pair(PhysicalNames::Velocity::id(), FieldComponents::Spectral::TOR));
+      Spectral::Kernel::Sphere::ConvertWorland2Bessel::BesselKind cK;
+      if(bK == SparseSM::Bessel::BesselKind::JlK0)
+      {
+         cK = Spectral::Kernel::Sphere::ConvertWorland2Bessel::BesselKind::JlK0;
+      }
+      else if(bK == SparseSM::Bessel::BesselKind::JlK2)
+      {
+         cK = Spectral::Kernel::Sphere::ConvertWorland2Bessel::BesselKind::JlK2;
+      }
+      else
+      {
+         throw std::logic_error("Unknown Bessel kind");
+      }
+      spTorKernel->init(FieldComponents::Spectral::TOR, Spectral::Kernel::Sphere::ConvertWorland2Bessel::WorlandKind::Chebyshev, cK);
       spVector->setConstraintKernel(FieldComponents::Spectral::TOR, spTorKernel);
+      bK = bKind(std::make_pair(PhysicalNames::Velocity::id(), FieldComponents::Spectral::POL));
+      if(bK == SparseSM::Bessel::BesselKind::JlK0)
+      {
+         cK = Spectral::Kernel::Sphere::ConvertWorland2Bessel::BesselKind::JlK0;
+      }
+      else if(bK == SparseSM::Bessel::BesselKind::JlK2)
+      {
+         cK = Spectral::Kernel::Sphere::ConvertWorland2Bessel::BesselKind::JlK2;
+      }
+      else
+      {
+         throw std::logic_error("Unknown Bessel kind");
+      }
       auto spPolKernel = std::make_shared<Spectral::Kernel::Sphere::ConvertWorland2Bessel>(
          spGen->ss().has(SpatialScheme::Feature::ComplexSpectrum));
-      spPolKernel->init(FieldComponents::Spectral::POL, Spectral::Kernel::Sphere::ConvertWorland2Bessel::WorlandKind::Chebyshev, Spectral::Kernel::Sphere::ConvertWorland2Bessel::BesselKind::NoSlip);
+      spPolKernel->init(FieldComponents::Spectral::POL, Spectral::Kernel::Sphere::ConvertWorland2Bessel::WorlandKind::Chebyshev, cK);
       spVector->setConstraintKernel(FieldComponents::Spectral::POL, spPolKernel);
       this->mGeneratorNeedsState = true;
    }
@@ -340,8 +342,8 @@ void IRTCModel::addVisualizers(SharedVisualizationGenerator spVis)
 {
    // Create boundary object
    auto spBcs = spVis->createBoundary();
-   std::size_t tempPathId = this->pathId(spBcs, PhysicalNames::Temperature::id());
-   std::size_t velPathId = this->pathId(spBcs, PhysicalNames::Velocity::id());
+   std::size_t tempPathId = getPathId(spBcs, PhysicalNames::Temperature::id(), false);
+   std::size_t velPathId = getPathId(spBcs, PhysicalNames::Velocity::id(), false);
 
    // Shared pointer to basic field visualizer
    Equations::SharedScalarFieldVisualizer spScalar;
@@ -403,8 +405,8 @@ void IRTCModel::addAsciiOutputFiles(SharedSimulation spSim)
 {
    // Create boundary object
    auto spBcs = spSim->createBoundary();
-   std::size_t tempPathId = this->pathId(spBcs, PhysicalNames::Temperature::id());
-   std::size_t velPathId = this->pathId(spBcs, PhysicalNames::Velocity::id());
+   std::size_t tempPathId = getPathId(spBcs, PhysicalNames::Temperature::id(), false);
+   std::size_t velPathId = getPathId(spBcs, PhysicalNames::Velocity::id(), false);
 
    // Create Nusselt writer
    this->enableAsciiFile<Io::Variable::SphereNusseltWriter>("nusselt", "",

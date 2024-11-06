@@ -10,6 +10,7 @@
 // Project includes
 //
 #include "Model/Boussinesq/Sphere/RTC/Explicit/ModelBackend.hpp"
+#include "Model/Boussinesq/Sphere/RTC/Utils.hpp"
 #include "QuICC/Enums/FieldIds.hpp"
 #include "QuICC/Equations/CouplingIndexType.hpp"
 #include "QuICC/ModelOperator/Boundary.hpp"
@@ -196,7 +197,7 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
       opts->truncateQI = this->mcTruncateQI;
       opts->isSplitOperator = isSplitOperator;
       opts->useSplitEquation = this->useSplitEquation();
-      opts->bKind = this->bKind(colId);
+      opts->bKind = bKind(colId);
       opts->nBc = this->nBc(colId);
       d.opts = opts;
 
@@ -219,7 +220,8 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
             auto& o =
                *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
             SparseSM::Bessel::SphLapl lapl(nNr, nNc, o.bKind, l);
-            bMat = lapl.mat();
+            SparseSM::Id qid(nNr, nNc, -o.nBc);
+            bMat = qid.mat() * lapl.mat();
          }
 
          return bMat;
@@ -294,7 +296,8 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
             nds.find(NonDimensional::Prandtl::id())->second->value();
 
          SparseSM::Bessel::SphLapl lapl(nNr, nNc, o.bKind, l);
-         SparseMatrix bMat = (1.0 / Pr) * lapl.mat();
+         SparseSM::Id qid(nNr, nNc, -o.nBc);
+         SparseMatrix bMat = (1.0 / Pr) * qid.mat() * lapl.mat();
 
          return bMat;
       };
@@ -335,7 +338,7 @@ std::vector<details::BlockDescription> ModelBackend::timeBlockBuilder(
       opts->truncateQI = this->mcTruncateQI;
       opts->isSplitOperator = false;
       opts->useSplitEquation = this->useSplitEquation();
-      opts->bKind = this->bKind(colId);
+      opts->bKind = bKind(colId);
       opts->nBc = this->nBc(colId);
       d.opts = opts;
 
@@ -352,18 +355,20 @@ std::vector<details::BlockDescription> ModelBackend::timeBlockBuilder(
       {
          assert(nNr == nNc);
 
-         SparseMatrix bMat;
+         SparseMatrix bMat(nNr, nNc);
+
          auto& o =
             *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
 
          if (l > 0)
          {
-            SparseSM::Id qid(nNr, nNc);
-            bMat = qid.mat();
+            SparseSM::Bessel::Id spasm(nNr, nNc, o.bKind, l);
+            SparseSM::Id qid(nNr, nNc, -o.nBc);
+            bMat = qid.mat()*spasm.mat();
          }
          else
          {
-            SparseSM::Bessel::Id qid(nNr, nNc, o.bKind, l);
+            SparseSM::Id qid(nNr, nNc);
             bMat = qid.mat();
          }
 
@@ -432,8 +437,10 @@ std::vector<details::BlockDescription> ModelBackend::timeBlockBuilder(
          auto& o =
             *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
 
-         SparseSM::Bessel::Id qid(nNr, nNc, o.bKind, l);
-         SparseMatrix bMat = qid.mat();
+         SparseMatrix bMat;
+         SparseSM::Bessel::Id spasm(nNr, nNc, o.bKind, l);
+         SparseSM::Id qid(nNr, nNc, -o.nBc);
+         bMat = qid.mat()*spasm.mat();
 
          return bMat;
       };

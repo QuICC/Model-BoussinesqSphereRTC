@@ -107,13 +107,6 @@ protected:
    bool mGeneratorNeedsState;
 
 private:
-   /**
-    * @brief Get transform path
-    *
-    * @param spBcs   Simulation boundary conditions
-    * @param fieldId Field ID
-    */
-   std::size_t pathId(std::shared_ptr<SimulationBoundary> spBcs, const std::size_t fieldId) const;
 };
 
 } // namespace RTC

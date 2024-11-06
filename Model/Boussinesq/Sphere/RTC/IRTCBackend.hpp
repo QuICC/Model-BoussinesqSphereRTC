@@ -16,7 +16,6 @@
 // Project includes
 //
 #include "QuICC/Model/ISphericalModelBackend.hpp"
-#include "QuICC/SparseSM/Bessel/BesselKind.hpp"
 
 namespace QuICC {
 
@@ -74,13 +73,6 @@ protected:
     * @fId  Field ID
     */
    int nBc(const SpectralFieldId& fId) const override;
-
-   /**
-    * @brief Kind of Bessel basis
-    *
-    * @fId  Field ID
-    */
-   SparseSM::Bessel::BesselKind bKind(const SpectralFieldId& fId) const;
 
    /**
     * @brief Apply tau line for boundary condition
