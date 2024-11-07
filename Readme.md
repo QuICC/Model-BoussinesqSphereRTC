@@ -3,7 +3,7 @@
 The model equations are
 
 $$
-(\partial_t -\Delta){\bf u}= {\bf u}\times(\nabla\times{\bf u})- \frac{1}{E}\hat{\bf z}\times{\bf u}  -\nabla \Pi + \frac{Ra}{E Pr} \Theta{\bf r}\\
+(\partial_t -\Delta){\bf u}= {\bf u}\times(\nabla\times{\bf u})- \frac{1}{E}\hat{\bf z}\times{\bf u}  -\nabla \Pi + \frac{Ra}{E} \Theta{\bf r}\\
 $$
 
 $$
