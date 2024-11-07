@@ -635,10 +635,13 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
             auto& o =
                *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
 
+            const auto Pr =
+               nds.find(NonDimensional::Prandtl::id())->second->value();
+
             const auto dl = static_cast<MHDFloat>(l);
             const auto laplh = (dl * (dl + 1.0));
             SparseSM::Worland::I2 i2(nNr, nNc, o.a, o.b, l, 1 * o.truncateQI);
-            SparseMatrix bMat = laplh * i2.mat();
+            SparseMatrix bMat = (laplh / Pr) * i2.mat();
 
             return bMat;
          };
