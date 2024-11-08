@@ -16,10 +16,12 @@
 #include "QuICC/Transform/Path/JlK2ScalarNl.hpp"
 #include "QuICC/Transform/Path/JlK2Scalar.hpp"
 #include "QuICC/Transform/Path/JlK0JlK2TorPol.hpp"
+#include "QuICC/Transform/Path/Jlp1K1JlK0TorPol.hpp"
 #include "QuICC/Transform/Path/JlK0TorPol.hpp"
 #include "QuICC/Transform/Path/JlK2TorPol.hpp"
 #include "QuICC/Transform/Path/JlK0CurlNl.hpp"
 #include "QuICC/Transform/Path/JlK2CurlNl.hpp"
+#include "QuICC/Transform/Path/Jlp1K1CurlNl.hpp"
 #include "QuICC/Transform/Path/JlK0NegCurlCurlNl.hpp"
 #include "QuICC/Transform/Path/JlK2NegCurlCurlNl.hpp"
 #include "QuICC/Bc/Name/FixedTemperature.hpp"
@@ -27,8 +29,14 @@
 #include "QuICC/Bc/Name/NoSlip.hpp"
 #include "QuICC/Bc/Name/StressFree.hpp"
 
+#define TEMPERATURE_USE_JLK0_BASIS
 //#define TEMPERATURE_USE_JLK2_BASIS
+
+//#define VELOCITY_TOR_USE_JLK0_BASIS
 //#define VELOCITY_TOR_USE_JLK2_BASIS
+#define VELOCITY_TOR_USE_JLP1K1_BASIS
+
+#define VELOCITY_POL_USE_JLK0_BASIS
 //#define VELOCITY_POL_USE_JLK2_BASIS
 
 namespace QuICC {
@@ -52,18 +60,22 @@ std::size_t getPathId(std::shared_ptr<SimulationBoundary> spBcs, const std::size
       {
          if(isNl)
          {
-#ifdef TEMPERATURE_USE_JLK2_BASIS
+#if defined(TEMPERATURE_USE_JLK2_BASIS)
             pathId = Transform::Path::JlK2ScalarNl::id();
-#else
+#elif defined(TEMPERATURE_USE_JLK0_BASIS)
             pathId = Transform::Path::JlK0ScalarNl::id();
+#else
+   #error "Temperature basis is not setup"
 #endif
          }
          else
          {
-#ifdef TEMPERATURE_USE_JLK2_BASIS
+#if defined(TEMPERATURE_USE_JLK2_BASIS)
             pathId = Transform::Path::JlK2Scalar::id();
-#else
+#elif defined(TEMPERATURE_USE_JLK0_BASIS)
             pathId = Transform::Path::JlK0Scalar::id();
+#else
+   #error "Temperature basis is not setup"
 #endif
          }
       }
@@ -81,18 +93,24 @@ std::size_t getPathId(std::shared_ptr<SimulationBoundary> spBcs, const std::size
          {
             if(comp == FieldComponents::Spectral::TOR)
             {
-#ifdef VELOCITY_TOR_USE_JLK2_BASIS
+#if defined(VELOCITY_TOR_USE_JLK2_BASIS)
                pathId = Transform::Path::JlK2CurlNl::id();
-#else
+#elif defined(VELOCITY_TOR_USE_JLP1K1_BASIS)
+               pathId = Transform::Path::Jlp1K1CurlNl::id();
+#elif defined(VELOCITY_TOR_USE_JLK0_BASIS)
                pathId = Transform::Path::JlK0CurlNl::id();
+#else
+   #error "Toroidal velocity basis is not setup"
 #endif
             }
             else
             {
-#ifdef VELOCITY_POL_USE_JLK2_BASIS
+#if defined(VELOCITY_POL_USE_JLK2_BASIS)
                pathId = Transform::Path::JlK2NegCurlCurlNl::id();
-#else
+#elif defined(VELOCITY_POL_USE_JLK0_BASIS)
                pathId = Transform::Path::JlK0NegCurlCurlNl::id();
+#else
+   #error "Poloidal velocity basis is not setup"
 #endif
             }
          }
@@ -100,10 +118,14 @@ std::size_t getPathId(std::shared_ptr<SimulationBoundary> spBcs, const std::size
          {
 #if defined(VELOCITY_TOR_USE_JLK2_BASIS) && defined(VELOCITY_POL_USE_JLK2_BASIS)
             pathId = Transform::Path::JlK2TorPol::id();
-#elif defined(VELOCITY_POL_USE_JLK2_BASIS)
+#elif defined(VELOCITY_TOR_USE_JLP1K1_BASIS) && defined(VELOCITY_POL_USE_JLK0_BASIS)
+            pathId = Transform::Path::Jlp1K1JlK0TorPol::id();
+#elif defined(VELOCITY_TOR_USE_JLK0_BASIS) && defined(VELOCITY_POL_USE_JLK2_BASIS)
             pathId = Transform::Path::JlK0JlK2TorPol::id();
-#else
+#elif defined(VELOCITY_TOR_USE_JLK0_BASIS) && defined(VELOCITY_POL_USE_JLK0_BASIS)
             pathId = Transform::Path::JlK0TorPol::id();
+#else
+   #error "Toroidal and Poloidal velocity basis combination is not setup"
 #endif
          }
       }
@@ -121,28 +143,36 @@ SparseSM::Bessel::BesselKind bKind(const SpectralFieldId& fId)
    if (fId == std::make_pair(PhysicalNames::Velocity::id(),
                  FieldComponents::Spectral::TOR))
    {
-#ifdef VELOCITY_TOR_USE_JLK2_BASIS
+#if defined(VELOCITY_TOR_USE_JLK2_BASIS)
       return SparseSM::Bessel::BesselKind::JlK2;
-#else
+#elif defined(VELOCITY_TOR_USE_JLP1K1_BASIS)
+      return SparseSM::Bessel::BesselKind::Jlp1K1;
+#elif defined(VELOCITY_TOR_USE_JLK0_BASIS)
       return SparseSM::Bessel::BesselKind::JlK0;
+#else
+   #error "Toroidal velocity basis is not setup"
 #endif
    }
    else if (fId == std::make_pair(PhysicalNames::Velocity::id(),
                  FieldComponents::Spectral::POL))
    {
-#ifdef VELOCITY_POL_USE_JLK2_BASIS
+#if defined(VELOCITY_POL_USE_JLK2_BASIS)
       return SparseSM::Bessel::BesselKind::JlK2;
-#else
+#elif defined(VELOCITY_POL_USE_JLK0_BASIS)
       return SparseSM::Bessel::BesselKind::JlK0;
+#else
+   #error "Poloidal velocity basis is not setup"
 #endif
    }
    else if (fId == std::make_pair(PhysicalNames::Temperature::id(),
                  FieldComponents::Spectral::SCALAR))
    {
-#ifdef TEMPERATURE_USE_JLK2_BASIS
+#if defined(TEMPERATURE_USE_JLK2_BASIS)
       return SparseSM::Bessel::BesselKind::JlK2;
-#else
+#elif defined(TEMPERATURE_USE_JLK0_BASIS)
       return SparseSM::Bessel::BesselKind::JlK0;
+#else
+   #error "Temperature basis is not setup"
 #endif
    }
    else
@@ -165,6 +195,14 @@ Polynomial::SphericalBessel::sphjnl_basis_t bBasis(const SparseSM::Bessel::Besse
    else if(kind == SparseSM::Bessel::BesselKind::JlK2)
    {
       basis = Polynomial::SphericalBessel::jl_k2_t();
+   }
+   else if(kind == SparseSM::Bessel::BesselKind::Jlp1K0)
+   {
+      basis = Polynomial::SphericalBessel::jlp1_t();
+   }
+   else if(kind == SparseSM::Bessel::BesselKind::Jlp1K1)
+   {
+      basis = Polynomial::SphericalBessel::jlp1_k1_t();
    }
    else
    {
