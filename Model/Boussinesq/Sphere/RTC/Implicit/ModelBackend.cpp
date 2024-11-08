@@ -48,6 +48,7 @@
 #include "QuICC/SparseSM/Bessel/SphLapl2.hpp"
 #include "DenseSM/Bessel/CoriolisQp.hpp"
 #include "DenseSM/Bessel/CoriolisQm.hpp"
+#include "DenseSM/Bessel/Id.hpp"
 
 namespace QuICC {
 
@@ -576,10 +577,10 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
                   1.0 / nds.find(NonDimensional::Ekman::id())->second->value();
                const auto forcing = Ra * T;
 
-               assert(o.rbKind == o.cbKind);
-               SparseSM::Bessel::Id id(nNr, nNc, o.cbKind, l);
+               DenseSM::Bessel::Id id(bBasis(o.rbKind), bBasis(o.cbKind), nNr, nNc, l);
+               SparseMatrix spId = id.mat().sparseView();
                SparseSM::Id qid(nNr, nNc, -o.nBc);
-               bMat = -forcing * qid.mat() * id.mat();
+               bMat = -forcing * qid.mat() * spId;
             }
 
             return bMat;
@@ -638,9 +639,10 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
             const auto dl = static_cast<MHDFloat>(l);
             const auto laplh = (dl * (dl + 1.0));
             assert(o.rbKind == o.cbKind);
-            SparseSM::Bessel::Id id(nNr, nNc, o.cbKind,l);
+            DenseSM::Bessel::Id id(bBasis(o.rbKind), bBasis(o.cbKind), nNr, nNc, l);
+            SparseMatrix spId = id.mat().sparseView();
             SparseSM::Id qid(nNr, nNc, -o.nBc);
-            SparseMatrix bMat = laplh * qid.mat() * id.mat();
+            SparseMatrix bMat = laplh * qid.mat() * spId;
 
             return bMat;
          };
