@@ -83,3 +83,13 @@ quicc_add_benchmark(Implicit
   VARIANTS "framework/parallel/algorithm:tubular"
   MPIRANKS 6
   )
+
+include(ConfigureStability)
+quicc_add_stability(Implicit
+  MODEL "BoussinesqSphereRTC"
+  WORKDIR "${CMAKE_BINARY_DIR}/${QUICC_CURRENT_MODEL_DIR}/TestSuite/Stability"
+  ARCHIVEDIR "${CMAKE_BINARY_DIR}/Models/_refdata"
+  TIMEOUT 500
+  VARIANTS "framework/parallel/algorithm:tubular"
+  MPIRANKS 1
+  )
