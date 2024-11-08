@@ -92,5 +92,4 @@ quicc_add_stability(Implicit
   TIMEOUT 500
   VARIANTS "framework/parallel/algorithm:tubular"
   MPIRANKS 1
-  GITTAG new/stability
   )
