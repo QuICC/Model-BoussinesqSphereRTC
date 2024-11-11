@@ -262,13 +262,13 @@ func.func private @nlVector(%UR: !real, %UTheta: !real, %UPhi: !real,
     %Buoy = quiccir.mul.const %T : !real -> !real attributes{kind = "buoyancy"}
     %RTmp = quiccir.sub %Cross#0, %Buoy : !real, !real -> !real
     // Add coriolis
-    %Cor0 = quiccir.mul.const %UPhi : !real -> !real attributes{kind = "coriolisSin"}
-    %RNl = quiccir.sub %Rtmp, %Cor0 : !real, !real -> !real
-    %Cor1 = quiccir.mul.const %UPhi : !real -> !real attributes{kind = "coriolisCos"}
+    %Cor0 = quiccir.mul.const %UPhi : !real -> !real attributes{kind = "coriolis_sin"}
+    %RNl = quiccir.sub %RTmp, %Cor0 : !real, !real -> !real
+    %Cor1 = quiccir.mul.const %UPhi : !real -> !real attributes{kind = "coriolis_cos"}
     %ThetaNl = quiccir.sub %Cross#1, %Cor1 : !real, !real -> !real
-    %Cor2a = quiccir.mul.const %UR : !real -> !real attributes{kind = "coriolisSin"}
+    %Cor2a = quiccir.mul.const %UR : !real -> !real attributes{kind = "coriolis_sin"}
     %PhiTmp = quiccir.add %Cross#2, %Cor2a : !real, !real -> !real
-    %Cor2b = quiccir.mul.const %UTheta : !real -> !real attributes{kind = "coriolisCos"}
+    %Cor2b = quiccir.mul.const %UTheta : !real -> !real attributes{kind = "coriolis_cos"}
     %PhiNl = quiccir.add %PhiTmp, %Cor2b : !real, !real -> !real
     return %RNl, %ThetaNl, %PhiNl : !real, !real, !real
 }
@@ -286,7 +286,15 @@ func.func @entry(%T: !complex, %Tor: !complex, %Pol: !complex) -> (!complex, !co
     return %TNl, %TorNl, %PolNl, %Vel#0, %Vel#1, %Vel#2: !complex, !complex, !complex, !real, !real, !real
 }
    )mlir";
-   spSim->addGraph(graphStr);
+
+   MHDFloat T = 1.0 / spSim->eqParams()->nd(NonDimensional::Ekman::id());
+   MHDFloat Ra = spSim->eqParams()->nd(NonDimensional::Rayleigh::id());
+   Graph::PhysicalParameters<MHDFloat> physParams;
+   physParams.transport = 1.0;
+   physParams.inertia = 1.0;
+   physParams.coriolis = T;
+   physParams.buoyancy = Ra * T;
+   spSim->addGraph(graphStr, physParams);
 }
 
 void IRTCModel::addStates(SharedStateGenerator spGen)
