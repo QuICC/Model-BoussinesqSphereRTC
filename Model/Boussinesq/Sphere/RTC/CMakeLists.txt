@@ -5,6 +5,7 @@ target_sources(${QUICC_CURRENT_MODEL_LIB} ${QUICC_CMAKE_SRC_VISIBILITY}
   MomentumKernel.cpp
   Transport.cpp
   TransportKernel.cpp
+  Utils.cpp
   )
 
 add_subdirectory(Explicit)
