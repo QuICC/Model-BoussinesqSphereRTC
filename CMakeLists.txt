@@ -29,7 +29,7 @@ if(TARGET QuICC::Tools::Stability)
     MODEL_DIRNAME ${QUICC_CURRENT_MODEL_DIRNAME})
 endif()
 
-# Teststuite, not all models have a test
+# Testsuite, not all models have a test
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/cmake.d/setup/TestSuite.cmake")
   include(setup/TestSuite)
 endif()
