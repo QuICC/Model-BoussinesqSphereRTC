@@ -15,6 +15,7 @@
 //
 #include "QuICC/SpatialScheme/3D/WLFm.hpp"
 #include "QuICC/Model/PyModelBackend.hpp"
+#include "Model/Boussinesq/Sphere/RTC/Implicit/ModelBackend.hpp"
 
 namespace QuICC {
 
