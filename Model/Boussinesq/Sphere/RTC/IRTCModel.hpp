@@ -13,10 +13,8 @@
 
 // Project includes
 //
-#include "QuICC/Generator/StateGenerator.hpp"
-#include "QuICC/Generator/VisualizationGenerator.hpp"
-#include "QuICC/Model/IPhysicalPyModel.hpp"
 #include "QuICC/Simulation/Simulation.hpp"
+#include "QuICC/Model/IModelBuilder.hpp"
 
 namespace QuICC {
 
@@ -32,8 +30,7 @@ namespace RTC {
  * @brief Implementation of the Boussinesq rotating thermal convection sphere
  * model (Toroidal/Poloidal formulation)
  */
-class IRTCModel : public IPhysicalPyModel<Simulation, StateGenerator,
-                     VisualizationGenerator>
+class IRTCModel : public IModelBuilder<Simulation>
 {
 public:
    /**
@@ -60,20 +57,6 @@ public:
     * @param spSim   Shared simulation object
     */
    virtual void addEquations(SharedSimulation spSim) override;
-
-   /**
-    * @brief Add the initial state generation equations
-    *
-    * @param spGen   Shared generator object
-    */
-   virtual void addStates(SharedStateGenerator spGen) override;
-
-   /**
-    * @brief Add the visualization generation equations
-    *
-    * @param spGen   Shared visualization generator
-    */
-   virtual void addVisualizers(SharedVisualizationGenerator spVis) override;
 
    /**
     * @brief Add the required ASCII output files
