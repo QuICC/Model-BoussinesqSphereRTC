@@ -73,6 +73,8 @@ void IRTCModel::addEquations(SharedSimulation spSim)
    // Add Navier-Stokes equation
    spSim->addEquation<Equations::Boussinesq::Sphere::RTC::Momentum>(
       this->spBackend());
+
+   #ifdef QUICC_USE_MLIR_GRAPH
    // Add Graph
    std::string graphStr = R"mlir(
 // type aliases
@@ -295,6 +297,7 @@ func.func @entry(%T: !complex, %Tor: !complex, %Pol: !complex) -> (!complex, !co
    physParams.coriolis = T;
    physParams.buoyancy = Ra * T;
    spSim->addGraph(graphStr, physParams);
+   #endif
 }
 
 void IRTCModel::addStates(SharedStateGenerator spGen)
