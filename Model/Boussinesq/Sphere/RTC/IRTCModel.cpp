@@ -76,6 +76,14 @@ void IRTCModel::addEquations(SharedSimulation spSim)
 
    #ifdef QUICC_USE_MLIR_GRAPH
    // Add Graph
+
+   // At this point we only support the explicit model
+   // If the jitter is not set up, we default to the old implementation
+   if (this->ss().has(SpatialScheme::Feature::SpectralOrdering123))
+   {
+      return;
+   }
+
    std::string graphStr = R"mlir(
 // type aliases
 !real = tensor<?x?x?xf64>
