@@ -1,6 +1,6 @@
 /**
- * @file RunSimulation.cpp
- * @brief General executable for the simulation implementations
+ * @file Run@Exe@.cpp
+ * @brief Generated @Exe@ executable
  */
 
 // System includes
@@ -12,18 +12,17 @@
 #include "QuICC/Timers/StageTimer.hpp"
 #include "Profiler/Interface.hpp"
 #include "QuICC/Model/RunApplication.hpp"
-#include "QuICC/Model/ModelFactory.hpp"
-#include "Model/Boussinesq/Sphere/RTC/Explicit/PhysicalModel.hpp"
-#include "Model/Boussinesq/Sphere/RTC/IRTCModel.hpp"
+#include "@Factory@"
+#include "@PhysicalModel@"
+#include "@Builder@"
 
 /**
- * @brief Setup and run the simulation
+ * @brief Setup and run
  */
 int run()
 {
-   namespace model_ns = QuICC::Model::Boussinesq::Sphere::RTC;
-   typedef model_ns::Explicit::PhysicalModel<model_ns::IRTCModel> Model;
-   int status = QuICC::run_application<QuICC::ModelFactory,Model>();
+   typedef @ClassPhysicalModel@<@ClassBuilder@> Model;
+   int status = QuICC::run_application<@ClassFactory@,Model>();
 
    return status;
 }
