@@ -129,3 +129,44 @@ quicc_setup_exe(${ModelId}
   POSTFIX "${Exe}"
   EXESOURCE "${source_}"
   MODELLIB "${modLib}")
+
+######################
+# Stability executables
+if(TARGET QuICC::Stability)
+  set(Type "Implicit")
+  set(ModelId "${QUICC_CURRENT_MODEL_DIRNAME}/${Type}")
+  string(TOLOWER "quicc_${QUICC_CURRENT_MODEL_DIRNAME}" _model_lib)
+  string(TOLOWER "${_model_lib}_${Type}" modLib)
+  set(PhysicalModel "Model/Boussinesq/Sphere/RTC/Implicit/PhysicalModel.hpp")
+  set(ClassPhysicalModel "QuICC::Model::Boussinesq::Sphere::RTC::Implicit::PhysicalModel")
+
+  # Config
+  set(Exe "StabilityConfig")
+  set(Factory "Stability/ConfigFactory.hpp")
+  set(ClassFactory "QuICC::ConfigFactory")
+  set(Builder "Model/Boussinesq/Sphere/RTC/IRTCModel.hpp")
+  set(ClassBuilder "QuICC::Model::Boussinesq::Sphere::RTC::IRTCModel")
+  set(source_ "${CMAKE_CURRENT_BINARY_DIR}/${Type}/Run${Exe}.cpp")
+  configure_file(RunExe.cpp.in ${source_} @ONLY)
+
+  quicc_setup_exe(${ModelId}
+    POSTFIX "${Exe}"
+    EXESOURCE "${source_}"
+    MODELLIB "${modLib}"
+    EXTRALIBS QuICC::Stability)
+
+  # Stability
+  set(Exe "Stability")
+  set(Factory "Stability/LinearStabilityFactory.hpp")
+  set(ClassFactory "QuICC::LinearStabilityFactory")
+  set(Builder "Model/Boussinesq/Sphere/RTC/IRTCModel.hpp")
+  set(ClassBuilder "QuICC::Model::Boussinesq::Sphere::RTC::IRTCModel")
+  set(source_ "${CMAKE_CURRENT_BINARY_DIR}/${Type}/Run${Exe}.cpp")
+  configure_file(RunExe.cpp.in ${source_} @ONLY)
+
+  quicc_setup_exe(${ModelId}
+    POSTFIX "${Exe}"
+    EXESOURCE "${source_}"
+    MODELLIB "${modLib}"
+    EXTRALIBS QuICC::Stability)
+endif()
