@@ -11,17 +11,15 @@
 //
 #include "Model/Boussinesq/Sphere/RTC/Momentum.hpp"
 #include "Model/Boussinesq/Sphere/RTC/MomentumKernel.hpp"
-#include "QuICC/Bc/Name/StressFree.hpp"
+#include "Model/Boussinesq/Sphere/RTC/Utils.hpp"
 #include "QuICC/NonDimensional/Ekman.hpp"
 #include "QuICC/NonDimensional/Rayleigh.hpp"
 #include "QuICC/PhysicalNames/Temperature.hpp"
 #include "QuICC/PhysicalNames/Velocity.hpp"
+#include "QuICC/Bc/Name/StressFree.hpp"
 #include "QuICC/SolveTiming/Prognostic.hpp"
 #include "QuICC/SpatialScheme/ISpatialScheme.hpp"
 #include "QuICC/SpectralKernels/Sphere/ConserveAngularMomentum.hpp"
-#include "QuICC/Transform/Path/I2CurlNl.hpp"
-#include "QuICC/Transform/Path/NegI2CurlCurlNl.hpp"
-#include "QuICC/Transform/Path/NegI4CurlCurlNl.hpp"
 
 namespace QuICC {
 
@@ -71,19 +69,28 @@ void Momentum::setCoupling()
 
 void Momentum::setNLComponents()
 {
-   this->addNLComponent(FieldComponents::Spectral::TOR,
-      Transform::Path::I2CurlNl::id());
+   using Model::Boussinesq::Sphere::RTC::getPathId;
+   std::size_t torPathId = getPathId(this->mspBcIds, this->name(), true, FieldComponents::Spectral::TOR);
+   std::size_t polPathId = getPathId(this->mspBcIds, this->name(), true, FieldComponents::Spectral::POL);
+
+   this->addNLComponent(FieldComponents::Spectral::TOR, torPathId);
 
    if (this->couplingInfo(FieldComponents::Spectral::POL).isSplitEquation())
    {
-      this->addNLComponent(FieldComponents::Spectral::POL,
-         Transform::Path::NegI2CurlCurlNl::id());
+      this->addNLComponent(FieldComponents::Spectral::POL, polPathId);
    }
    else
    {
-      this->addNLComponent(FieldComponents::Spectral::POL,
-         Transform::Path::NegI4CurlCurlNl::id());
+      this->addNLComponent(FieldComponents::Spectral::POL, polPathId);
    }
+}
+
+std::vector<Transform::TransformPath> Momentum::backwardPaths()
+{
+   using Model::Boussinesq::Sphere::RTC::getPathId;
+   std::size_t pathId = getPathId(this->mspBcIds, this->name(), false);
+
+   return this->defaultBackwardPaths(pathId);
 }
 
 void Momentum::initNLKernel(const bool force)

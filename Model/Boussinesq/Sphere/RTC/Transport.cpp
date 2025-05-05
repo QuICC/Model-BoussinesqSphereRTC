@@ -9,13 +9,12 @@
 
 // Project includes
 //
+#include "Model/Boussinesq/Sphere/RTC/Utils.hpp"
 #include "Model/Boussinesq/Sphere/RTC/Transport.hpp"
 #include "Model/Boussinesq/Sphere/RTC/TransportKernel.hpp"
 #include "QuICC/PhysicalNames/Temperature.hpp"
 #include "QuICC/PhysicalNames/Velocity.hpp"
 #include "QuICC/SolveTiming/Prognostic.hpp"
-#include "QuICC/Transform/Path/I2ScalarNl.hpp"
-#include "QuICC/Transform/Path/Scalar.hpp"
 
 namespace QuICC {
 
@@ -47,8 +46,19 @@ void Transport::setCoupling()
 
 void Transport::setNLComponents()
 {
+   using Model::Boussinesq::Sphere::RTC::getPathId;
+   std::size_t pathId = getPathId(this->mspBcIds, this->name(), true, FieldComponents::Spectral::SCALAR);
+
    this->addNLComponent(FieldComponents::Spectral::SCALAR,
-      Transform::Path::I2ScalarNl::id());
+      pathId);
+}
+
+std::vector<Transform::TransformPath> Transport::backwardPaths()
+{
+   using Model::Boussinesq::Sphere::RTC::getPathId;
+   std::size_t pathId = getPathId(this->mspBcIds, this->name(), false);
+
+   return this->defaultBackwardPaths(pathId);
 }
 
 void Transport::initNLKernel(const bool force)
