@@ -22,6 +22,9 @@
 #include "QuICC/Transform/Path/I2CurlNl.hpp"
 #include "QuICC/Transform/Path/NegI2CurlCurlNl.hpp"
 #include "QuICC/Transform/Path/NegI4CurlCurlNl.hpp"
+#include "QuICC/Transform/Path/CurlNl.hpp"
+#include "QuICC/Transform/Path/NegCurlCurlNl.hpp"
+#include "QuICC/Transform/Path/NegCurlCurlNl.hpp"
 
 namespace QuICC {
 
@@ -71,18 +74,37 @@ void Momentum::setCoupling()
 
 void Momentum::setNLComponents()
 {
-   this->addNLComponent(FieldComponents::Spectral::TOR,
-      Transform::Path::I2CurlNl::id());
-
-   if (this->couplingInfo(FieldComponents::Spectral::POL).isSplitEquation())
+   if (this->ss().has(SpatialScheme::Feature::NoQuasiInverse))
    {
-      this->addNLComponent(FieldComponents::Spectral::POL,
-         Transform::Path::NegI2CurlCurlNl::id());
+      this->addNLComponent(FieldComponents::Spectral::TOR,
+         Transform::Path::CurlNl::id());
+
+      if (this->couplingInfo(FieldComponents::Spectral::POL).isSplitEquation())
+      {
+         this->addNLComponent(FieldComponents::Spectral::POL,
+            Transform::Path::NegCurlCurlNl::id());
+      }
+      else
+      {
+         this->addNLComponent(FieldComponents::Spectral::POL,
+            Transform::Path::NegCurlCurlNl::id());
+      }
    }
    else
    {
-      this->addNLComponent(FieldComponents::Spectral::POL,
-         Transform::Path::NegI4CurlCurlNl::id());
+      this->addNLComponent(FieldComponents::Spectral::TOR,
+         Transform::Path::I2CurlNl::id());
+
+      if (this->couplingInfo(FieldComponents::Spectral::POL).isSplitEquation())
+      {
+         this->addNLComponent(FieldComponents::Spectral::POL,
+            Transform::Path::NegI2CurlCurlNl::id());
+      }
+      else
+      {
+         this->addNLComponent(FieldComponents::Spectral::POL,
+            Transform::Path::NegI4CurlCurlNl::id());
+      }
    }
 }
 
