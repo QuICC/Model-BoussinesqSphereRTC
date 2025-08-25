@@ -10,6 +10,7 @@
 // Project includes
 //
 #include "Model/Boussinesq/Sphere/RTC/IRTCModel.hpp"
+#include "Model/Boussinesq/Sphere/RTC/Utils.hpp"
 #include "Model/Boussinesq/Sphere/RTC/Momentum.hpp"
 #include "Model/Boussinesq/Sphere/RTC/Transport.hpp"
 #include "Model/Boussinesq/Sphere/RTC/gitHash.hpp"
@@ -42,7 +43,13 @@
 #include "QuICC/NonDimensional/Rayleigh.hpp"
 #include "QuICC/PhysicalNames/Temperature.hpp"
 #include "QuICC/PhysicalNames/Velocity.hpp"
+#include "QuICC/SparseSM/Bessel/BesselKind.hpp"
 #include "QuICC/SpectralKernels/MakeRandom.hpp"
+#include "QuICC/SpectralKernels/Sphere/ConvertWorland2Bessel.hpp"
+#include "QuICC/Bc/Name/FixedTemperature.hpp"
+#include "QuICC/Bc/Name/NoSlip.hpp"
+#include "QuICC/Bc/Name/StressFree.hpp"
+#include "QuICC/Generator/States/Kernels/Sphere/TorPolHarmonic.hpp"
 
 namespace QuICC {
 
@@ -62,6 +69,11 @@ VectorFormulation::Id IRTCModel::SchemeFormulation()
 std::string IRTCModel::version() const
 {
    return std::string(gitHash);
+}
+
+void IRTCModel::init()
+{
+   this->mGeneratorNeedsState = false;
 }
 
 void IRTCModel::addEquations(SharedSimulation spSim)
@@ -308,8 +320,21 @@ func.func @entry(%T: !complex, %Tor: !complex, %Pol: !complex) -> (!complex, !co
    #endif
 }
 
+void IRTCModel::setGeneratorState(SharedStateGenerator spGen)
+{
+   if(this->mGeneratorNeedsState)
+   {
+      this->setDefaultGeneratorState(spGen);
+   }
+}
+
 void IRTCModel::addStates(SharedStateGenerator spGen)
 {
+   // Create boundary object
+   auto spBcs = spGen->createBoundary();
+   std::size_t tempPathId = getPathId(spBcs, PhysicalNames::Temperature::id(), false);
+   std::size_t velPathId = getPathId(spBcs, PhysicalNames::Velocity::id(), false);
+
    // Shared pointer to equation
    Equations::SharedSphereExactScalarState spScalar;
    Equations::SharedSphereExactVectorState spVector;
@@ -321,6 +346,8 @@ void IRTCModel::addStates(SharedStateGenerator spGen)
    spScalar =
       spGen->addEquation<Equations::SphereExactScalarState>(this->spBackend());
    spScalar->setIdentity(PhysicalNames::Temperature::id());
+   spScalar->setBackwardPath(tempPathId);
+   spScalar->setForwardPath(tempPathId);
    switch (3)
    {
    case 0: {
@@ -370,12 +397,33 @@ void IRTCModel::addStates(SharedStateGenerator spGen)
       spScalar->setPhysicalKernel(spKernel);
    }
    break;
+
+   case 6: {
+      auto spKernel = std::make_shared<Spectral::Kernel::Sphere::ConvertWorland2Bessel>(
+         spGen->ss().has(SpatialScheme::Feature::ComplexSpectrum));
+      auto bK = bKind(std::make_pair(PhysicalNames::Temperature::id(), FieldComponents::Spectral::SCALAR));
+      Spectral::Kernel::Sphere::ConvertWorland2Bessel::BesselKind cK;
+      if(bK == SparseSM::Bessel::BesselKind::JlK0)
+      {
+         cK = Spectral::Kernel::Sphere::ConvertWorland2Bessel::BesselKind::JlK0;
+      }
+      else if(bK == SparseSM::Bessel::BesselKind::JlK2)
+      {
+         cK = Spectral::Kernel::Sphere::ConvertWorland2Bessel::BesselKind::JlK2;
+      }
+      spKernel->init(FieldComponents::Spectral::SCALAR, Spectral::Kernel::Sphere::ConvertWorland2Bessel::WorlandKind::Chebyshev, cK);
+      spScalar->setConstraintKernel(spKernel);
+      this->mGeneratorNeedsState = true;
+   }
+   break;
    }
 
    // Add velocity initial state generator
    spVector =
       spGen->addEquation<Equations::SphereExactVectorState>(this->spBackend());
    spVector->setIdentity(PhysicalNames::Velocity::id());
+   spVector->setBackwardPath(velPathId);
+   spVector->setForwardPath(velPathId);
    switch (3)
    {
    // Toroidal only
@@ -444,6 +492,70 @@ void IRTCModel::addStates(SharedStateGenerator spGen)
       spVector->setSrcKernel(FieldComponents::Spectral::POL, spKernel);
    }
    break;
+
+   case 5: {
+      auto spKernel = std::make_shared<Physical::Kernel::Sphere::TorPolHarmonic>();
+      // Toroidal
+      tSH.clear();
+      ptSH = tSH.insert(
+         std::make_pair(std::make_pair(1, 1), std::map<int, MHDComplex>()));
+      ptSH.first->second.insert(std::make_pair(0, MHDComplex(1.0,1.0)));
+      ptSH.first->second.insert(std::make_pair(1, MHDComplex(1.0,1.0)));
+      ptSH.first->second.insert(std::make_pair(2, MHDComplex(1.0,1.0)));
+      ptSH.first->second.insert(std::make_pair(3, MHDComplex(-3.0,-3.0)));
+      spKernel->setModes(FieldComponents::Spectral::TOR, tSH);
+      // Poloidal
+      tSH.clear();
+      ptSH = tSH.insert(
+         std::make_pair(std::make_pair(1, 1), std::map<int, MHDComplex>()));
+      ptSH.first->second.insert(std::make_pair(0, MHDComplex(1.0,1.0)));
+      ptSH.first->second.insert(std::make_pair(1, MHDComplex(1.0,1.0)));
+      ptSH.first->second.insert(std::make_pair(2, MHDComplex(-5.0,-5.0)));
+      ptSH.first->second.insert(std::make_pair(3, MHDComplex(3.0,3.0)));
+      spKernel->setModes(FieldComponents::Spectral::POL, tSH);
+      spVector->setPhysicalKernel(spKernel);
+   }
+   break;
+
+   case 6: {
+      auto spTorKernel = std::make_shared<Spectral::Kernel::Sphere::ConvertWorland2Bessel>(
+         spGen->ss().has(SpatialScheme::Feature::ComplexSpectrum));
+      auto bK = bKind(std::make_pair(PhysicalNames::Velocity::id(), FieldComponents::Spectral::TOR));
+      Spectral::Kernel::Sphere::ConvertWorland2Bessel::BesselKind cK;
+      if(bK == SparseSM::Bessel::BesselKind::JlK0)
+      {
+         cK = Spectral::Kernel::Sphere::ConvertWorland2Bessel::BesselKind::JlK0;
+      }
+      else if(bK == SparseSM::Bessel::BesselKind::JlK2)
+      {
+         cK = Spectral::Kernel::Sphere::ConvertWorland2Bessel::BesselKind::JlK2;
+      }
+      else
+      {
+         throw std::logic_error("Unknown Bessel kind");
+      }
+      spTorKernel->init(FieldComponents::Spectral::TOR, Spectral::Kernel::Sphere::ConvertWorland2Bessel::WorlandKind::Chebyshev, cK);
+      spVector->setConstraintKernel(FieldComponents::Spectral::TOR, spTorKernel);
+      bK = bKind(std::make_pair(PhysicalNames::Velocity::id(), FieldComponents::Spectral::POL));
+      if(bK == SparseSM::Bessel::BesselKind::JlK0)
+      {
+         cK = Spectral::Kernel::Sphere::ConvertWorland2Bessel::BesselKind::JlK0;
+      }
+      else if(bK == SparseSM::Bessel::BesselKind::JlK2)
+      {
+         cK = Spectral::Kernel::Sphere::ConvertWorland2Bessel::BesselKind::JlK2;
+      }
+      else
+      {
+         throw std::logic_error("Unknown Bessel kind");
+      }
+      auto spPolKernel = std::make_shared<Spectral::Kernel::Sphere::ConvertWorland2Bessel>(
+         spGen->ss().has(SpatialScheme::Feature::ComplexSpectrum));
+      spPolKernel->init(FieldComponents::Spectral::POL, Spectral::Kernel::Sphere::ConvertWorland2Bessel::WorlandKind::Chebyshev, cK);
+      spVector->setConstraintKernel(FieldComponents::Spectral::POL, spPolKernel);
+      this->mGeneratorNeedsState = true;
+   }
+   break;
    }
 
    // Add output file
@@ -457,6 +569,11 @@ void IRTCModel::addStates(SharedStateGenerator spGen)
 
 void IRTCModel::addVisualizers(SharedVisualizationGenerator spVis)
 {
+   // Create boundary object
+   auto spBcs = spVis->createBoundary();
+   std::size_t tempPathId = getPathId(spBcs, PhysicalNames::Temperature::id(), false);
+   std::size_t velPathId = getPathId(spBcs, PhysicalNames::Velocity::id(), false);
+
    // Shared pointer to basic field visualizer
    Equations::SharedScalarFieldVisualizer spScalar;
    Equations::SharedVectorFieldVisualizer spVector;
@@ -466,12 +583,16 @@ void IRTCModel::addVisualizers(SharedVisualizationGenerator spVis)
       spVis->addEquation<Equations::ScalarFieldVisualizer>(this->spBackend());
    spScalar->setFields(true, true);
    spScalar->setIdentity(PhysicalNames::Temperature::id());
+   spScalar->setBackwardPath(tempPathId);
+   spScalar->setForwardPath(tempPathId);
 
    // Add velocity field visualization
    spVector =
       spVis->addEquation<Equations::VectorFieldVisualizer>(this->spBackend());
    spVector->setFields(true, false, true);
    spVector->setIdentity(PhysicalNames::Velocity::id());
+   spVector->setBackwardPath(velPathId);
+   spVector->setForwardPath(velPathId);
 
    // Add output file
    auto spOut = std::make_shared<Io::Variable::VisualizationFileWriter>(
@@ -511,45 +632,74 @@ std::map<std::string, std::map<std::string, int>> IRTCModel::configTags() const
 
 void IRTCModel::addAsciiOutputFiles(SharedSimulation spSim)
 {
+   // Create boundary object
+   auto spBcs = spSim->createBoundary();
+   std::size_t tempPathId = getPathId(spBcs, PhysicalNames::Temperature::id(), false);
+   std::size_t velPathId = getPathId(spBcs, PhysicalNames::Velocity::id(), false);
+
    // Create Nusselt writer
    this->enableAsciiFile<Io::Variable::SphereNusseltWriter>("nusselt", "",
       PhysicalNames::Temperature::id(), spSim);
 
    // Create temperature energy writer
-   this->enableAsciiFile<Io::Variable::SphereScalarEnergyWriter>(
-      "temperature_energy", "temperature", PhysicalNames::Temperature::id(),
-      spSim);
+   {
+      auto spF = this->enableAsciiFile<Io::Variable::SphereScalarEnergyWriter>(
+         "temperature_energy", "temperature", PhysicalNames::Temperature::id(),
+         spSim);
+      spF->setTransformPath(tempPathId);
+   }
 
    // Create temperature L energy spectrum writer
-   this->enableAsciiFile<Io::Variable::SphereScalarLSpectrumWriter>(
-      "temperature_l_spectrum", "temperature", PhysicalNames::Temperature::id(),
-      spSim);
+   {
+      auto spF = this->enableAsciiFile<Io::Variable::SphereScalarLSpectrumWriter>(
+         "temperature_l_spectrum", "temperature", PhysicalNames::Temperature::id(),
+         spSim);
+         spF->setTransformPath(tempPathId);
+   }
 
    // Create temperature M energy spectrum writer
-   this->enableAsciiFile<Io::Variable::SphereScalarMSpectrumWriter>(
-      "temperature_m_spectrum", "temperature", PhysicalNames::Temperature::id(),
-      spSim);
+   {   
+      auto spF = this->enableAsciiFile<Io::Variable::SphereScalarMSpectrumWriter>(
+         "temperature_m_spectrum", "temperature", PhysicalNames::Temperature::id(),
+         spSim);
+      spF->setTransformPath(tempPathId);
+   }
 
    // Create temperature N power spectrum writer
-   this->enableAsciiFile<Io::Variable::SphereScalarNSpectrumWriter>(
-      "temperature_n_spectrum", "temperature", PhysicalNames::Temperature::id(),
-      spSim);
+   {   
+      auto spF = this->enableAsciiFile<Io::Variable::SphereScalarNSpectrumWriter>(
+            "temperature_n_spectrum", "temperature", PhysicalNames::Temperature::id(),
+            spSim);
+      spF->setTransformPath(tempPathId);
+   }
 
    // Create kinetic energy writer
-   this->enableAsciiFile<Io::Variable::SphereTorPolEnergyWriter>(
-      "kinetic_energy", "kinetic", PhysicalNames::Velocity::id(), spSim);
+   {
+      auto spF = this->enableAsciiFile<Io::Variable::SphereTorPolEnergyWriter>(
+         "kinetic_energy", "kinetic", PhysicalNames::Velocity::id(), spSim);
+      spF->setTransformPath(velPathId);
+   }
 
    // Create kinetic L energy spectrum writer
-   this->enableAsciiFile<Io::Variable::SphereTorPolLSpectrumWriter>(
-      "kinetic_l_spectrum", "kinetic", PhysicalNames::Velocity::id(), spSim);
+   {
+      auto spF = this->enableAsciiFile<Io::Variable::SphereTorPolLSpectrumWriter>(
+         "kinetic_l_spectrum", "kinetic", PhysicalNames::Velocity::id(), spSim);
+         spF->setTransformPath(velPathId);
+   }
 
    // Create kinetic M energy spectrum writer
-   this->enableAsciiFile<Io::Variable::SphereTorPolMSpectrumWriter>(
-      "kinetic_m_spectrum", "kinetic", PhysicalNames::Velocity::id(), spSim);
+   {
+      auto spF = this->enableAsciiFile<Io::Variable::SphereTorPolMSpectrumWriter>(
+         "kinetic_m_spectrum", "kinetic", PhysicalNames::Velocity::id(), spSim);
+         spF->setTransformPath(velPathId);
+   }
 
    // Create kinetic N power spectrum writer
-   this->enableAsciiFile<Io::Variable::SphereTorPolNSpectrumWriter>(
-      "kinetic_n_spectrum", "kinetic", PhysicalNames::Velocity::id(), spSim);
+   {
+      auto spF = this->enableAsciiFile<Io::Variable::SphereTorPolNSpectrumWriter>(
+         "kinetic_n_spectrum", "kinetic", PhysicalNames::Velocity::id(), spSim);
+         spF->setTransformPath(velPathId);
+   }
 
    // Create angular momentum writer
    this->enableAsciiFile<Io::Variable::SphereAngularMomentumWriter>(
