@@ -106,6 +106,14 @@ ModelBackend::SpectralFieldIds ModelBackend::implicitFields(
    return fields;
 }
 
+ModelBackend::SpectralFieldIds ModelBackend::explicitNonlinearFields(
+   const SpectralFieldId& fId) const
+{
+   SpectralFieldIds fields = {fId};
+
+   return fields;
+}
+
 void ModelBackend::equationInfo(EquationInfo& info, const SpectralFieldId& fId,
    const Resolution& res) const
 {
@@ -130,7 +138,7 @@ void ModelBackend::equationInfo(EquationInfo& info, const SpectralFieldId& fId,
    info.exL.clear();
 
    // Explicit nonlinear terms
-   info.exNL.clear();
+   info.exNL = this->explicitNonlinearFields(fId);
 
    // Explicit nextstep terms
    info.exNS.clear();
@@ -665,8 +673,8 @@ void ModelBackend::galerkinStencil(SparseMatrix& mat,
 }
 
 void ModelBackend::explicitBlock(DecoupledZSparse& mat,
-   const SpectralFieldId& fId, const std::size_t opId,
-   const SpectralFieldId fieldId, const int matIdx, const Resolution& res,
+   const SpectralFieldId& rowId, const std::size_t opId,
+   const SpectralFieldId colId, const int matIdx, const Resolution& res,
    const std::vector<MHDFloat>& eigs, const BcMap& bcs,
    const NonDimensional::NdMap& nds) const
 {
@@ -679,7 +687,15 @@ void ModelBackend::explicitBlock(DecoupledZSparse& mat,
    // Explicit nonlinear operator
    else if (opId == ModelOperator::ExplicitNonlinear::id())
    {
-      throw std::logic_error("There are no explicit nonlinear operators");
+      assert(eigs.size() == 1);
+      int l = eigs.at(0);
+      auto bcType = ModelOperatorBoundary::SolverNoTau::id();
+
+      const auto& fields = this->explicitNonlinearFields(rowId);
+      auto descr =
+         explicitNonlinearBlockBuilder(rowId, colId, res, eigs, bcs, nds);
+      buildBlock(mat, descr, rowId, colId, fields, matIdx, bcType, res, l, l,
+         bcs, nds, false, true);
    }
    // Explicit nextstep operator
    else if (opId == ModelOperator::ExplicitNextstep::id())
@@ -699,6 +715,154 @@ const Internal::Array& ModelBackend::getGrid(const int size) const
 
    assert(size == this->mpGrid->size());
    return *this->mpGrid;
+}
+
+std::vector<details::BlockDescription>
+ModelBackend::explicitNonlinearBlockBuilder(const SpectralFieldId& rowId,
+   const SpectralFieldId& colId, const Resolution& res,
+   const std::vector<MHDFloat>& eigs, const BcMap& bcs,
+   const NonDimensional::NdMap& nds) const
+{
+   assert(eigs.size() == 1);
+
+   std::vector<details::BlockDescription> descr;
+
+   // Create description with common options
+   auto getDescription = [&]() -> details::BlockDescription&
+   {
+      descr.push_back({});
+      auto& d = descr.back();
+      auto opts = std::make_shared<implDetails::BlockOptionsImpl>();
+      opts->igrid = this->getGrid(res.sim().dim(Dimensions::Simulation::SIM1D, Dimensions::Space::SPECTRAL));
+      opts->l = eigs.at(0);
+      opts->bcId = bcs.find(colId.first)->second;
+      opts->isSplitOperator = false;
+      opts->useSplitEquation = this->useSplitEquation();
+      d.opts = opts;
+
+      return d;
+   };
+
+   if (rowId == std::make_pair(PhysicalNames::Velocity::id(),
+                     FieldComponents::Spectral::TOR) &&
+         rowId == colId)
+   {
+      // Real part of operator
+      auto realOp = [](const int nNr, const int nNc, const int l,
+                       std::shared_ptr<details::BlockOptions> opts,
+                       const NonDimensional::NdMap& nds)
+      {
+         assert(nNr == nNc);
+
+         SparseMatrix bMat;
+         auto& o =
+            *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
+
+         if (l > 0)
+         {
+            FiniteDiff::Sphere::Id opId(1,1);
+            Internal::SparseMatrix mat; 
+            opId.compute(mat, l, o.igrid);
+            bMat = mat;
+         }
+         else
+         {
+            FiniteDiff::Sphere::Id opId;
+            Internal::SparseMatrix mat; 
+            opId.compute(mat, l, o.igrid);
+            bMat = mat;
+         }
+
+         return bMat;
+      };
+
+      // Create block diagonal operator
+      auto& d = getDescription();
+      d.nRowShift = 0;
+      d.nColShift = 0;
+      d.realOp = realOp;
+      d.imagOp = nullptr;
+   }
+   else if (rowId == std::make_pair(PhysicalNames::Velocity::id(),
+                          FieldComponents::Spectral::POL) &&
+            rowId == colId)
+   {
+      // Real part of operator
+      auto realOp = [](const int nNr, const int nNc, const int l,
+                       std::shared_ptr<details::BlockOptions> opts,
+                       const NonDimensional::NdMap& nds)
+      {
+         assert(nNr == nNc);
+
+         SparseMatrix bMat;
+         auto& o =
+            *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
+
+         if (l > 0)
+         {
+            if (o.useSplitEquation)
+            {
+               FiniteDiff::Sphere::Id opId(1, 1);
+               Internal::SparseMatrix mat; 
+               opId.compute(mat, l, o.igrid);
+               bMat = mat;
+            }
+            else
+            {
+               throw std::logic_error("Finite differences bilaplacian is not implemented!");
+            }
+         }
+         else
+         {
+            FiniteDiff::Sphere::Id opId;
+            Internal::SparseMatrix mat; 
+            opId.compute(mat, l, o.igrid);
+            bMat = mat;
+         }
+
+         return bMat;
+      };
+
+      // Create block diagonal operator
+      auto& d = getDescription();
+      d.nRowShift = 0;
+      d.nColShift = 0;
+      d.realOp = realOp;
+      d.imagOp = nullptr;
+   }
+   else if (rowId == std::make_pair(PhysicalNames::Temperature::id(),
+                          FieldComponents::Spectral::SCALAR) &&
+            rowId == colId)
+   {
+      // Real part of operator
+      auto realOp = [](const int nNr, const int nNc, const int l,
+                       std::shared_ptr<details::BlockOptions> opts,
+                       const NonDimensional::NdMap& nds)
+      {
+         auto& o =
+            *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
+
+         FiniteDiff::Sphere::Id opId(1,1);
+         Internal::SparseMatrix mat; 
+         opId.compute(mat, l, o.igrid);
+         SparseMatrix bMat = mat;
+
+         return bMat;
+      };
+
+      // Create block diagonal operator
+      auto& d = getDescription();
+      d.nRowShift = 0;
+      d.nColShift = 0;
+      d.realOp = realOp;
+      d.imagOp = nullptr;
+   }
+   else
+   {
+      throw std::logic_error("There are no explicit nonlinear operators");
+   }
+
+   return descr;
 }
 
 void ModelBackend::applyTau(SparseMatrix& mat, const SpectralFieldId& rowId,

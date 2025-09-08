@@ -140,6 +140,13 @@ protected:
    SpectralFieldIds implicitFields(const SpectralFieldId& fId) const final;
 
    /**
+    * @brief Apply operator to nonlinear terms
+    *
+    * @param fId  Field ID
+    */
+   SpectralFieldIds explicitNonlinearFields(const SpectralFieldId& fId) const;
+
+   /**
     * @brief Build implicit matrix block description
     *
     * @param rowId   Field ID of block matrix row
@@ -199,6 +206,21 @@ protected:
     * @param nds     Nondimension parameters
     */
    std::vector<details::BlockDescription> splitBoundaryValueBlockBuilder(
+      const SpectralFieldId& rowId, const SpectralFieldId& colId,
+      const Resolution& res, const std::vector<MHDFloat>& eigs,
+      const BcMap& bcs, const NonDimensional::NdMap& nds) const;
+
+   /**
+    * @brief Build explicit nonlinear matrix block description
+    *
+    * @param rowId   Field ID of block matrix row
+    * @param colId   Field ID of block matrix column
+    * @param res     Resolution object
+    * @param eigs    Slow indexes
+    * @param bcs     Boundary conditions for each field
+    * @param nds     Nondimension parameters
+    */
+   std::vector<details::BlockDescription> explicitNonlinearBlockBuilder(
       const SpectralFieldId& rowId, const SpectralFieldId& colId,
       const Resolution& res, const std::vector<MHDFloat>& eigs,
       const BcMap& bcs, const NonDimensional::NdMap& nds) const;
