@@ -1,6 +1,7 @@
 include(ConfigureBenchmarks)
 quicc_add_benchmark(Explicit
   MODEL "BoussinesqSphereRTC"
+  TYPE "Model"
   WORKDIR "${CMAKE_BINARY_DIR}/${QUICC_CURRENT_MODEL_DIR}/TestSuite/Benchmarks"
   ARCHIVEDIR "${CMAKE_BINARY_DIR}/Models/_refdata"
   VARIANTS "framework/parallel/algorithm:serial"
@@ -8,6 +9,7 @@ quicc_add_benchmark(Explicit
 
 quicc_add_benchmark(Explicit
   MODEL "BoussinesqSphereRTC"
+  TYPE "Model"
   WORKDIR "${CMAKE_BINARY_DIR}/${QUICC_CURRENT_MODEL_DIR}/TestSuite/Benchmarks"
   ARCHIVEDIR "${CMAKE_BINARY_DIR}/Models/_refdata"
   VARIANTS "framework/parallel/algorithm:serial" "framework/timestepping/scheme:ImEx_PC2" "setup/model/split_equation:On"
@@ -17,6 +19,7 @@ quicc_add_benchmark(Explicit
 
 quicc_add_benchmark(Explicit
   MODEL "BoussinesqSphereRTC"
+  TYPE "Model"
   WORKDIR "${CMAKE_BINARY_DIR}/${QUICC_CURRENT_MODEL_DIR}/TestSuite/Benchmarks"
   ARCHIVEDIR "${CMAKE_BINARY_DIR}/Models/_refdata"
   VARIANTS "framework/parallel/algorithm:single1d"
@@ -25,6 +28,7 @@ quicc_add_benchmark(Explicit
 
 quicc_add_benchmark(Explicit
   MODEL "BoussinesqSphereRTC"
+  TYPE "Model"
   WORKDIR "${CMAKE_BINARY_DIR}/${QUICC_CURRENT_MODEL_DIR}/TestSuite/Benchmarks"
   ARCHIVEDIR "${CMAKE_BINARY_DIR}/Models/_refdata"
   VARIANTS "framework/parallel/algorithm:single2d"
@@ -33,6 +37,7 @@ quicc_add_benchmark(Explicit
 
 quicc_add_benchmark(Explicit
   MODEL "BoussinesqSphereRTC"
+  TYPE "Model"
   WORKDIR "${CMAKE_BINARY_DIR}/${QUICC_CURRENT_MODEL_DIR}/TestSuite/Benchmarks"
   ARCHIVEDIR "${CMAKE_BINARY_DIR}/Models/_refdata"
   VARIANTS "framework/parallel/algorithm:tubular"
@@ -41,6 +46,7 @@ quicc_add_benchmark(Explicit
 
 quicc_add_benchmark(Explicit
   MODEL "BoussinesqSphereRTC"
+  TYPE "Model"
   WORKDIR "${CMAKE_BINARY_DIR}/${QUICC_CURRENT_MODEL_DIR}/TestSuite/Benchmarks"
   ARCHIVEDIR "${CMAKE_BINARY_DIR}/Models/_refdata"
   VARIANTS "framework/parallel/algorithm:tubular" "framework/timestepping/scheme:ImEx_PC2" "setup/model/split_equation:On"
@@ -51,6 +57,7 @@ quicc_add_benchmark(Explicit
 
 quicc_add_benchmark(Implicit
   MODEL "BoussinesqSphereRTC"
+  TYPE "Model"
   WORKDIR "${CMAKE_BINARY_DIR}/${QUICC_CURRENT_MODEL_DIR}/TestSuite/Benchmarks"
   ARCHIVEDIR "${CMAKE_BINARY_DIR}/Models/_refdata"
   TIMEOUT 500
@@ -59,6 +66,7 @@ quicc_add_benchmark(Implicit
 
 quicc_add_benchmark(Implicit
   MODEL "BoussinesqSphereRTC"
+  TYPE "Model"
   WORKDIR "${CMAKE_BINARY_DIR}/${QUICC_CURRENT_MODEL_DIR}/TestSuite/Benchmarks"
   ARCHIVEDIR "${CMAKE_BINARY_DIR}/Models/_refdata"
   TIMEOUT 500
@@ -68,6 +76,7 @@ quicc_add_benchmark(Implicit
 
 quicc_add_benchmark(Implicit
   MODEL "BoussinesqSphereRTC"
+  TYPE "Model"
   WORKDIR "${CMAKE_BINARY_DIR}/${QUICC_CURRENT_MODEL_DIR}/TestSuite/Benchmarks"
   ARCHIVEDIR "${CMAKE_BINARY_DIR}/Models/_refdata"
   TIMEOUT 500
@@ -77,6 +86,7 @@ quicc_add_benchmark(Implicit
 
 quicc_add_benchmark(Implicit
   MODEL "BoussinesqSphereRTC"
+  TYPE "Model"
   WORKDIR "${CMAKE_BINARY_DIR}/${QUICC_CURRENT_MODEL_DIR}/TestSuite/Benchmarks"
   ARCHIVEDIR "${CMAKE_BINARY_DIR}/Models/_refdata"
   TIMEOUT 500
@@ -85,14 +95,13 @@ quicc_add_benchmark(Implicit
   )
 
 if(TARGET QuICC::Stability)
-  include(ConfigureStabilityBenchmark)
-  quicc_add_stability_benchmark(Implicit
+  quicc_add_benchmark(Implicit
     MODEL "BoussinesqSphereRTC"
+    TYPE "Stability"
     WORKDIR "${CMAKE_BINARY_DIR}/${QUICC_CURRENT_MODEL_DIR}/TestSuite/Stability"
     ARCHIVEDIR "${CMAKE_BINARY_DIR}/Models/_refdata"
     TIMEOUT 500
     VARIANTS "framework/parallel/algorithm:tubular"
     MPIRANKS 1
-    MODEL_DIRNAME ${QUICC_CURRENT_MODEL_DIRNAME}
   )
 endif()
