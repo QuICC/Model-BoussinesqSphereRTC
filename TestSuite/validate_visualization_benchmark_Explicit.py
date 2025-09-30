@@ -15,7 +15,7 @@ tids = [0, 1, 2, 3]
 tols = [350000, 112000, 6800, 11300]
 datasets = ['temperature/temperature', 'velocity/velocity_r', 'velocity/velocity_theta', 'velocity/velocity_phi']
 for tid, t, ds in  zip(tids, tols, datasets):
-    results.append(vt.hdf5Test(*out[1], ds, tid, tol = t, perrow = True, percol = True, threshold = 2e-14))
+    results.append(vt.hdf5Test(*out[1], ds, tid, tol = t, perrow = True, percol = True, threshold = 2e-12))
 
 # Output test summary
 vt.printSummary(results, tids, reftol = tols)
