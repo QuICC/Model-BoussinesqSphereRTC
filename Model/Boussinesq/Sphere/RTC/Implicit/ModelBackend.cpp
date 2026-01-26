@@ -183,41 +183,6 @@ void ModelBackend::equationInfo(EquationInfo& info, const SpectralFieldId& fId,
       static_cast<int>(Equations::CouplingIndexType::SLOWEST_SINGLE_RHS);
 }
 
-void ModelBackend::operatorInfo(OperatorInfo& info, const SpectralFieldId& fId,
-   const Resolution& res, const Equations::Tools::ICoupling& coupling,
-   const BcMap& bcs) const
-{
-   // Loop overall matrices/eigs
-   for (int idx = 0; idx < info.tauN.size(); ++idx)
-   {
-      auto eigs = coupling.getIndexes(res, idx);
-
-      int tN, gN, rhs;
-      ArrayI shift(3);
-
-      this->blockInfo(tN, gN, shift, rhs, fId, res, eigs.at(0), bcs);
-
-      info.tauN(idx) = tN;
-      info.galN(idx) = gN;
-      info.galShift.row(idx) = shift;
-      info.rhsCols(idx) = rhs;
-
-      // Compute system size
-      int sN = 0;
-      for (auto f: this->implicitFields(fId))
-      {
-         this->blockInfo(tN, gN, shift, rhs, f, res, eigs.at(0), bcs);
-         sN += gN;
-      }
-
-      if (sN == 0)
-      {
-         sN = info.galN(idx);
-      }
-
-      info.sysN(idx) = sN;
-   }
-}
 
 std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
    const SpectralFieldId& rowId, const SpectralFieldId& colId,
@@ -814,6 +779,13 @@ void ModelBackend::modelMatrix(DecoupledZSparse& rModelMatrix,
                   Dimensions::Space::SPECTRAL, m) -
                1;
 
+   // Store 1D sizes
+   std::vector<int> nNs;
+   for (int j = m; j <= maxL; j++)
+   {
+      nNs.emplace_back(this->baseNn(j, res));
+   }
+
    // Time operator
    if (opId == ModelOperator::Time::id())
    {
@@ -823,8 +795,8 @@ void ModelBackend::modelMatrix(DecoupledZSparse& rModelMatrix,
          auto colId = rowId;
          const auto& fields = this->implicitFields(rowId);
          auto descr = timeBlockBuilder(rowId, colId, res, eigs, bcs, nds);
-         buildBlock(rModelMatrix, descr, rowId, colId, fields, matIdx, bcType,
-            res, m, maxL, bcs, nds, false);
+         buildBlock(rModelMatrix, this->isComplex(rowId), descr, rowId, colId, fields, matIdx, bcType,
+            res, m, maxL, nNs, bcs, nds, false, -1);
       }
    }
    // Linear operator
@@ -842,8 +814,8 @@ void ModelBackend::modelMatrix(DecoupledZSparse& rModelMatrix,
             auto colId = *pColId;
             auto descr =
                implicitBlockBuilder(rowId, colId, res, eigs, bcs, nds, isSplit);
-            buildBlock(rModelMatrix, descr, rowId, colId, fields, matIdx,
-               bcType, res, m, maxL, bcs, nds, isSplit);
+            buildBlock(rModelMatrix, this->isComplex(rowId), descr, rowId, colId, fields, matIdx,
+               bcType, res, m, maxL, nNs, bcs, nds, isSplit, -1);
          }
       }
    }
@@ -862,8 +834,8 @@ void ModelBackend::modelMatrix(DecoupledZSparse& rModelMatrix,
             auto colId = *pColId;
             auto descr =
                boundaryBlockBuilder(rowId, colId, res, eigs, bcs, nds, isSplit);
-            buildBlock(rModelMatrix, descr, rowId, colId, fields, matIdx,
-               bcType, res, m, maxL, bcs, nds, isSplit);
+            buildBlock(rModelMatrix, this->isComplex(rowId), descr, rowId, colId, fields, matIdx,
+               bcType, res, m, maxL, nNs, bcs, nds, isSplit, -1);
          }
       }
    }
@@ -941,13 +913,19 @@ void ModelBackend::galerkinStencil(SparseMatrix& mat,
                   Dimensions::Space::SPECTRAL, m) -
                1;
 
+   std::vector<int> nNs;
+   for(int l = m; l <= maxL; l++)
+   {
+      nNs.emplace_back(this->baseNn(l, res));
+   }
+
    // Compute system size
    const auto& fields = this->implicitFields(fieldId);
    const auto sysRows =
-      systemInfo(fieldId, fieldId, fields, m, maxL, res, bcs, makeSquare, false)
+      systemInfo(fieldId, fieldId, fields, nNs, makeSquare, false)
          .blockRows;
    const auto sysCols =
-      systemInfo(fieldId, fieldId, fields, m, maxL, res, bcs, true, false)
+      systemInfo(fieldId, fieldId, fields, nNs, true, false)
          .blockCols;
 
    auto nL = res.counter().dim(Dimensions::Simulation::SIM2D,

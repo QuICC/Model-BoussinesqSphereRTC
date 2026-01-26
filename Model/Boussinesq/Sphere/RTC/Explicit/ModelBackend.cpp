@@ -158,42 +158,6 @@ void ModelBackend::equationInfo(EquationInfo& info, const SpectralFieldId& fId,
       static_cast<int>(Equations::CouplingIndexType::SLOWEST_MULTI_RHS);
 }
 
-void ModelBackend::operatorInfo(OperatorInfo& info, const SpectralFieldId& fId,
-   const Resolution& res, const Equations::Tools::ICoupling& coupling,
-   const BcMap& bcs) const
-{
-   // Loop overall matrices/eigs
-   for (int idx = 0; idx < info.tauN.size(); ++idx)
-   {
-      auto eigs = coupling.getIndexes(res, idx);
-
-      int tN, gN, rhs;
-      ArrayI shift(3);
-
-      this->blockInfo(tN, gN, shift, rhs, fId, res, eigs.at(0), bcs);
-
-      info.tauN(idx) = tN;
-      info.galN(idx) = gN;
-      info.galShift.row(idx) = shift;
-      info.rhsCols(idx) = rhs;
-
-      // Compute system size
-      int sN = 0;
-      for (auto f: this->implicitFields(fId))
-      {
-         this->blockInfo(tN, gN, shift, rhs, f, res, eigs.at(0), bcs);
-         sN += gN;
-      }
-
-      if (sN == 0)
-      {
-         sN = info.galN(idx);
-      }
-
-      info.sysN(idx) = sN;
-   }
-}
-
 std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
    const SpectralFieldId& rowId, const SpectralFieldId& colId,
    const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs,
@@ -603,6 +567,13 @@ void ModelBackend::modelMatrix(DecoupledZSparse& rModelMatrix,
    assert(eigs.size() == 1);
    int l = eigs.at(0);
 
+   // Store 1D sizes
+   std::vector<int> nNs;
+   for (int j = l; j <= l; j++)
+   {
+      nNs.emplace_back(this->baseNn(j, res));
+   }
+
    // Time operator
    if (opId == ModelOperator::Time::id())
    {
@@ -612,8 +583,8 @@ void ModelBackend::modelMatrix(DecoupledZSparse& rModelMatrix,
          auto colId = rowId;
          const auto& fields = this->implicitFields(rowId);
          auto descr = timeBlockBuilder(rowId, colId, res, eigs, bcs, nds);
-         buildBlock(rModelMatrix, descr, rowId, colId, fields, matIdx, bcType,
-            res, l, l, bcs, nds, false);
+         buildBlock(rModelMatrix, this->isComplex(rowId), descr, rowId, colId, fields, matIdx, bcType,
+            res, l, l, nNs, bcs, nds, false, -1);
       }
    }
    // Linear operator
@@ -631,8 +602,8 @@ void ModelBackend::modelMatrix(DecoupledZSparse& rModelMatrix,
             auto colId = *pColId;
             auto descr =
                implicitBlockBuilder(rowId, colId, res, eigs, bcs, nds, isSplit);
-            buildBlock(rModelMatrix, descr, rowId, colId, fields, matIdx,
-               bcType, res, l, l, bcs, nds, isSplit);
+            buildBlock(rModelMatrix, this->isComplex(rowId), descr, rowId, colId, fields, matIdx,
+               bcType, res, l, l, nNs, bcs, nds, isSplit, -1);
          }
       }
    }
@@ -651,8 +622,8 @@ void ModelBackend::modelMatrix(DecoupledZSparse& rModelMatrix,
             auto colId = *pColId;
             auto descr =
                boundaryBlockBuilder(rowId, colId, res, eigs, bcs, nds, isSplit);
-            buildBlock(rModelMatrix, descr, rowId, colId, fields, matIdx,
-               bcType, res, l, l, bcs, nds, isSplit);
+            buildBlock(rModelMatrix, this->isComplex(rowId), descr, rowId, colId, fields, matIdx,
+               bcType, res, l, l, nNs, bcs, nds, isSplit, -1);
          }
       }
    }
@@ -668,8 +639,8 @@ void ModelBackend::modelMatrix(DecoupledZSparse& rModelMatrix,
             auto colId = *pColId;
             auto descr = splitBoundaryValueBlockBuilder(rowId, colId, res, eigs,
                bcs, nds);
-            buildFixedBlock(rModelMatrix, 1, true, descr, rowId, colId, fields,
-               matIdx, bcType, res, l, l, bcs, nds, false);
+            buildBlock(rModelMatrix, true, descr, rowId, colId, fields,
+               matIdx, bcType, res, l, l, nNs, bcs, nds, false, 1);
          }
       }
    }

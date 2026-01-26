@@ -63,19 +63,6 @@ public:
       const Resolution& res) const override;
 
    /**
-    * @brief Get operator information
-    *
-    * @param info       Equation information
-    * @param fId        Field ID
-    * @param res        Resolution object
-    * @param coupling   Equation/Field coupling information
-    * @param bcs        Boundary conditions
-    */
-   virtual void operatorInfo(OperatorInfo& info, const SpectralFieldId& fId,
-      const Resolution& res, const Equations::Tools::ICoupling& coupling,
-      const BcMap& bcs) const override;
-
-   /**
     * @brief Build model matrix
     *
     * @param rModelMatrix  Input/Output matrix to fill with operators

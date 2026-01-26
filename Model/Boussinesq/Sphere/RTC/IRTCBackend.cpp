@@ -117,13 +117,29 @@ int IRTCBackend::nBc(const SpectralFieldId& fId) const
    return nBc;
 }
 
+int IRTCBackend::baseNn(const int l, const Resolution& res) const
+{
+   int nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
+
+   return nN;
+}
+
+void IRTCBackend::modifyBaseNn(int& nN, const SpectralFieldId& fId) const
+{
+   if ((fId == std::make_pair(PhysicalNames::Velocity::id(),
+                 FieldComponents::Spectral::POL)) && this->useSplitEquation())
+   {
+      nN += 2;
+   }
+}
+
 void IRTCBackend::applyTau(SparseMatrix& mat, const SpectralFieldId& rowId,
    const SpectralFieldId& colId, const int l,
    std::shared_ptr<details::BlockOptions> opts, const Resolution& res,
    const BcMap& bcs, const NonDimensional::NdMap& nds,
    const bool isSplitOperator) const
 {
-   auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
+   auto nN = this->baseNn(l, res);
 
    auto a = Polynomial::Worland::worland_default_t::ALPHA;
    auto b = Polynomial::Worland::worland_default_t::DBETA;
@@ -228,7 +244,7 @@ void IRTCBackend::stencil(SparseMatrix& mat, const SpectralFieldId& fieldId,
    const int l, const Resolution& res, const bool makeSquare, const BcMap& bcs,
    const NonDimensional::NdMap& nds) const
 {
-   auto nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
+   auto nN = this->baseNn(l, res);
 
    auto a = Polynomial::Worland::worland_default_t::ALPHA;
    auto b = Polynomial::Worland::worland_default_t::DBETA;
@@ -307,7 +323,7 @@ void IRTCBackend::applyGalerkinStencil(SparseMatrix& mat,
    const Resolution& res, const BcMap& bcs,
    const NonDimensional::NdMap& nds) const
 {
-   auto nNr = res.counter().dimensions(Dimensions::Space::SPECTRAL, lr)(0);
+   auto nNr = this->baseNn(lr, res);
 
    auto a = Polynomial::Worland::worland_default_t::ALPHA;
    auto b = Polynomial::Worland::worland_default_t::DBETA;
@@ -318,6 +334,45 @@ void IRTCBackend::applyGalerkinStencil(SparseMatrix& mat,
    auto s = this->nBc(rowId);
    SparseSM::Worland::Id qId(nNr - s, nNr, a, b, lr, 0, s);
    mat = qId.mat() * (mat * S);
+}
+
+void IRTCBackend::operatorInfo(OperatorInfo& info, const SpectralFieldId& fId,
+   const Resolution& res, const Equations::Tools::ICoupling& coupling,
+   const BcMap& bcs) const
+{
+   // Loop overall matrices/eigs
+   for (int idx = 0; idx < info.tauN.size(); ++idx)
+   {
+      auto eigs = coupling.getIndexes(res, idx);
+
+      int tN, gN, rhs;
+      ArrayI shift(3);
+
+      auto nTauLines = this->nBc(fId);
+      auto nN = this->baseNn(eigs.at(0), res);
+      this->blockInfo(tN, gN, shift, rhs, nTauLines, nN);
+
+      info.tauN(idx) = tN;
+      info.galN(idx) = gN;
+      info.galShift.row(idx) = shift;
+      info.rhsCols(idx) = rhs;
+
+      // Compute system size
+      int sN = 0;
+      for (auto f: this->implicitFields(fId))
+      {
+         nTauLines = this->nBc(f);
+         this->blockInfo(tN, gN, shift, rhs, nTauLines, nN);
+         sN += gN;
+      }
+
+      if (sN == 0)
+      {
+         sN = info.galN(idx);
+      }
+
+      info.sysN(idx) = sN;
+   }
 }
 
 } // namespace RTC

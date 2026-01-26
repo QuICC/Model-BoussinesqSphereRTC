@@ -66,6 +66,19 @@ public:
    virtual std::map<std::string, MHDFloat> automaticParameters(
       const std::map<std::string, MHDFloat>& cfg) const override;
 
+   /**
+    * @brief Get operator information
+    *
+    * @param info       Equation information
+    * @param fId        Field ID
+    * @param res        Resolution object
+    * @param coupling   Equation/Field coupling information
+    * @param bcs        Boundary conditions
+    */
+   virtual void operatorInfo(OperatorInfo& info, const SpectralFieldId& fId,
+      const Resolution& res, const Equations::Tools::ICoupling& coupling,
+      const BcMap& bcs) const override;
+
 protected:
    /**
     * @brief Number of boundary conditions
@@ -73,6 +86,18 @@ protected:
     * @fId  Field ID
     */
    int nBc(const SpectralFieldId& fId) const override;
+
+   /**
+    * @brief Base 1D dimension
+    *
+    * @fId  Field ID
+    */
+   int baseNn(const int l, const Resolution& res) const;
+
+   /**
+    * @brief Tune provided 1D dimension (for example for split formulation)
+    */
+   void modifyBaseNn(int& nN, const SpectralFieldId& fId) const;
 
    /**
     * @brief Apply tau line for boundary condition
