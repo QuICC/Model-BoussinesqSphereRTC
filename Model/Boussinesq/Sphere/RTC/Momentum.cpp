@@ -19,9 +19,8 @@
 #include "QuICC/SolveTiming/Prognostic.hpp"
 #include "QuICC/SpatialScheme/ISpatialScheme.hpp"
 #include "QuICC/SpectralKernels/Sphere/ConserveAngularMomentum.hpp"
-#include "QuICC/Transform/Path/I2CurlNl.hpp"
-#include "QuICC/Transform/Path/NegI2CurlCurlNl.hpp"
-#include "QuICC/Transform/Path/NegI4CurlCurlNl.hpp"
+#include "QuICC/Transform/Path/CurlNl.hpp"
+#include "QuICC/Transform/Path/NegCurlCurlNl.hpp"
 
 namespace QuICC {
 
@@ -72,17 +71,17 @@ void Momentum::setCoupling()
 void Momentum::setNLComponents()
 {
    this->addNLComponent(FieldComponents::Spectral::TOR,
-      Transform::Path::I2CurlNl::id());
+      Transform::Path::CurlNl::id());
 
    if (this->couplingInfo(FieldComponents::Spectral::POL).isSplitEquation())
    {
       this->addNLComponent(FieldComponents::Spectral::POL,
-         Transform::Path::NegI2CurlCurlNl::id());
+         Transform::Path::NegCurlCurlNl::id());
    }
    else
    {
       this->addNLComponent(FieldComponents::Spectral::POL,
-         Transform::Path::NegI4CurlCurlNl::id());
+         Transform::Path::NegCurlCurlNl::id());
    }
 }
 

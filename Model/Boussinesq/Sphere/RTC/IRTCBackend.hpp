@@ -95,26 +95,21 @@ protected:
    int baseNn(const int l, const Resolution& res) const;
 
    /**
-    * @brief Tune provided 1D dimension (for example for split formulation)
-    */
-   void modifyBaseNn(int& nN, const SpectralFieldId& fId) const;
-
-   /**
     * @brief Apply tau line for boundary condition
     *
     * @param mat     Input/Output matrix to apply tau line to
     * @param rowId   ID of field of equation
     * @param colId   ID of field
-    * @param opts    Options
     * @param l       Harmonic degree
-    * @param res     Resolution object
+    * @param opts    Options
+    * @param nN      1D dimension
     * @param bcs     Boundary conditions
     * @param nds     Nondimensional parameters
     * @param isSplitOperator  Is second operator of split 4th order system?
     */
    void applyTau(SparseMatrix& mat, const SpectralFieldId& rowId,
       const SpectralFieldId& colId, const int l,
-      std::shared_ptr<details::BlockOptions> opts, const Resolution& res,
+      std::shared_ptr<details::BlockOptions> opts, const int nN,
       const BcMap& bcs, const NonDimensional::NdMap& nds,
       const bool isSplitOperator) const override;
 
@@ -124,13 +119,13 @@ protected:
     * @param mat        Input/Output matrix to store galerkin stencil
     * @param fID        Field ID
     * @param l          Harmonic degree
-    * @param res        Resolution object
+    * @param nN      1D dimension
     * @param makeSquare Truncate operator to make square
     * @param bcs        Boundary conditions
     * @param nds        Nondimensional parameters
     */
    virtual void stencil(SparseMatrix& mat, const SpectralFieldId& fId,
-      const int l, const Resolution& res, const bool makeSquare,
+      const int l, const int nN, const bool makeSquare,
       const BcMap& bcs, const NonDimensional::NdMap& nds) const;
 
    /**
@@ -142,13 +137,13 @@ protected:
     * @param lr      Row space harmonic degree
     * @param lc      Column space harmonic degree
     * @param opts    Options
-    * @param res     Resolution object
+    * @param nN      1D dimension
     * @param bcs     Boundary conditions
     * @param nds     Nondimensional parameters
     */
    void applyGalerkinStencil(SparseMatrix& decMat, const SpectralFieldId& rowId,
       const SpectralFieldId& colId, const int lr, const int lc,
-      std::shared_ptr<details::BlockOptions> opts, const Resolution& res,
+      std::shared_ptr<details::BlockOptions> opts, const int nNr, const int nNc,
       const BcMap& bcs, const NonDimensional::NdMap& nds) const override;
 
 private:

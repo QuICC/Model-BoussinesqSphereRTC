@@ -14,6 +14,7 @@
 #include "QuICC/Bc/Name/FixedTemperature.hpp"
 #include "QuICC/Bc/Name/NoSlip.hpp"
 #include "QuICC/Bc/Name/StressFree.hpp"
+#include "QuICC/Bc/Name/QuasiInverseOnly.hpp"
 #include "QuICC/Enums/FieldIds.hpp"
 #include "QuICC/ModelOperator/Boundary.hpp"
 #include "QuICC/ModelOperator/ExplicitLinear.hpp"
@@ -124,23 +125,12 @@ int IRTCBackend::baseNn(const int l, const Resolution& res) const
    return nN;
 }
 
-void IRTCBackend::modifyBaseNn(int& nN, const SpectralFieldId& fId) const
-{
-   if ((fId == std::make_pair(PhysicalNames::Velocity::id(),
-                 FieldComponents::Spectral::POL)) && this->useSplitEquation())
-   {
-      nN += 2;
-   }
-}
-
 void IRTCBackend::applyTau(SparseMatrix& mat, const SpectralFieldId& rowId,
    const SpectralFieldId& colId, const int l,
-   std::shared_ptr<details::BlockOptions> opts, const Resolution& res,
+   std::shared_ptr<details::BlockOptions> opts, const int nN,
    const BcMap& bcs, const NonDimensional::NdMap& nds,
    const bool isSplitOperator) const
 {
-   auto nN = this->baseNn(l, res);
-
    auto a = Polynomial::Worland::worland_default_t::ALPHA;
    auto b = Polynomial::Worland::worland_default_t::DBETA;
 
@@ -241,72 +231,78 @@ void IRTCBackend::applyTau(SparseMatrix& mat, const SpectralFieldId& rowId,
 }
 
 void IRTCBackend::stencil(SparseMatrix& mat, const SpectralFieldId& fieldId,
-   const int l, const Resolution& res, const bool makeSquare, const BcMap& bcs,
+   const int l, const int nN, const bool makeSquare, const BcMap& bcs,
    const NonDimensional::NdMap& nds) const
 {
-   auto nN = this->baseNn(l, res);
-
    auto a = Polynomial::Worland::worland_default_t::ALPHA;
    auto b = Polynomial::Worland::worland_default_t::DBETA;
 
    auto bcId = bcs.find(fieldId.first)->second;
 
    int s = this->nBc(fieldId);
-   if (fieldId == std::make_pair(PhysicalNames::Velocity::id(),
-                     FieldComponents::Spectral::TOR))
+   if(bcId == Bc::Name::QuasiInverseOnly::id())
    {
-      if (bcId == Bc::Name::NoSlip::id())
-      {
-         SparseSM::Worland::Stencil::Value bc(nN, nN - s, a, b, l);
-         mat = bc.mat();
-      }
-      else if (bcId == Bc::Name::StressFree::id())
-      {
-         SparseSM::Worland::Stencil::R1D1DivR1 bc(nN, nN - s, a, b, l);
-         mat = bc.mat();
-      }
-      else
-      {
-         throw std::logic_error("Galerkin boundary conditions for Velocity "
-                                "Toroidal component not implemented");
-      }
+      SparseSM::Worland::Id qid(nN, nN - s, a, b, l);
+      mat = qid.mat();
    }
-   else if (fieldId == std::make_pair(PhysicalNames::Velocity::id(),
-                          FieldComponents::Spectral::POL))
+   else
    {
-      if (bcId == Bc::Name::NoSlip::id())
+      if (fieldId == std::make_pair(PhysicalNames::Velocity::id(),
+               FieldComponents::Spectral::TOR))
       {
-         SparseSM::Worland::Stencil::ValueD1 bc(nN, nN - s, a, b, l);
-         mat = bc.mat();
+         if (bcId == Bc::Name::NoSlip::id())
+         {
+            SparseSM::Worland::Stencil::Value bc(nN, nN - s, a, b, l);
+            mat = bc.mat();
+         }
+         else if (bcId == Bc::Name::StressFree::id())
+         {
+            SparseSM::Worland::Stencil::R1D1DivR1 bc(nN, nN - s, a, b, l);
+            mat = bc.mat();
+         }
+         else
+         {
+            throw std::logic_error("Galerkin boundary conditions for Velocity "
+                  "Toroidal component not implemented");
+         }
       }
-      else if (bcId == Bc::Name::StressFree::id())
+      else if (fieldId == std::make_pair(PhysicalNames::Velocity::id(),
+               FieldComponents::Spectral::POL))
       {
-         SparseSM::Worland::Stencil::ValueD2 bc(nN, nN - s, a, b, l);
-         mat = bc.mat();
+         if (bcId == Bc::Name::NoSlip::id())
+         {
+            SparseSM::Worland::Stencil::ValueD1 bc(nN, nN - s, a, b, l);
+            mat = bc.mat();
+         }
+         else if (bcId == Bc::Name::StressFree::id())
+         {
+            SparseSM::Worland::Stencil::ValueD2 bc(nN, nN - s, a, b, l);
+            mat = bc.mat();
+         }
+         else
+         {
+            throw std::logic_error("Galerin boundary conditions for Velocity "
+                  "Poloidal component not implemented");
+         }
       }
-      else
+      else if (fieldId == std::make_pair(PhysicalNames::Temperature::id(),
+               FieldComponents::Spectral::SCALAR))
       {
-         throw std::logic_error("Galerin boundary conditions for Velocity "
-                                "Poloidal component not implemented");
-      }
-   }
-   else if (fieldId == std::make_pair(PhysicalNames::Temperature::id(),
-                          FieldComponents::Spectral::SCALAR))
-   {
-      if (bcId == Bc::Name::FixedTemperature::id())
-      {
-         SparseSM::Worland::Stencil::Value bc(nN, nN - s, a, b, l);
-         mat = bc.mat();
-      }
-      else if (bcId == Bc::Name::FixedFlux::id())
-      {
-         SparseSM::Worland::Stencil::D1 bc(nN, nN - s, a, b, l);
-         mat = bc.mat();
-      }
-      else
-      {
-         throw std::logic_error(
-            "Galerkin boundary conditions for Temperature not implemented");
+         if (bcId == Bc::Name::FixedTemperature::id())
+         {
+            SparseSM::Worland::Stencil::Value bc(nN, nN - s, a, b, l);
+            mat = bc.mat();
+         }
+         else if (bcId == Bc::Name::FixedFlux::id())
+         {
+            SparseSM::Worland::Stencil::D1 bc(nN, nN - s, a, b, l);
+            mat = bc.mat();
+         }
+         else
+         {
+            throw std::logic_error(
+                  "Galerkin boundary conditions for Temperature not implemented");
+         }
       }
    }
 
@@ -320,16 +316,14 @@ void IRTCBackend::stencil(SparseMatrix& mat, const SpectralFieldId& fieldId,
 void IRTCBackend::applyGalerkinStencil(SparseMatrix& mat,
    const SpectralFieldId& rowId, const SpectralFieldId& colId, const int lr,
    const int lc, std::shared_ptr<details::BlockOptions> opts,
-   const Resolution& res, const BcMap& bcs,
+   const int nNr, const int nNc, const BcMap& bcs,
    const NonDimensional::NdMap& nds) const
 {
-   auto nNr = this->baseNn(lr, res);
-
    auto a = Polynomial::Worland::worland_default_t::ALPHA;
    auto b = Polynomial::Worland::worland_default_t::DBETA;
 
    auto S = mat;
-   this->stencil(S, colId, lc, res, false, bcs, nds);
+   this->stencil(S, colId, lc, nNc, false, bcs, nds);
 
    auto s = this->nBc(rowId);
    SparseSM::Worland::Id qId(nNr - s, nNr, a, b, lr, 0, s);
@@ -350,7 +344,7 @@ void IRTCBackend::operatorInfo(OperatorInfo& info, const SpectralFieldId& fId,
 
       auto nTauLines = this->nBc(fId);
       auto nN = this->baseNn(eigs.at(0), res);
-      this->blockInfo(tN, gN, shift, rhs, nTauLines, nN);
+      this->blockInfo(tN, gN, shift, rhs, nTauLines, nN, this->useGalerkin());
 
       info.tauN(idx) = tN;
       info.galN(idx) = gN;
@@ -362,7 +356,7 @@ void IRTCBackend::operatorInfo(OperatorInfo& info, const SpectralFieldId& fId,
       for (auto f: this->implicitFields(fId))
       {
          nTauLines = this->nBc(f);
-         this->blockInfo(tN, gN, shift, rhs, nTauLines, nN);
+         this->blockInfo(tN, gN, shift, rhs, nTauLines, nN, this->useGalerkin());
          sN += gN;
       }
 

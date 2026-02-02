@@ -10,10 +10,8 @@
 // Project includes
 //
 #include "Model/Boussinesq/Sphere/RTC/Explicit/ModelBackend.hpp"
-#include "QuICC/Bc/Name/FixedFlux.hpp"
-#include "QuICC/Bc/Name/FixedTemperature.hpp"
 #include "QuICC/Bc/Name/NoSlip.hpp"
-#include "QuICC/Bc/Name/StressFree.hpp"
+#include "QuICC/Bc/Name/QuasiInverseOnly.hpp"
 #include "QuICC/Enums/FieldIds.hpp"
 #include "QuICC/Equations/CouplingIndexType.hpp"
 #include "QuICC/ModelOperator/Boundary.hpp"
@@ -24,13 +22,8 @@
 #include "QuICC/ModelOperator/SplitBoundary.hpp"
 #include "QuICC/ModelOperator/SplitBoundaryValue.hpp"
 #include "QuICC/ModelOperator/SplitImplicitLinear.hpp"
-#include "QuICC/ModelOperator/Stencil.hpp"
+#include "QuICC/ModelOperator/QuasiInverse.hpp"
 #include "QuICC/ModelOperator/Time.hpp"
-#include "QuICC/ModelOperatorBoundary/FieldToRhs.hpp"
-#include "QuICC/ModelOperatorBoundary/SolverHasBc.hpp"
-#include "QuICC/ModelOperatorBoundary/SolverNoTau.hpp"
-#include "QuICC/ModelOperatorBoundary/Stencil.hpp"
-#include "QuICC/NonDimensional/CflInertial.hpp"
 #include "QuICC/NonDimensional/Ekman.hpp"
 #include "QuICC/NonDimensional/Prandtl.hpp"
 #include "QuICC/NonDimensional/Rayleigh.hpp"
@@ -38,23 +31,12 @@
 #include "QuICC/PhysicalNames/Velocity.hpp"
 #include "QuICC/Polynomial/Worland/WorlandTypes.hpp"
 #include "QuICC/Resolutions/Tools/IndexCounter.hpp"
-#include "QuICC/SparseSM/Worland/Boundary/D1.hpp"
-#include "QuICC/SparseSM/Worland/Boundary/D2.hpp"
-#include "QuICC/SparseSM/Worland/Boundary/Operator.hpp"
-#include "QuICC/SparseSM/Worland/Boundary/R1D1DivR1.hpp"
-#include "QuICC/SparseSM/Worland/Boundary/Value.hpp"
 #include "QuICC/SparseSM/Worland/I2.hpp"
 #include "QuICC/SparseSM/Worland/I2Lapl.hpp"
 #include "QuICC/SparseSM/Worland/I4.hpp"
 #include "QuICC/SparseSM/Worland/I4Lapl.hpp"
 #include "QuICC/SparseSM/Worland/I4Lapl2.hpp"
 #include "QuICC/SparseSM/Worland/Id.hpp"
-#include "QuICC/SparseSM/Worland/Stencil/D1.hpp"
-#include "QuICC/SparseSM/Worland/Stencil/R1D1DivR1.hpp"
-#include "QuICC/SparseSM/Worland/Stencil/Value.hpp"
-#include "QuICC/SparseSM/Worland/Stencil/ValueD1.hpp"
-#include "QuICC/SparseSM/Worland/Stencil/ValueD2.hpp"
-#include "QuICC/Tools/IdToHuman.hpp"
 
 namespace QuICC {
 
@@ -107,7 +89,7 @@ ModelBackend::ModelBackend() :
 #ifdef QUICC_TRANSFORM_WORLAND_TRUNCATE_QI
     mcTruncateQI(true)
 #else
-    mcTruncateQI(false)
+    mcTruncateQI(true)
 #endif // QUICC_TRANSFORM_WORLAND_TRUNCATE_QI
 {}
 
@@ -158,18 +140,22 @@ void ModelBackend::equationInfo(EquationInfo& info, const SpectralFieldId& fId,
       static_cast<int>(Equations::CouplingIndexType::SLOWEST_MULTI_RHS);
 }
 
-std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
+details::BlockDefinition ModelBackend::implicitBlockBuilder(
    const SpectralFieldId& rowId, const SpectralFieldId& colId,
    const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs,
    const NonDimensional::NdMap& nds, const bool isSplitOperator) const
 {
-   std::vector<details::BlockDescription> descr;
+   details::BlockDefinition blkDef;
+   blkDef.rowId = rowId;
+   blkDef.colId = colId;
+   blkDef.isComplex = this->isComplex(rowId);
+   blkDef.isGalerkin = this->useGalerkin();
 
    // Create description with common options
    auto getDescription = [&]() -> details::BlockDescription&
    {
-      descr.push_back({});
-      auto& d = descr.back();
+      blkDef.descr.push_back({});
+      auto& d = blkDef.descr.back();
       auto opts = std::make_shared<implDetails::BlockOptionsImpl>();
       opts->a = Polynomial::Worland::worland_default_t::ALPHA;
       opts->b = Polynomial::Worland::worland_default_t::DBETA;
@@ -295,10 +281,10 @@ std::vector<details::BlockDescription> ModelBackend::implicitBlockBuilder(
       throw std::logic_error("Equations are not setup properly");
    }
 
-   return descr;
+   return blkDef;
 }
 
-std::vector<details::BlockDescription> ModelBackend::timeBlockBuilder(
+details::BlockDefinition ModelBackend::timeBlockBuilder(
    const SpectralFieldId& rowId, const SpectralFieldId& colId,
    const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs,
    const NonDimensional::NdMap& nds) const
@@ -306,13 +292,17 @@ std::vector<details::BlockDescription> ModelBackend::timeBlockBuilder(
    assert(rowId == colId);
    auto fieldId = rowId;
 
-   std::vector<details::BlockDescription> descr;
+   details::BlockDefinition blkDef;
+   blkDef.rowId = rowId;
+   blkDef.colId = colId;
+   blkDef.isComplex = this->isComplex(rowId);
+   blkDef.isGalerkin = this->useGalerkin();
 
    // Create description with common options
    auto getDescription = [&]() -> details::BlockDescription&
    {
-      descr.push_back({});
-      auto& d = descr.back();
+      blkDef.descr.push_back({});
+      auto& d = blkDef.descr.back();
       auto opts = std::make_shared<implDetails::BlockOptionsImpl>();
       opts->a = Polynomial::Worland::worland_default_t::ALPHA;
       opts->b = Polynomial::Worland::worland_default_t::DBETA;
@@ -447,21 +437,166 @@ std::vector<details::BlockDescription> ModelBackend::timeBlockBuilder(
       d.imagOp = nullptr;
    }
 
-   return descr;
+   return blkDef;
 }
 
-std::vector<details::BlockDescription> ModelBackend::boundaryBlockBuilder(
+details::BlockDefinition ModelBackend::qiBlockBuilder(
    const SpectralFieldId& rowId, const SpectralFieldId& colId,
    const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs,
-   const NonDimensional::NdMap& nds, const bool isSplit) const
+   const NonDimensional::NdMap& nds) const
 {
-   std::vector<details::BlockDescription> descr;
+   assert(rowId == colId);
+   auto fieldId = rowId;
+
+   details::BlockDefinition blkDef;
+   blkDef.rowId = rowId;
+   blkDef.colId = colId;
+   blkDef.isComplex = this->isComplex(rowId);
+   blkDef.isGalerkin = this->useGalerkin();
 
    // Create description with common options
    auto getDescription = [&]() -> details::BlockDescription&
    {
-      descr.push_back({});
-      auto& d = descr.back();
+      blkDef.descr.push_back({});
+      auto& d = blkDef.descr.back();
+      auto opts = std::make_shared<implDetails::BlockOptionsImpl>();
+      opts->a = Polynomial::Worland::worland_default_t::ALPHA;
+      opts->b = Polynomial::Worland::worland_default_t::DBETA;
+      opts->l = eigs.at(0);
+      opts->bcId = bcs.find(colId.first)->second;
+      opts->truncateQI = this->mcTruncateQI;
+      opts->isSplitOperator = false;
+      opts->useSplitEquation = this->useSplitEquation();
+      d.opts = opts;
+
+      return d;
+   };
+
+   if (fieldId == std::make_pair(PhysicalNames::Velocity::id(),
+                     FieldComponents::Spectral::TOR))
+   {
+      // Real part of operator
+      auto realOp = [](const int nNr, const int nNc, const int l,
+                       std::shared_ptr<details::BlockOptions> opts,
+                       const NonDimensional::NdMap& nds)
+      {
+         assert(nNr == nNc);
+
+         SparseMatrix bMat;
+         auto& o =
+            *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
+
+         if (l > 0)
+         {
+            SparseSM::Worland::I2 spasm(nNr, nNc, o.a, o.b, l,
+               1 * o.truncateQI);
+            bMat = spasm.mat();
+         }
+         else
+         {
+            SparseSM::Worland::Id qid(nNr, nNc, o.a, o.b, l);
+            bMat = qid.mat();
+         }
+
+         return bMat;
+      };
+
+      // Create block diagonal operator
+      auto& d = getDescription();
+      d.nRowShift = 0;
+      d.nColShift = 0;
+      d.realOp = realOp;
+      d.imagOp = nullptr;
+   }
+   else if (fieldId == std::make_pair(PhysicalNames::Velocity::id(),
+                          FieldComponents::Spectral::POL))
+   {
+      // Real part of operator
+      auto realOp = [](const int nNr, const int nNc, const int l,
+                       std::shared_ptr<details::BlockOptions> opts,
+                       const NonDimensional::NdMap& nds)
+      {
+         assert(nNr == nNc);
+
+         SparseMatrix bMat;
+         auto& o =
+            *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
+
+         if (l > 0)
+         {
+            if (o.useSplitEquation)
+            {
+               SparseSM::Worland::I2 spasm(nNr, nNc, o.a, o.b, l,
+                  1 * o.truncateQI);
+               bMat = spasm.mat();
+            }
+            else
+            {
+               SparseSM::Worland::I4 spasm(nNr, nNc, o.a, o.b, l,
+                  2 * o.truncateQI);
+               bMat = spasm.mat();
+            }
+         }
+         else
+         {
+            SparseSM::Worland::Id qid(nNr, nNc, o.a, o.b, l);
+            bMat = qid.mat();
+         }
+
+         return bMat;
+      };
+
+      // Create block diagonal operator
+      auto& d = getDescription();
+      d.nRowShift = 0;
+      d.nColShift = 0;
+      d.realOp = realOp;
+      d.imagOp = nullptr;
+   }
+   else if (fieldId == std::make_pair(PhysicalNames::Temperature::id(),
+                          FieldComponents::Spectral::SCALAR))
+   {
+      // Real part of operator
+      auto realOp = [](const int nNr, const int nNc, const int l,
+                       std::shared_ptr<details::BlockOptions> opts,
+                       const NonDimensional::NdMap& nds)
+      {
+         auto& o =
+            *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
+
+         SparseSM::Worland::I2 spasm(nNr, nNc, o.a, o.b, l, 1 * o.truncateQI);
+         SparseMatrix bMat = spasm.mat();
+
+         return bMat;
+      };
+
+      // Create block diagonal operator
+      auto& d = getDescription();
+      d.nRowShift = 0;
+      d.nColShift = 0;
+      d.realOp = realOp;
+      d.imagOp = nullptr;
+   }
+
+   return blkDef;
+}
+
+details::BlockDefinition ModelBackend::boundaryBlockBuilder(
+   const SpectralFieldId& rowId, const SpectralFieldId& colId,
+   const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs,
+   const NonDimensional::NdMap& nds, const bool isSplit) const
+{
+   details::BlockDefinition blkDef;
+   blkDef.rowId = rowId;
+   blkDef.colId = colId;
+   blkDef.isComplex = this->isComplex(rowId);
+   blkDef.isGalerkin = this->useGalerkin();
+
+   // Create description with common options
+   auto getDescription = [&]() -> details::BlockDescription&
+   {
+      blkDef.descr.push_back({});
+      auto& d = blkDef.descr.back();
       auto opts = std::make_shared<implDetails::BlockOptionsImpl>();
       opts->a = Polynomial::Worland::worland_default_t::ALPHA;
       opts->b = Polynomial::Worland::worland_default_t::DBETA;
@@ -495,10 +630,10 @@ std::vector<details::BlockDescription> ModelBackend::boundaryBlockBuilder(
       d.imagOp = nullptr;
    }
 
-   return descr;
+   return blkDef;
 }
 
-std::vector<details::BlockDescription>
+details::BlockDefinition
 ModelBackend::splitBoundaryValueBlockBuilder(const SpectralFieldId& rowId,
    const SpectralFieldId& colId, const Resolution& res,
    const std::vector<MHDFloat>& eigs, const BcMap& bcs,
@@ -507,13 +642,17 @@ ModelBackend::splitBoundaryValueBlockBuilder(const SpectralFieldId& rowId,
    assert(rowId == colId);
    auto fieldId = rowId;
 
-   std::vector<details::BlockDescription> descr;
+   details::BlockDefinition blkDef;
+   blkDef.rowId = rowId;
+   blkDef.colId = colId;
+   blkDef.isComplex = true;
+   blkDef.isGalerkin = this->useGalerkin();
 
    // Create description with common options
    auto getDescription = [&]() -> details::BlockDescription&
    {
-      descr.push_back({});
-      auto& d = descr.back();
+      blkDef.descr.push_back({});
+      auto& d = blkDef.descr.back();
       auto opts = std::make_shared<implDetails::BlockOptionsImpl>();
       opts->a = Polynomial::Worland::worland_default_t::ALPHA;
       opts->b = Polynomial::Worland::worland_default_t::DBETA;
@@ -554,7 +693,7 @@ ModelBackend::splitBoundaryValueBlockBuilder(const SpectralFieldId& rowId,
       d.imagOp = bcValOp;
    }
 
-   return descr;
+   return blkDef;
 }
 
 void ModelBackend::modelMatrix(DecoupledZSparse& rModelMatrix,
@@ -567,12 +706,18 @@ void ModelBackend::modelMatrix(DecoupledZSparse& rModelMatrix,
    assert(eigs.size() == 1);
    int l = eigs.at(0);
 
-   // Store 1D sizes
-   std::vector<int> nNs;
-   for (int j = l; j <= l; j++)
+   auto getNns = [&](const SpectralFieldId& rowId, const SpectralFieldId& colId, const int j0, const int maxJ)
    {
-      nNs.emplace_back(this->baseNn(j, res));
-   }
+      // Store 1D sizes
+      std::vector<int> ns;
+      for (int j = j0; j <= maxJ; j++)
+      {
+         auto nN = this->baseNn(j, res);
+         ns.emplace_back(nN);
+      }
+
+      return ns;
+   };
 
    // Time operator
    if (opId == ModelOperator::Time::id())
@@ -583,8 +728,9 @@ void ModelBackend::modelMatrix(DecoupledZSparse& rModelMatrix,
          auto colId = rowId;
          const auto& fields = this->implicitFields(rowId);
          auto descr = timeBlockBuilder(rowId, colId, res, eigs, bcs, nds);
-         buildBlock(rModelMatrix, this->isComplex(rowId), descr, rowId, colId, fields, matIdx, bcType,
-            res, l, l, nNs, bcs, nds, false, -1);
+         auto nNs = getNns(rowId, colId, l, l);
+         buildBlock(rModelMatrix, descr, fields, matIdx, bcType,
+            l, l, nNs, bcs, nds, false, -1);
       }
    }
    // Linear operator
@@ -602,8 +748,9 @@ void ModelBackend::modelMatrix(DecoupledZSparse& rModelMatrix,
             auto colId = *pColId;
             auto descr =
                implicitBlockBuilder(rowId, colId, res, eigs, bcs, nds, isSplit);
-            buildBlock(rModelMatrix, this->isComplex(rowId), descr, rowId, colId, fields, matIdx,
-               bcType, res, l, l, nNs, bcs, nds, isSplit, -1);
+            auto nNs = getNns(rowId, colId, l, l);
+            buildBlock(rModelMatrix, descr, fields, matIdx,
+               bcType, l, l, nNs, bcs, nds, isSplit, -1);
          }
       }
    }
@@ -622,8 +769,9 @@ void ModelBackend::modelMatrix(DecoupledZSparse& rModelMatrix,
             auto colId = *pColId;
             auto descr =
                boundaryBlockBuilder(rowId, colId, res, eigs, bcs, nds, isSplit);
-            buildBlock(rModelMatrix, this->isComplex(rowId), descr, rowId, colId, fields, matIdx,
-               bcType, res, l, l, nNs, bcs, nds, isSplit, -1);
+            auto nNs = getNns(rowId, colId, l, l);
+            buildBlock(rModelMatrix, descr, fields, matIdx,
+               bcType, l, l, nNs, bcs, nds, isSplit, -1);
          }
       }
    }
@@ -639,9 +787,30 @@ void ModelBackend::modelMatrix(DecoupledZSparse& rModelMatrix,
             auto colId = *pColId;
             auto descr = splitBoundaryValueBlockBuilder(rowId, colId, res, eigs,
                bcs, nds);
-            buildBlock(rModelMatrix, true, descr, rowId, colId, fields,
-               matIdx, bcType, res, l, l, nNs, bcs, nds, false, 1);
+            auto nNs = getNns(rowId, colId, l, l);
+            buildBlock(rModelMatrix, descr, fields,
+               matIdx, bcType, l, l, nNs, bcs, nds, false, 1);
          }
+      }
+   }
+   // Quasi-Inverse operator
+   else if (opId == ModelOperator::QuasiInverse::id())
+   {
+      BcMap qiBcs;
+      for(auto& [k,v]: bcs)
+      {
+         qiBcs.emplace(k, Bc::Name::QuasiInverseOnly::id());
+      }
+
+      for (auto pRowId = imRange.first; pRowId != imRange.second; pRowId++)
+      {
+         auto rowId = *pRowId;
+         auto colId = rowId;
+         const auto& fields = this->implicitFields(rowId);
+         auto descr = qiBlockBuilder(rowId, colId, res, eigs, qiBcs, nds);
+         auto nNs = getNns(rowId, colId, l, l);
+         buildBlock(rModelMatrix, descr, fields, matIdx, bcType,
+            l, l, nNs, qiBcs, nds, false, -1);
       }
    }
    else
@@ -657,7 +826,8 @@ void ModelBackend::galerkinStencil(SparseMatrix& mat,
 {
    assert(eigs.size() == 1);
    int l = eigs.at(0);
-   this->stencil(mat, fieldId, l, res, makeSquare, bcs, nds);
+   auto nN = this->baseNn(l, res);
+   this->stencil(mat, fieldId, l, nN, makeSquare, bcs, nds);
 }
 
 void ModelBackend::explicitBlock(DecoupledZSparse& mat,
