@@ -10,7 +10,6 @@
 // Project includes
 //
 #include "Model/Boussinesq/Sphere/RTC/Implicit/ModelBackend.hpp"
-#include "QuICC/Bc/Name/NoSlip.hpp"
 #include "QuICC/Bc/Name/QuasiInverseOnly.hpp"
 #include "QuICC/Enums/Dimensions.hpp"
 #include "QuICC/Enums/FieldIds.hpp"
@@ -390,17 +389,9 @@ details::BlockDefinition ModelBackend::implicitBlockBuilder(
                // Chebyshev Tau Spectral Method,
                // JCP 91, 228-239 (1990)
                // We simply drop the last column
-               if (o.bcId == Bc::Name::NoSlip::id())
-               {
-                  SparseSM::Worland::Id qid(nNr, nNc, o.a, o.b, l, -1);
-                  bMat = static_cast<MHDFloat>(o.m * T * invlapl) *
-                         coriolis.mat() * qid.mat();
-               }
-               else
-               {
-                  bMat =
-                     static_cast<MHDFloat>(o.m * T * invlapl) * coriolis.mat();
-               }
+               SparseSM::Worland::Id qid(nNr, nNc, o.a, o.b, l, -1);
+               bMat = static_cast<MHDFloat>(o.m * T * invlapl) *
+                      coriolis.mat() * qid.mat();
             }
 
             return bMat;
@@ -699,15 +690,8 @@ details::BlockDefinition ModelBackend::timeBlockBuilder(
             // Chebyshev Tau Spectral Method,
             // JCP 91, 228-239 (1990)
             // We simply drop the last column
-            if (o.bcId == Bc::Name::NoSlip::id())
-            {
-               SparseSM::Worland::Id qid(nNr, nNc, o.a, o.b, l, -1);
-               bMat = spasm.mat() * qid.mat();
-            }
-            else
-            {
-               bMat = spasm.mat();
-            }
+            SparseSM::Worland::Id qid(nNr, nNc, o.a, o.b, l, -1);
+            bMat = spasm.mat() * qid.mat();
          }
          else
          {

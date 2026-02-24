@@ -10,7 +10,6 @@
 // Project includes
 //
 #include "Model/Boussinesq/Sphere/RTC/Explicit/ModelBackend.hpp"
-#include "QuICC/Bc/Name/NoSlip.hpp"
 #include "QuICC/Bc/Name/QuasiInverseOnly.hpp"
 #include "QuICC/Enums/FieldIds.hpp"
 #include "QuICC/Equations/CouplingIndexType.hpp"
@@ -22,6 +21,7 @@
 #include "QuICC/ModelOperator/SplitBoundary.hpp"
 #include "QuICC/ModelOperator/SplitBoundaryValue.hpp"
 #include "QuICC/ModelOperator/SplitImplicitLinear.hpp"
+#include "QuICC/ModelOperator/SplitQuasiInverse.hpp"
 #include "QuICC/ModelOperator/QuasiInverse.hpp"
 #include "QuICC/ModelOperator/Time.hpp"
 #include "QuICC/NonDimensional/Ekman.hpp"
@@ -385,15 +385,8 @@ details::BlockDefinition ModelBackend::timeBlockBuilder(
                // Chebyshev Tau Spectral Method,
                // JCP 91, 228-239 (1990)
                // We simply drop the last column
-               if (o.bcId == Bc::Name::NoSlip::id())
-               {
-                  SparseSM::Worland::Id qid(nNr, nNc, o.a, o.b, l, -1);
-                  bMat = spasm.mat() * qid.mat();
-               }
-               else
-               {
-                  bMat = spasm.mat();
-               }
+               SparseSM::Worland::Id qid(nNr, nNc, o.a, o.b, l, -1);
+               bMat = spasm.mat() * qid.mat();
             }
          }
          else
@@ -443,7 +436,7 @@ details::BlockDefinition ModelBackend::timeBlockBuilder(
 details::BlockDefinition ModelBackend::qiBlockBuilder(
    const SpectralFieldId& rowId, const SpectralFieldId& colId,
    const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs,
-   const NonDimensional::NdMap& nds) const
+   const NonDimensional::NdMap& nds, const bool isSplitOperator) const
 {
    assert(rowId == colId);
    auto fieldId = rowId;
@@ -465,7 +458,7 @@ details::BlockDefinition ModelBackend::qiBlockBuilder(
       opts->l = eigs.at(0);
       opts->bcId = bcs.find(colId.first)->second;
       opts->truncateQI = this->mcTruncateQI;
-      opts->isSplitOperator = false;
+      opts->isSplitOperator = isSplitOperator;
       opts->useSplitEquation = this->useSplitEquation();
       d.opts = opts;
 
@@ -528,7 +521,15 @@ details::BlockDefinition ModelBackend::qiBlockBuilder(
             {
                SparseSM::Worland::I2 spasm(nNr, nNc, o.a, o.b, l,
                   1 * o.truncateQI);
-               bMat = spasm.mat();
+               if(o.isSplitOperator)
+               {
+                  SparseSM::Worland::Id qid(nNr, nNc, o.a, o.b, l, -2);
+                  bMat = spasm.mat() * qid.mat();
+               }
+               else
+               {
+                  bMat = spasm.mat();
+               }
             }
             else
             {
@@ -794,8 +795,11 @@ void ModelBackend::modelMatrix(DecoupledZSparse& rModelMatrix,
       }
    }
    // Quasi-Inverse operator
-   else if (opId == ModelOperator::QuasiInverse::id())
+   else if (opId == ModelOperator::QuasiInverse::id() ||
+            opId == ModelOperator::SplitQuasiInverse::id())
    {
+      bool isSplit = (opId == ModelOperator::SplitQuasiInverse::id());
+
       BcMap qiBcs;
       for(auto& [k,v]: bcs)
       {
@@ -807,7 +811,7 @@ void ModelBackend::modelMatrix(DecoupledZSparse& rModelMatrix,
          auto rowId = *pRowId;
          auto colId = rowId;
          const auto& fields = this->implicitFields(rowId);
-         auto descr = qiBlockBuilder(rowId, colId, res, eigs, qiBcs, nds);
+         auto descr = qiBlockBuilder(rowId, colId, res, eigs, qiBcs, nds, isSplit);
          auto nNs = getNns(rowId, colId, l, l);
          buildBlock(rModelMatrix, descr, fields, matIdx, bcType,
             l, l, nNs, qiBcs, nds, false, -1);

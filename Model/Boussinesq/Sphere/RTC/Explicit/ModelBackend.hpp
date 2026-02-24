@@ -170,7 +170,7 @@ protected:
    details::BlockDefinition qiBlockBuilder(
       const SpectralFieldId& rowId, const SpectralFieldId& colId,
       const Resolution& res, const std::vector<MHDFloat>& eigs,
-      const BcMap& bcs, const NonDimensional::NdMap& nds) const;
+      const BcMap& bcs, const NonDimensional::NdMap& nds, const bool isSplitOperator) const;
 
    /**
     * @brief Build boundary matrix block description
