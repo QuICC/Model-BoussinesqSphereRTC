@@ -73,16 +73,8 @@ void Momentum::setNLComponents()
    this->addNLComponent(FieldComponents::Spectral::TOR,
       Transform::Path::CurlNl::id());
 
-   if (this->couplingInfo(FieldComponents::Spectral::POL).isSplitEquation())
-   {
-      this->addNLComponent(FieldComponents::Spectral::POL,
+   this->addNLComponent(FieldComponents::Spectral::POL,
          Transform::Path::NegCurlCurlNl::id());
-   }
-   else
-   {
-      this->addNLComponent(FieldComponents::Spectral::POL,
-         Transform::Path::NegCurlCurlNl::id());
-   }
 }
 
 void Momentum::initNLKernel(const bool force)
