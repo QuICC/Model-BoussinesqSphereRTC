@@ -24,9 +24,7 @@
 #include "QuICC/ModelOperator/SplitQuasiInverse.hpp"
 #include "QuICC/ModelOperator/QuasiInverse.hpp"
 #include "QuICC/ModelOperator/Time.hpp"
-#include "QuICC/NonDimensional/Ekman.hpp"
 #include "QuICC/NonDimensional/Prandtl.hpp"
-#include "QuICC/NonDimensional/Rayleigh.hpp"
 #include "QuICC/PhysicalNames/Temperature.hpp"
 #include "QuICC/PhysicalNames/Velocity.hpp"
 #include "QuICC/Polynomial/Worland/WorlandTypes.hpp"
@@ -86,11 +84,7 @@ struct BlockOptionsImpl : public details::BlockOptions
 
 ModelBackend::ModelBackend() :
     IRTCBackend(),
-#ifdef QUICC_TRANSFORM_WORLAND_TRUNCATE_QI
     mcTruncateQI(true)
-#else
-    mcTruncateQI(true)
-#endif // QUICC_TRANSFORM_WORLAND_TRUNCATE_QI
 {}
 
 bool ModelBackend::isComplex(const SpectralFieldId& fId) const

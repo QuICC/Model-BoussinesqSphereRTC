@@ -86,11 +86,7 @@ struct BlockOptionsImpl : public details::BlockOptions
 
 ModelBackend::ModelBackend() :
     IRTCBackend(),
-#ifdef QUICC_TRANSFORM_WORLAND_TRUNCATE_QI
     mcTruncateQI(true)
-#else
-    mcTruncateQI(true)
-#endif // QUICC_TRANSFORM_WORLAND_TRUNCATE_QI
 {}
 
 void ModelBackend::enableSplitEquation(const bool flag)

@@ -8,9 +8,6 @@
 
 // System includes
 //
-#include <map>
-#include <memory>
-#include <string>
 #include <vector>
 
 // Project includes
