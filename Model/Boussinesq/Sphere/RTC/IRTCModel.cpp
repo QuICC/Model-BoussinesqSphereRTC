@@ -188,7 +188,7 @@ func.func private @fwdScalar(%S: !real) -> !complex {
     %S1T = quiccir.transpose %S1 permutation = [2, 0, 1] : !complex -> !complex
     %S2 = quiccir.al.int %S1T : !complex -> !complex attributes{kind = "P"}
     %S2T = quiccir.transpose %S2 permutation = [2, 0, 1] : !complex -> !complex
-    %S3 = quiccir.jw.int %S2T : !complex -> !complex attributes{kind = "I2"}
+    %S3 = quiccir.jw.int %S2T : !complex -> !complex attributes{kind = "P"}
 
     return %S3 : !complex
 }
@@ -199,13 +199,13 @@ func.func private @fwdVector(%R: !real, %Theta: !real, %Phi: !real) -> (!complex
     %ThetaTor1T = quiccir.transpose %ThetaTor1 permutation = [2, 0, 1] : !complex -> !complex
     %ThetaTor2 = quiccir.al.int %ThetaTor1T : !complex -> !complex attributes{kind = "DivLlDivS1Dp"}
     %ThetaTor2T = quiccir.transpose %ThetaTor2 permutation = [2, 0, 1] : !complex -> !complex
-    %ThetaTor3 = quiccir.jw.int %ThetaTor2T : !complex -> !complex attributes{kind = "I2_Zero"}
+    %ThetaTor3 = quiccir.jw.int %ThetaTor2T : !complex -> !complex attributes{kind = "P_Zero"}
     //
     %PhiTor1 = quiccir.fr.int %Phi : !real -> !complex attributes{kind = "P"}
     %PhiTor1T = quiccir.transpose %PhiTor1 permutation = [2, 0, 1] : !complex -> !complex
     %PhiTor2 = quiccir.al.int %PhiTor1T : !complex -> !complex attributes{kind = "DivLlD1"}
     %PhiTor2T = quiccir.transpose %PhiTor2 permutation = [2, 0, 1] : !complex -> !complex
-    %PhiTor3 = quiccir.jw.int %PhiTor2T : !complex -> !complex attributes{kind = "I2_Zero"}
+    %PhiTor3 = quiccir.jw.int %PhiTor2T : !complex -> !complex attributes{kind = "P_Zero"}
     //
     %Tor = quiccir.sub %ThetaTor3, %PhiTor3 : !complex, !complex -> !complex
 
@@ -214,19 +214,19 @@ func.func private @fwdVector(%R: !real, %Theta: !real, %Phi: !real) -> (!complex
     %RPol1T = quiccir.transpose %RPol1 permutation = [2, 0, 1] : !complex -> !complex
     %RPol2 = quiccir.al.int %RPol1T : !complex -> !complex attributes{kind = "P"}
     %RPol2T = quiccir.transpose %RPol2 permutation = [2, 0, 1] : !complex -> !complex
-    %RPol3 = quiccir.jw.int %RPol2T : !complex -> !complex attributes{kind = "I4DivR1_Zero"}
+    %RPol3 = quiccir.jw.int %RPol2T : !complex -> !complex attributes{kind = "DivR1_Zero"}
     //
     %ThetaPol1 = quiccir.fr.int %Theta : !real -> !complex attributes{kind = "P"}
     %ThetaPol1T = quiccir.transpose %ThetaPol1 permutation = [2, 0, 1] : !complex -> !complex
     %ThetaPol2 = quiccir.al.int %ThetaPol1T : !complex -> !complex attributes{kind = "DivLlD1"}
     %ThetaPol2T = quiccir.transpose %ThetaPol2 permutation = [2, 0, 1] : !complex -> !complex
-    %ThetaPol3 = quiccir.jw.int %ThetaPol2T : !complex -> !complex attributes{kind = "I4DivR1D1R1_Zero"}
+    %ThetaPol3 = quiccir.jw.int %ThetaPol2T : !complex -> !complex attributes{kind = "DivR1D1R1_Zero"}
     //
     %PhiPol1 = quiccir.fr.int %Phi : !real -> !complex attributes{kind = "P"}
     %PhiPol1T = quiccir.transpose %PhiPol1 permutation = [2, 0, 1] : !complex -> !complex
     %PhiPol2 = quiccir.al.int %PhiPol1T : !complex -> !complex attributes{kind = "DivLlDivS1Dp"}
     %PhiPol2T = quiccir.transpose %PhiPol2 permutation = [2, 0, 1] : !complex -> !complex
-    %PhiPol3 = quiccir.jw.int %PhiPol2T : !complex -> !complex attributes{kind = "I4DivR1D1R1_Zero"}
+    %PhiPol3 = quiccir.jw.int %PhiPol2T : !complex -> !complex attributes{kind = "DivR1D1R1_Zero"}
     //
     %tmp = quiccir.add %ThetaPol3, %PhiPol3 : !complex, !complex -> !complex
     %Pol = quiccir.sub %tmp, %RPol3 : !complex, !complex -> !complex
