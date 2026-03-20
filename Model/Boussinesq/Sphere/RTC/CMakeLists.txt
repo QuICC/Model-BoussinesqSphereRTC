@@ -5,8 +5,12 @@ target_sources(${QUICC_CURRENT_MODEL_LIB} ${QUICC_CMAKE_SRC_VISIBILITY}
   IRTCVisualization.cpp
   Momentum.cpp
   MomentumKernel.cpp
+  MomentumJacobian.cpp
+  MomentumJacobianKernel.cpp
   Transport.cpp
   TransportKernel.cpp
+  TransportJacobian.cpp
+  TransportJacobianKernel.cpp
   )
 
 add_subdirectory(Explicit)

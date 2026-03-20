@@ -1,5 +1,5 @@
 /**
- * @file Transport.cpp
+ * @file TransportJacobian.cpp
  * @brief Source of the implementation of the transport equation in the
  * Boussinesq rotating thermal convection in a sphere
  */
@@ -9,8 +9,10 @@
 
 // Project includes
 //
-#include "Model/Boussinesq/Sphere/RTC/Transport.hpp"
-#include "Model/Boussinesq/Sphere/RTC/TransportKernel.hpp"
+#include "Model/Boussinesq/Sphere/RTC/TransportJacobian.hpp"
+#include "Model/Boussinesq/Sphere/RTC/TransportJacobianKernel.hpp"
+#include "QuICC/PhysicalNames/JacobianTemperature.hpp"
+#include "QuICC/PhysicalNames/JacobianVelocity.hpp"
 #include "QuICC/PhysicalNames/Temperature.hpp"
 #include "QuICC/PhysicalNames/Velocity.hpp"
 #include "QuICC/SolveTiming/Prognostic.hpp"
@@ -26,7 +28,7 @@ namespace Sphere {
 
 namespace RTC {
 
-Transport::Transport(SharedEquationParameters spEqParams,
+TransportJacobian::TransportJacobian(SharedEquationParameters spEqParams,
    SpatialScheme::SharedCISpatialScheme spScheme,
    std::shared_ptr<Model::IModelBackend> spBackend,
       std::shared_ptr<EquationOptions> spOptions) :
@@ -36,7 +38,7 @@ Transport::Transport(SharedEquationParameters spEqParams,
    this->setRequirements();
 }
 
-void Transport::setCoupling()
+void TransportJacobian::setCoupling()
 {
    auto features = defaultCouplingFeature();
    features.at(CouplingFeature::Nonlinear) = true;
@@ -45,20 +47,23 @@ void Transport::setCoupling()
       CouplingInformation::PROGNOSTIC, 0, features);
 }
 
-void Transport::setNLComponents()
+void TransportJacobian::setNLComponents()
 {
    this->addNLComponent(FieldComponents::Spectral::SCALAR,
       Transform::Path::ScalarNl::id());
 }
 
-void Transport::initNLKernel(const bool force)
+void TransportJacobian::initNLKernel(const bool force)
 {
    // Initialize if empty or forced
    if (force || !this->mspNLKernel)
    {
       // Initialize the physical kernel
-      auto spNLKernel = std::make_shared<Physical::Kernel::TransportKernel>();
-      spNLKernel->setScalar(this->name(), this->spUnknown());
+      auto spNLKernel = std::make_shared<Physical::Kernel::TransportJacobianKernel>();
+      spNLKernel->setJacobianScalar(this->name(), this->spUnknown());
+      spNLKernel->setScalar(PhysicalNames::Temperature::id(), this->spScalar(PhysicalNames::Temperature::id()));
+      spNLKernel->setJacobianVector(PhysicalNames::JacobianVelocity::id(),
+         this->spVector(PhysicalNames::JacobianVelocity::id()));
       spNLKernel->setVector(PhysicalNames::Velocity::id(),
          this->spVector(PhysicalNames::Velocity::id()));
       spNLKernel->init(-1.0);
@@ -66,10 +71,10 @@ void Transport::initNLKernel(const bool force)
    }
 }
 
-void Transport::setRequirements()
+void TransportJacobian::setRequirements()
 {
-   // Set temperatur as equation unknown
-   this->setName(PhysicalNames::Temperature::id());
+   // Set temperature as equation unknown
+   this->setName(PhysicalNames::JacobianTemperature::id());
 
    // Set solver timing
    this->setSolveTiming(SolveTiming::Prognostic::id());
@@ -82,11 +87,26 @@ void Transport::setRequirements()
 
    // Add temperature to requirements: is scalar?, need spectral?, need
    // physical?, need diff?
+   auto& jtempReq =
+      this->mRequirements.addField(PhysicalNames::JacobianTemperature::id(),
+         FieldRequirement(true, ss.spectral(), ss.physical()));
+   jtempReq.enableSpectral();
+   jtempReq.enableGradient();
+
+   // Add temperature to requirements: is scalar?, need spectral?, need
+   // physical?, need diff?
    auto& tempReq =
       this->mRequirements.addField(PhysicalNames::Temperature::id(),
          FieldRequirement(true, ss.spectral(), ss.physical()));
    tempReq.enableSpectral();
    tempReq.enableGradient();
+
+   // Add velocity to requirements: is scalar?, need spectral?, need physical?,
+   // need diff?(, need curl?)
+   auto& jvelReq = this->mRequirements.addField(PhysicalNames::JacobianVelocity::id(),
+      FieldRequirement(false, ss.spectral(), ss.physical()));
+   jvelReq.enableSpectral();
+   jvelReq.enablePhysical();
 
    // Add velocity to requirements: is scalar?, need spectral?, need physical?,
    // need diff?(, need curl?)

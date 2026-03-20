@@ -12,6 +12,8 @@
 #include "Model/Boussinesq/Sphere/RTC/IRTCModel.hpp"
 #include "Model/Boussinesq/Sphere/RTC/Momentum.hpp"
 #include "Model/Boussinesq/Sphere/RTC/Transport.hpp"
+#include "Model/Boussinesq/Sphere/RTC/MomentumJacobian.hpp"
+#include "Model/Boussinesq/Sphere/RTC/TransportJacobian.hpp"
 #include "Model/Boussinesq/Sphere/RTC/gitHash.hpp"
 #include "QuICC/Io/Variable/FieldProbeWriter.hpp"
 #include "QuICC/Io/Variable/SphereAngularMomentumWriter.hpp"
@@ -24,6 +26,8 @@
 #include "QuICC/Io/Variable/SphereTorPolLSpectrumWriter.hpp"
 #include "QuICC/Io/Variable/SphereTorPolMSpectrumWriter.hpp"
 #include "QuICC/Io/Variable/SphereTorPolNSpectrumWriter.hpp"
+#include "QuICC/PhysicalNames/JacobianTemperature.hpp"
+#include "QuICC/PhysicalNames/JacobianVelocity.hpp"
 #include "QuICC/PhysicalNames/Temperature.hpp"
 #include "QuICC/PhysicalNames/Velocity.hpp"
 #include "QuICC/NonDimensional/Ekman.hpp"
@@ -49,15 +53,39 @@ std::string IRTCModel::version() const
    return "BoussinesqSphereRTC:" + std::string(gitHash);
 }
 
+std::vector<std::size_t> IRTCModel::excludedFieldIds() const
+{
+   std::vector<std::size_t> fields = {
+      PhysicalNames::JacobianVelocity::id(),
+      PhysicalNames::JacobianTemperature::id(),
+   };
+
+   return fields;
+}
+
 void IRTCModel::addEquations(SharedSimulation spSim)
 {
+   auto optZero = std::make_shared<Equations::EquationOptions>(0);
+
    // Add transport equation
    spSim->addEquation<Equations::Boussinesq::Sphere::RTC::Transport>(
-      this->spBackend());
+      this->spBackend(), optZero);
 
    // Add Navier-Stokes equation
    spSim->addEquation<Equations::Boussinesq::Sphere::RTC::Momentum>(
-      this->spBackend());
+      this->spBackend(), optZero);
+
+#if 1
+   auto optOne = std::make_shared<Equations::EquationOptions>(1);
+
+   // Add transport jacobian equation
+   spSim->addEquation<Equations::Boussinesq::Sphere::RTC::TransportJacobian>(
+      this->spBackend(), optOne);
+
+   // Add Navier-Stokes jacobian equation
+   spSim->addEquation<Equations::Boussinesq::Sphere::RTC::MomentumJacobian>(
+      this->spBackend(), optOne);
+#endif
 
    #ifdef QUICC_USE_MLIR_GRAPH
    // Add Graph

@@ -52,6 +52,11 @@ public:
    std::string version() const final;
 
    /**
+    * @brief Exclude fields from initial state
+    */
+   virtual std::vector<std::size_t> excludedFieldIds() const override;
+
+   /**
     * @brief Add the required equations
     *
     * @param spSim   Shared simulation object

@@ -20,6 +20,8 @@
 #include "QuICC/NonDimensional/Ekman.hpp"
 #include "QuICC/NonDimensional/Prandtl.hpp"
 #include "QuICC/NonDimensional/Rayleigh.hpp"
+#include "QuICC/PhysicalNames/JacobianVelocity.hpp"
+#include "QuICC/PhysicalNames/JacobianTemperature.hpp"
 #include "QuICC/PhysicalNames/Temperature.hpp"
 #include "QuICC/PhysicalNames/Velocity.hpp"
 #include "QuICC/Polynomial/Worland/WorlandTypes.hpp"
@@ -49,8 +51,11 @@ namespace RTC {
 
 std::vector<std::string> IRTCBackend::fieldNames() const
 {
-   std::vector<std::string> names = {PhysicalNames::Velocity().tag(),
-      PhysicalNames::Temperature().tag()};
+   std::vector<std::string> names = {
+      PhysicalNames::Velocity().tag(),
+      PhysicalNames::Temperature().tag(),
+      PhysicalNames::JacobianVelocity().tag(),
+      PhysicalNames::JacobianTemperature().tag()};
 
    return names;
 }
@@ -85,15 +90,28 @@ int IRTCBackend::nBc(const SpectralFieldId& fId) const
 {
    int nBc = 0;
 
-   if (fId == std::make_pair(PhysicalNames::Velocity::id(),
-                 FieldComponents::Spectral::TOR) ||
-       fId == std::make_pair(PhysicalNames::Temperature::id(),
-                 FieldComponents::Spectral::SCALAR))
+   auto vel_tor = std::make_pair(PhysicalNames::Velocity::id(),
+                   FieldComponents::Spectral::TOR);
+   auto jvel_tor = std::make_pair(PhysicalNames::JacobianVelocity::id(),
+                   FieldComponents::Spectral::TOR);
+   auto vel_pol = std::make_pair(PhysicalNames::Velocity::id(),
+                   FieldComponents::Spectral::POL);
+   auto jvel_pol = std::make_pair(PhysicalNames::JacobianVelocity::id(),
+                   FieldComponents::Spectral::POL);
+   auto temp = std::make_pair(PhysicalNames::Temperature::id(),
+                   FieldComponents::Spectral::SCALAR);
+   auto jtemp = std::make_pair(PhysicalNames::JacobianTemperature::id(),
+                   FieldComponents::Spectral::SCALAR);
+
+   if (fId == vel_tor ||
+       fId == jvel_tor ||
+       fId == temp ||
+       fId == jtemp)
    {
       nBc = 1;
    }
-   else if (fId == std::make_pair(PhysicalNames::Velocity::id(),
-                      FieldComponents::Spectral::POL))
+   else if (fId == vel_pol ||
+            fId == jvel_pol)
    {
       nBc = 2;
    }
@@ -125,8 +143,20 @@ void IRTCBackend::applyTau(SparseMatrix& mat, const SpectralFieldId& rowId,
 
    SparseSM::Worland::Boundary::Operator bcOp(nN, nN, a, b, l);
 
-   if (rowId == std::make_pair(PhysicalNames::Velocity::id(),
-                   FieldComponents::Spectral::TOR) &&
+   auto vel_tor = std::make_pair(PhysicalNames::Velocity::id(),
+                   FieldComponents::Spectral::TOR);
+   auto jvel_tor = std::make_pair(PhysicalNames::JacobianVelocity::id(),
+                   FieldComponents::Spectral::TOR);
+   auto vel_pol = std::make_pair(PhysicalNames::Velocity::id(),
+                   FieldComponents::Spectral::POL);
+   auto jvel_pol = std::make_pair(PhysicalNames::JacobianVelocity::id(),
+                   FieldComponents::Spectral::POL);
+   auto temp = std::make_pair(PhysicalNames::Temperature::id(),
+                   FieldComponents::Spectral::SCALAR);
+   auto jtemp = std::make_pair(PhysicalNames::JacobianTemperature::id(),
+                   FieldComponents::Spectral::SCALAR);
+
+   if ((rowId == vel_tor || rowId == jvel_tor) &&
        rowId == colId)
    {
       if (l > 0)
@@ -146,8 +176,7 @@ void IRTCBackend::applyTau(SparseMatrix& mat, const SpectralFieldId& rowId,
          }
       }
    }
-   else if (rowId == std::make_pair(PhysicalNames::Velocity::id(),
-                        FieldComponents::Spectral::POL) &&
+   else if ((rowId == vel_pol || rowId == jvel_pol) &&
             rowId == colId)
    {
       if (l > 0)
@@ -194,8 +223,7 @@ void IRTCBackend::applyTau(SparseMatrix& mat, const SpectralFieldId& rowId,
          }
       }
    }
-   else if (rowId == std::make_pair(PhysicalNames::Temperature::id(),
-                        FieldComponents::Spectral::SCALAR) &&
+   else if ((rowId == temp || rowId == jtemp) &&
             rowId == colId)
    {
       if (bcId == Bc::Name::FixedTemperature::id())
@@ -226,6 +254,19 @@ void IRTCBackend::stencil(SparseMatrix& mat, const SpectralFieldId& fieldId,
 
    auto bcId = bcs.find(fieldId.first)->second;
 
+   auto vel_tor = std::make_pair(PhysicalNames::Velocity::id(),
+                   FieldComponents::Spectral::TOR);
+   auto jvel_tor = std::make_pair(PhysicalNames::JacobianVelocity::id(),
+                   FieldComponents::Spectral::TOR);
+   auto vel_pol = std::make_pair(PhysicalNames::Velocity::id(),
+                   FieldComponents::Spectral::POL);
+   auto jvel_pol = std::make_pair(PhysicalNames::JacobianVelocity::id(),
+                   FieldComponents::Spectral::POL);
+   auto temp = std::make_pair(PhysicalNames::Temperature::id(),
+                   FieldComponents::Spectral::SCALAR);
+   auto jtemp = std::make_pair(PhysicalNames::JacobianTemperature::id(),
+                   FieldComponents::Spectral::SCALAR);
+
    int s = this->nBc(fieldId);
    if(bcId == Bc::Name::QuasiInverseOnly::id())
    {
@@ -234,8 +275,7 @@ void IRTCBackend::stencil(SparseMatrix& mat, const SpectralFieldId& fieldId,
    }
    else
    {
-      if (fieldId == std::make_pair(PhysicalNames::Velocity::id(),
-               FieldComponents::Spectral::TOR))
+      if (fieldId == vel_tor || fieldId == jvel_tor)
       {
          if (bcId == Bc::Name::NoSlip::id())
          {
@@ -253,8 +293,7 @@ void IRTCBackend::stencil(SparseMatrix& mat, const SpectralFieldId& fieldId,
                   "Toroidal component not implemented");
          }
       }
-      else if (fieldId == std::make_pair(PhysicalNames::Velocity::id(),
-               FieldComponents::Spectral::POL))
+      else if (fieldId == vel_pol || fieldId == jvel_pol)
       {
          if (bcId == Bc::Name::NoSlip::id())
          {
@@ -272,8 +311,7 @@ void IRTCBackend::stencil(SparseMatrix& mat, const SpectralFieldId& fieldId,
                   "Poloidal component not implemented");
          }
       }
-      else if (fieldId == std::make_pair(PhysicalNames::Temperature::id(),
-               FieldComponents::Spectral::SCALAR))
+      else if (fieldId == temp || fieldId == jtemp)
       {
          if (bcId == Bc::Name::FixedTemperature::id())
          {

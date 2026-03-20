@@ -1,11 +1,11 @@
 /**
- * @file Momentum.hpp
+ * @file MomentumJacobian.hpp
  * @brief Implementation of the vector Navier-Stokes equation for the Boussinesq
  * rotating thermal convection in a sphere
  */
 
-#ifndef QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_MOMENTUM_HPP
-#define QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_MOMENTUM_HPP
+#ifndef QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_MOMENTUMJACOBIAN_HPP
+#define QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_MOMENTUMJACOBIAN_HPP
 
 // System includes
 //
@@ -29,7 +29,7 @@ namespace RTC {
  * @brief Implementation of the vector Navier-Stokes equation for the Boussinesq
  * rotating thermal convection in a sphere
  */
-class Momentum : public IVectorEquation
+class MomentumJacobian : public IVectorEquation
 {
 public:
    /**
@@ -37,7 +37,7 @@ public:
     *
     * @param spEqParams  Shared equation parameters
     */
-   Momentum(SharedEquationParameters spEqParams,
+   MomentumJacobian(SharedEquationParameters spEqParams,
       SpatialScheme::SharedCISpatialScheme spScheme,
       std::shared_ptr<Model::IModelBackend> spBackend,
       std::shared_ptr<EquationOptions> spOptions);
@@ -45,7 +45,7 @@ public:
    /**
     * @brief Simple empty destructor
     */
-   ~Momentum() = default;
+   ~MomentumJacobian() = default;
 
    /**
     * @brief Initialize constraint kernel
@@ -85,4 +85,4 @@ private:
 } // namespace Equations
 } // namespace QuICC
 
-#endif // QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_MOMENTUM_HPP
+#endif // QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_MOMENTUMJACOBIAN_HPP
