@@ -56,19 +56,6 @@ public:
       const Resolution& res) const override;
 
    /**
-    * @brief Get operator information
-    *
-    * @param info       Equation information
-    * @param fId        Field ID
-    * @param res        Resolution object
-    * @param coupling   Equation/Field coupling information
-    * @param bcs        Boundary conditions
-    */
-   virtual void operatorInfo(OperatorInfo& info, const SpectralFieldId& fId,
-      const Resolution& res, const Equations::Tools::ICoupling& coupling,
-      const BcMap& bcs) const override;
-
-   /**
     * @brief Build model matrix
     *
     * @param rModelMatrix  Input/Output matrix to fill with operators
@@ -149,7 +136,7 @@ protected:
     * @param nds     Nondimension parameters
     * @param isSplitOperator  Set operator of split system
     */
-   std::vector<details::BlockDescription> implicitBlockBuilder(
+   details::BlockDefinition implicitBlockBuilder(
       const SpectralFieldId& rowId, const SpectralFieldId& colId,
       const Resolution& res, const std::vector<MHDFloat>& eigs,
       const BcMap& bcs, const NonDimensional::NdMap& nds,
@@ -165,10 +152,25 @@ protected:
     * @param bcs     Boundary conditions for each field
     * @param nds     Nondimension parameters
     */
-   std::vector<details::BlockDescription> timeBlockBuilder(
+   details::BlockDefinition timeBlockBuilder(
       const SpectralFieldId& rowId, const SpectralFieldId& colId,
       const Resolution& res, const std::vector<MHDFloat>& eigs,
       const BcMap& bcs, const NonDimensional::NdMap& nds) const;
+
+   /**
+    * @brief Build quasi-inverse matrix block description
+    *
+    * @param rowId   Field ID of block matrix row
+    * @param colId   Field ID of block matrix column
+    * @param res     Resolution object
+    * @param eigs    Slow indexes
+    * @param bcs     Boundary conditions for each field
+    * @param nds     Nondimension parameters
+    */
+   details::BlockDefinition qiBlockBuilder(
+      const SpectralFieldId& rowId, const SpectralFieldId& colId,
+      const Resolution& res, const std::vector<MHDFloat>& eigs,
+      const BcMap& bcs, const NonDimensional::NdMap& nds, const bool isSplitOperator) const;
 
    /**
     * @brief Build boundary matrix block description
@@ -181,7 +183,7 @@ protected:
     * @param nds     Nondimension parameters
     * @param isSplitOperator  Set operator of split system
     */
-   std::vector<details::BlockDescription> boundaryBlockBuilder(
+   details::BlockDefinition boundaryBlockBuilder(
       const SpectralFieldId& rowId, const SpectralFieldId& colId,
       const Resolution& res, const std::vector<MHDFloat>& eigs,
       const BcMap& bcs, const NonDimensional::NdMap& nds,
@@ -197,7 +199,7 @@ protected:
     * @param bcs     Boundary conditions for each field
     * @param nds     Nondimension parameters
     */
-   std::vector<details::BlockDescription> splitBoundaryValueBlockBuilder(
+   details::BlockDefinition splitBoundaryValueBlockBuilder(
       const SpectralFieldId& rowId, const SpectralFieldId& colId,
       const Resolution& res, const std::vector<MHDFloat>& eigs,
       const BcMap& bcs, const NonDimensional::NdMap& nds) const;

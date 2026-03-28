@@ -11,7 +11,7 @@ vt.check_setup('OUT_stdout', ref_dir, data_dir, 'Timestepper information', 7)
 
 # Tolerance per max rows
 rows = list(range(0, 101, 10))
-tols = [26, 95, 184, 249, 283, 387, 456, 541, 645, 709, 758]
+tols = [36, 75, 159, 209, 233, 293, 357, 476, 560, 650, 714]
 
 prefixes = ['temperature', 'kinetic']
 spectra = ['l', 'm', 'n']
@@ -38,10 +38,6 @@ for r, t in zip(rows,tols):
 # CFL
 for r, t in zip(rows,tols):
     results.append(vt.tableTest("cfl.dat", ref_dir, data_dir, r, usecols=(0,1,3,5,6,7,8,9), tol = t, max_rows = r+1))
-
-# Angular momentum
-#for r, t in zip(rows,tols):
-#    results.append(vt.tableTest("angular_momentum.dat", ref_dir, data_dir, r, tol = t, max_rows = r+1))
 
 # Output test summary
 vt.printSummary(results, rows, tols)
