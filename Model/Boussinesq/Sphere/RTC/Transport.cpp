@@ -61,7 +61,12 @@ void Transport::initNLKernel(const bool force)
       spNLKernel->setScalar(this->name(), this->spUnknown());
       spNLKernel->setVector(PhysicalNames::Velocity::id(),
          this->spVector(PhysicalNames::Velocity::id()));
-      spNLKernel->init(-1.0);
+      MHDFloat sgn = 1;
+      if(!this->options().nonlinearIsLhs)
+      {
+         sgn = -1;
+      }
+      spNLKernel->init(1.0*sgn);
       this->mspNLKernel = spNLKernel;
    }
 }
