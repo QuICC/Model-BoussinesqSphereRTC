@@ -126,13 +126,6 @@ protected:
    SpectralFieldIds implicitFields(const SpectralFieldId& fId) const final;
 
    /**
-    * @brief Get coupled fields
-    *
-    * @param fId  Field ID
-    */
-   SpectralFieldIds explicitFields(const SpectralFieldId& fId) const;
-
-   /**
     * @brief Build implicit matrix block description
     *
     * @param rowId   Field ID of block matrix row
@@ -160,21 +153,6 @@ protected:
     * @param nds     Nondimension parameters
     */
    details::BlockDefinition timeBlockBuilder(
-      const SpectralFieldId& rowId, const SpectralFieldId& colId,
-      const Resolution& res, const std::vector<MHDFloat>& eigs,
-      const BcMap& bcs, const NonDimensional::NdMap& nds) const;
-
-   /**
-    * @brief Build explicit linear matrix block description
-    *
-    * @param rowId   Field ID of block matrix row
-    * @param colId   Field ID of block matrix column
-    * @param res     Resolution object
-    * @param eigs    Slow indexes
-    * @param bcs     Boundary conditions for each field
-    * @param nds     Nondimension parameters
-    */
-   details::BlockDefinition explicitLinearBlockBuilder(
       const SpectralFieldId& rowId, const SpectralFieldId& colId,
       const Resolution& res, const std::vector<MHDFloat>& eigs,
       const BcMap& bcs, const NonDimensional::NdMap& nds) const;
