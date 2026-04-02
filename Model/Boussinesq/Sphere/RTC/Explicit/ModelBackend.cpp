@@ -24,13 +24,9 @@
 #include "QuICC/ModelOperator/SplitQuasiInverse.hpp"
 #include "QuICC/ModelOperator/QuasiInverse.hpp"
 #include "QuICC/ModelOperator/Time.hpp"
-#include "QuICC/ModelOperatorBoundary/SolverNoBc.hpp"
-#include "QuICC/ModelOperatorBoundary/SolverNoTau.hpp"
 #include "QuICC/NonDimensional/Prandtl.hpp"
 #include "QuICC/PhysicalNames/Temperature.hpp"
 #include "QuICC/PhysicalNames/Velocity.hpp"
-#include "QuICC/PhysicalNames/JacobianTemperature.hpp"
-#include "QuICC/PhysicalNames/JacobianVelocity.hpp"
 #include "QuICC/Polynomial/Worland/WorlandTypes.hpp"
 #include "QuICC/Resolutions/Tools/IndexCounter.hpp"
 #include "QuICC/SparseSM/Worland/I2.hpp"
@@ -799,16 +795,9 @@ void ModelBackend::modelMatrix(DecoupledZSparse& rModelMatrix,
       bool isSplit = (opId == ModelOperator::SplitQuasiInverse::id());
 
       BcMap qiBcs;
-      if(bcType == ModelOperatorBoundary::SolverNoBc::id())
+      for(auto& [k,v]: bcs)
       {
-         for(auto& [k,v]: bcs)
-         {
-            qiBcs.emplace(k, Bc::Name::QuasiInverseOnly::id());
-         }
-      }
-      else
-      {
-         qiBcs = bcs;
+         qiBcs.emplace(k, Bc::Name::QuasiInverseOnly::id());
       }
 
       for (auto pRowId = imRange.first; pRowId != imRange.second; pRowId++)
