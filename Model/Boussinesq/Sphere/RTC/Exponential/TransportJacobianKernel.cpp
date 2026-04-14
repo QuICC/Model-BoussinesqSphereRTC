@@ -8,7 +8,7 @@
 
 // Project includes
 //
-#include "Model/Boussinesq/Sphere/RTC/TransportJacobianKernel.hpp"
+#include "Model/Boussinesq/Sphere/RTC/Exponential/TransportJacobianKernel.hpp"
 #include "QuICC/PhysicalOperators/SphericalHeatAdvection.hpp"
 #include "QuICC/PhysicalOperators/VelocityAdvection.hpp"
 

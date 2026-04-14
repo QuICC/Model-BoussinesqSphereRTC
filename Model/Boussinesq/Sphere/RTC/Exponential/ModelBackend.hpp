@@ -3,8 +3,8 @@
  * @brief Model backend
  */
 
-#ifndef QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_EXPLICIT_MODELBACKEND_HPP
-#define QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_EXPLICIT_MODELBACKEND_HPP
+#ifndef QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_EXPONENTIAL_MODELBACKEND_HPP
+#define QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_EXPONENTIAL_MODELBACKEND_HPP
 
 // System includes
 //
@@ -15,7 +15,7 @@
 
 // Project includes
 //
-#include "Model/Boussinesq/Sphere/RTC/IRTCBackend.hpp"
+#include "Model/Boussinesq/Sphere/RTC/Exponential/IExponentialRTCBackend.hpp"
 
 namespace QuICC {
 
@@ -27,12 +27,12 @@ namespace Sphere {
 
 namespace RTC {
 
-namespace Explicit {
+namespace Exponential {
 
 /**
  * @brief Interface for model backend
  */
-class ModelBackend : public IRTCBackend
+class ModelBackend : public IExponentialRTCBackend
 {
 public:
    /**
@@ -126,6 +126,13 @@ protected:
    SpectralFieldIds implicitFields(const SpectralFieldId& fId) const final;
 
    /**
+    * @brief Get coupled fields
+    *
+    * @param fId  Field ID
+    */
+   SpectralFieldIds explicitFields(const SpectralFieldId& fId) const;
+
+   /**
     * @brief Build implicit matrix block description
     *
     * @param rowId   Field ID of block matrix row
@@ -153,6 +160,21 @@ protected:
     * @param nds     Nondimension parameters
     */
    details::BlockDefinition timeBlockBuilder(
+      const SpectralFieldId& rowId, const SpectralFieldId& colId,
+      const Resolution& res, const std::vector<MHDFloat>& eigs,
+      const BcMap& bcs, const NonDimensional::NdMap& nds) const;
+
+   /**
+    * @brief Build explicit linear matrix block description
+    *
+    * @param rowId   Field ID of block matrix row
+    * @param colId   Field ID of block matrix column
+    * @param res     Resolution object
+    * @param eigs    Slow indexes
+    * @param bcs     Boundary conditions for each field
+    * @param nds     Nondimension parameters
+    */
+   details::BlockDefinition explicitLinearBlockBuilder(
       const SpectralFieldId& rowId, const SpectralFieldId& colId,
       const Resolution& res, const std::vector<MHDFloat>& eigs,
       const BcMap& bcs, const NonDimensional::NdMap& nds) const;
@@ -211,11 +233,11 @@ private:
    const bool mcTruncateQI;
 };
 
-} // namespace Explicit
+} // namespace Exponential
 } // namespace RTC
 } // namespace Sphere
 } // namespace Boussinesq
 } // namespace Model
 } // namespace QuICC
 
-#endif // QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_EXPLICIT_MODELBACKEND_HPP
+#endif // QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_EXPONENTIAL_MODELBACKEND_HPP

@@ -1,11 +1,11 @@
 /**
- * @file IRTCModel.hpp
+ * @file IExponentialRTCModel.hpp
  * @brief Implementation of the Boussinesq rotating thermal convection in a
  * sphere (Toroidal/Poloidal formulation)
  */
 
-#ifndef QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_IRTCMODEL_HPP
-#define QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_IRTCMODEL_HPP
+#ifndef QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_EXPONENTIAL_IEXPONENTIALRTCMODEL_HPP
+#define QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_EXPONENTIAL_IEXPONENTIALRTCMODEL_HPP
 
 // System includes
 //
@@ -14,7 +14,7 @@
 // Project includes
 //
 #include "QuICC/Simulation/Simulation.hpp"
-#include "QuICC/Model/IModelBuilder.hpp"
+#include "Model/Boussinesq/Sphere/RTC/IRTCModel.hpp"
 
 namespace QuICC {
 
@@ -26,30 +26,29 @@ namespace Sphere {
 
 namespace RTC {
 
+namespace Exponential {
+
 /**
  * @brief Implementation of the Boussinesq rotating thermal convection sphere
  * model (Toroidal/Poloidal formulation)
  */
-class IRTCModel : public IModelBuilder<Simulation>
+class IExponentialRTCModel : public IRTCModel
 {
 public:
    /**
     * @brief Constructor
     */
-   IRTCModel() = default;
+   IExponentialRTCModel() = default;
 
    /**
     * @brief Destructor
     */
-   virtual ~IRTCModel() = default;
-
-   /// Formulation used for vector fields
-   virtual VectorFormulation::Id SchemeFormulation() override;
+   virtual ~IExponentialRTCModel() = default;
 
    /**
-    * @brief Version string
+    * @brief Exclude fields from initial state
     */
-   std::string version() const final;
+   virtual std::vector<std::size_t> excludedFieldIds() const override;
 
    /**
     * @brief Add the required equations
@@ -58,27 +57,15 @@ public:
     */
    virtual void addEquations(SharedSimulation spSim) override;
 
-   /**
-    * @brief Add the required ASCII output files
-    *
-    * @param spSim   Shared simulation object
-    */
-   virtual void addAsciiOutputFiles(SharedSimulation spSim) override;
-
-   /**
-    * @brief XML configuration tags
-    */
-   virtual std::map<std::string, std::map<std::string, int>>
-   configTags() const override;
-
 protected:
 private:
 };
 
+} // namespace Exponential
 } // namespace RTC
 } // namespace Sphere
 } // namespace Boussinesq
 } // namespace Model
 } // namespace QuICC
 
-#endif // QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_IRTCMODEL_HPP
+#endif // QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_EXPONENTIAL_IEXPONENTIALRTCMODEL_HPP

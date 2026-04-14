@@ -110,13 +110,14 @@ bool ModelBackend::isComplex(const SpectralFieldId& fId) const
 ModelBackend::SpectralFieldIds ModelBackend::implicitFields(
    const SpectralFieldId& fId) const
 {
-   SpectralFieldId velTor = std::make_pair(PhysicalNames::Velocity::id(),
-      FieldComponents::Spectral::TOR);
-   SpectralFieldId velPol = std::make_pair(PhysicalNames::Velocity::id(),
-      FieldComponents::Spectral::POL);
-   SpectralFieldId temp = std::make_pair(PhysicalNames::Temperature::id(),
-      FieldComponents::Spectral::SCALAR);
-   SpectralFieldIds fields = {velTor, velPol, temp};
+   auto vel_tor = std::make_pair(PhysicalNames::Velocity::id(),
+                   FieldComponents::Spectral::TOR);
+   auto vel_pol = std::make_pair(PhysicalNames::Velocity::id(),
+                   FieldComponents::Spectral::POL);
+   auto temp = std::make_pair(PhysicalNames::Temperature::id(),
+                   FieldComponents::Spectral::SCALAR);
+
+   SpectralFieldIds fields = {vel_tor, vel_pol, temp};
 
    // sort the fields
    std::sort(fields.begin(), fields.end());
@@ -1071,7 +1072,7 @@ void ModelBackend::galerkinStencil(SparseMatrix& mat,
 
    int rowShift = 0;
    int colShift = 0;
-   for (int i = 0; i < ls.size(); i++)
+   for (std::size_t i = 0; i < ls.size(); i++)
    {
       SparseMatrix S;
       this->stencil(S, fieldId, ls.at(i), nNs.at(i), makeSquare, bcs, nds);

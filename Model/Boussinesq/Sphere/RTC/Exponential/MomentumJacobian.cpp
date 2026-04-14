@@ -9,8 +9,8 @@
 
 // Project includes
 //
-#include "Model/Boussinesq/Sphere/RTC/MomentumJacobian.hpp"
-#include "Model/Boussinesq/Sphere/RTC/MomentumJacobianKernel.hpp"
+#include "Model/Boussinesq/Sphere/RTC/Exponential/MomentumJacobian.hpp"
+#include "Model/Boussinesq/Sphere/RTC/Exponential/MomentumJacobianKernel.hpp"
 #include "QuICC/Bc/Name/StressFree.hpp"
 #include "QuICC/NonDimensional/Ekman.hpp"
 #include "QuICC/NonDimensional/Rayleigh.hpp"
@@ -33,6 +33,8 @@ namespace Boussinesq {
 namespace Sphere {
 
 namespace RTC {
+
+namespace Exponential {
 
 MomentumJacobian::MomentumJacobian(SharedEquationParameters spEqParams,
    SpatialScheme::SharedCISpatialScheme spScheme,
@@ -95,7 +97,12 @@ void MomentumJacobian::initNLKernel(const bool force)
          this->spScalar(PhysicalNames::Temperature::id()));
       auto T = 1.0 / this->eqParams().nd(NonDimensional::Ekman::id());
       auto Ra = this->eqParams().nd(NonDimensional::Rayleigh::id());
-      spNLKernel->init(-1.0, -T, -Ra * T);
+      MHDFloat sgn = 1;
+      if(!this->options().nonlinearIsLhs)
+      {
+         sgn = -1;
+      }
+      spNLKernel->init(1.0 * sgn, T * sgn, Ra * T * sgn);
       this->mspNLKernel = spNLKernel;
    }
 }
@@ -159,6 +166,7 @@ void MomentumJacobian::setRequirements()
    tempReq.enablePhysical();
 }
 
+} // namespace Exponential
 } // namespace RTC
 } // namespace Sphere
 } // namespace Boussinesq

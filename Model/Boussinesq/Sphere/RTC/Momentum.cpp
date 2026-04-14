@@ -90,7 +90,12 @@ void Momentum::initNLKernel(const bool force)
          this->spScalar(PhysicalNames::Temperature::id()));
       auto T = 1.0 / this->eqParams().nd(NonDimensional::Ekman::id());
       auto Ra = this->eqParams().nd(NonDimensional::Rayleigh::id());
-      spNLKernel->init(-1.0, -T, -Ra * T);
+      MHDFloat sgn = 1;
+      if(!this->options().nonlinearIsLhs)
+      {
+         sgn = -1;
+      }
+      spNLKernel->init(1.0*sgn, T*sgn, Ra * T * sgn);
       this->mspNLKernel = spNLKernel;
    }
 }

@@ -8,7 +8,7 @@
 
 // Project includes
 //
-#include "Model/Boussinesq/Sphere/RTC/MomentumJacobianKernel.hpp"
+#include "Model/Boussinesq/Sphere/RTC/Exponential/MomentumJacobianKernel.hpp"
 #include "QuICC/PhysicalOperators/Cross.hpp"
 #include "QuICC/PhysicalOperators/SphericalBuoyancy.hpp"
 #include "QuICC/PhysicalOperators/SphericalCoriolis.hpp"

@@ -1,5 +1,5 @@
 /**
- * @file IRTCBackend.cpp
+ * @file IExponentialRTCBackend.cpp
  * @brief Source of the interface for model backend
  */
 
@@ -9,17 +9,15 @@
 
 // Project includes
 //
-#include "Model/Boussinesq/Sphere/RTC/IRTCBackend.hpp"
+#include "Model/Boussinesq/Sphere/RTC/Exponential/IExponentialRTCBackend.hpp"
 #include "QuICC/Bc/Name/FixedFlux.hpp"
 #include "QuICC/Bc/Name/FixedTemperature.hpp"
 #include "QuICC/Bc/Name/NoSlip.hpp"
 #include "QuICC/Bc/Name/StressFree.hpp"
 #include "QuICC/Bc/Name/QuasiInverseOnly.hpp"
 #include "QuICC/Enums/FieldIds.hpp"
-#include "QuICC/NonDimensional/CflInertial.hpp"
-#include "QuICC/NonDimensional/Ekman.hpp"
-#include "QuICC/NonDimensional/Prandtl.hpp"
-#include "QuICC/NonDimensional/Rayleigh.hpp"
+#include "QuICC/PhysicalNames/JacobianVelocity.hpp"
+#include "QuICC/PhysicalNames/JacobianTemperature.hpp"
 #include "QuICC/PhysicalNames/Temperature.hpp"
 #include "QuICC/PhysicalNames/Velocity.hpp"
 #include "QuICC/Polynomial/Worland/WorlandTypes.hpp"
@@ -35,7 +33,6 @@
 #include "QuICC/SparseSM/Worland/Stencil/Value.hpp"
 #include "QuICC/SparseSM/Worland/Stencil/ValueD1.hpp"
 #include "QuICC/SparseSM/Worland/Stencil/ValueD2.hpp"
-#include "QuICC/Tools/IdToHuman.hpp"
 
 namespace QuICC {
 
@@ -47,58 +44,45 @@ namespace Sphere {
 
 namespace RTC {
 
-std::vector<std::string> IRTCBackend::fieldNames() const
+namespace Exponential {
+
+std::vector<std::string> IExponentialRTCBackend::fieldNames() const
 {
    std::vector<std::string> names = {
       PhysicalNames::Velocity().tag(),
-      PhysicalNames::Temperature().tag()};
+      PhysicalNames::Temperature().tag(),
+      PhysicalNames::JacobianVelocity().tag(),
+      PhysicalNames::JacobianTemperature().tag()};
 
    return names;
 }
 
-std::vector<std::string> IRTCBackend::paramNames() const
-{
-   std::vector<std::string> names = {NonDimensional::Prandtl().tag(),
-      NonDimensional::Rayleigh().tag(), NonDimensional::Ekman().tag()};
-
-   return names;
-}
-
-std::vector<bool> IRTCBackend::isPeriodicBox() const
-{
-   std::vector<bool> periodic = {false, false, false};
-
-   return periodic;
-}
-
-std::map<std::string, MHDFloat> IRTCBackend::automaticParameters(
-   const std::map<std::string, MHDFloat>& cfg) const
-{
-   auto E = cfg.find(NonDimensional::Ekman().tag())->second;
-
-   std::map<std::string, MHDFloat> params = {
-      {NonDimensional::CflInertial().tag(), 0.1 * E}};
-
-   return params;
-}
-
-int IRTCBackend::nBc(const SpectralFieldId& fId) const
+int IExponentialRTCBackend::nBc(const SpectralFieldId& fId) const
 {
    int nBc = 0;
 
    auto vel_tor = std::make_pair(PhysicalNames::Velocity::id(),
                    FieldComponents::Spectral::TOR);
+   auto jvel_tor = std::make_pair(PhysicalNames::JacobianVelocity::id(),
+                   FieldComponents::Spectral::TOR);
    auto vel_pol = std::make_pair(PhysicalNames::Velocity::id(),
+                   FieldComponents::Spectral::POL);
+   auto jvel_pol = std::make_pair(PhysicalNames::JacobianVelocity::id(),
                    FieldComponents::Spectral::POL);
    auto temp = std::make_pair(PhysicalNames::Temperature::id(),
                    FieldComponents::Spectral::SCALAR);
+   auto jtemp = std::make_pair(PhysicalNames::JacobianTemperature::id(),
+                   FieldComponents::Spectral::SCALAR);
 
    if (fId == vel_tor ||
-       fId == temp)
+       fId == jvel_tor ||
+       fId == temp ||
+       fId == jtemp)
    {
       nBc = 1;
    }
-   else if (fId == vel_pol)
+   else if (fId == vel_pol ||
+            fId == jvel_pol)
    {
       nBc = 2;
    }
@@ -110,14 +94,7 @@ int IRTCBackend::nBc(const SpectralFieldId& fId) const
    return nBc;
 }
 
-int IRTCBackend::baseNn(const int l, const Resolution& res) const
-{
-   int nN = res.counter().dimensions(Dimensions::Space::SPECTRAL, l)(0);
-
-   return nN;
-}
-
-void IRTCBackend::applyTau(SparseMatrix& mat, const SpectralFieldId& rowId,
+void IExponentialRTCBackend::applyTau(SparseMatrix& mat, const SpectralFieldId& rowId,
    const SpectralFieldId& colId, const int l,
    std::shared_ptr<details::BlockOptions> opts, const int nN,
    const BcMap& bcs, const NonDimensional::NdMap& nds,
@@ -132,12 +109,18 @@ void IRTCBackend::applyTau(SparseMatrix& mat, const SpectralFieldId& rowId,
 
    auto vel_tor = std::make_pair(PhysicalNames::Velocity::id(),
                    FieldComponents::Spectral::TOR);
+   auto jvel_tor = std::make_pair(PhysicalNames::JacobianVelocity::id(),
+                   FieldComponents::Spectral::TOR);
    auto vel_pol = std::make_pair(PhysicalNames::Velocity::id(),
+                   FieldComponents::Spectral::POL);
+   auto jvel_pol = std::make_pair(PhysicalNames::JacobianVelocity::id(),
                    FieldComponents::Spectral::POL);
    auto temp = std::make_pair(PhysicalNames::Temperature::id(),
                    FieldComponents::Spectral::SCALAR);
+   auto jtemp = std::make_pair(PhysicalNames::JacobianTemperature::id(),
+                   FieldComponents::Spectral::SCALAR);
 
-   if ((rowId == vel_tor) &&
+   if ((rowId == vel_tor || rowId == jvel_tor) &&
        rowId == colId)
    {
       if (l > 0)
@@ -157,7 +140,7 @@ void IRTCBackend::applyTau(SparseMatrix& mat, const SpectralFieldId& rowId,
          }
       }
    }
-   else if ((rowId == vel_pol) &&
+   else if ((rowId == vel_pol || rowId == jvel_pol) &&
             rowId == colId)
    {
       if (l > 0)
@@ -204,7 +187,7 @@ void IRTCBackend::applyTau(SparseMatrix& mat, const SpectralFieldId& rowId,
          }
       }
    }
-   else if ((rowId == temp) &&
+   else if ((rowId == temp || rowId == jtemp) &&
             rowId == colId)
    {
       if (bcId == Bc::Name::FixedTemperature::id())
@@ -226,7 +209,7 @@ void IRTCBackend::applyTau(SparseMatrix& mat, const SpectralFieldId& rowId,
    mat.real() += bcOp.mat();
 }
 
-void IRTCBackend::stencil(SparseMatrix& mat, const SpectralFieldId& fieldId,
+void IExponentialRTCBackend::stencil(SparseMatrix& mat, const SpectralFieldId& fieldId,
    const int l, const int nN, const bool makeSquare, const BcMap& bcs,
    const NonDimensional::NdMap& nds) const
 {
@@ -237,9 +220,15 @@ void IRTCBackend::stencil(SparseMatrix& mat, const SpectralFieldId& fieldId,
 
    auto vel_tor = std::make_pair(PhysicalNames::Velocity::id(),
                    FieldComponents::Spectral::TOR);
+   auto jvel_tor = std::make_pair(PhysicalNames::JacobianVelocity::id(),
+                   FieldComponents::Spectral::TOR);
    auto vel_pol = std::make_pair(PhysicalNames::Velocity::id(),
                    FieldComponents::Spectral::POL);
+   auto jvel_pol = std::make_pair(PhysicalNames::JacobianVelocity::id(),
+                   FieldComponents::Spectral::POL);
    auto temp = std::make_pair(PhysicalNames::Temperature::id(),
+                   FieldComponents::Spectral::SCALAR);
+   auto jtemp = std::make_pair(PhysicalNames::JacobianTemperature::id(),
                    FieldComponents::Spectral::SCALAR);
 
    int s = this->nBc(fieldId);
@@ -250,7 +239,7 @@ void IRTCBackend::stencil(SparseMatrix& mat, const SpectralFieldId& fieldId,
    }
    else
    {
-      if (fieldId == vel_tor)
+      if (fieldId == vel_tor || fieldId == jvel_tor)
       {
          if (bcId == Bc::Name::NoSlip::id())
          {
@@ -268,7 +257,7 @@ void IRTCBackend::stencil(SparseMatrix& mat, const SpectralFieldId& fieldId,
                   "Toroidal component not implemented");
          }
       }
-      else if (fieldId == vel_pol)
+      else if (fieldId == vel_pol || fieldId == jvel_pol)
       {
          if (bcId == Bc::Name::NoSlip::id())
          {
@@ -286,7 +275,7 @@ void IRTCBackend::stencil(SparseMatrix& mat, const SpectralFieldId& fieldId,
                   "Poloidal component not implemented");
          }
       }
-      else if (fieldId == temp)
+      else if (fieldId == temp || fieldId == jtemp)
       {
          if (bcId == Bc::Name::FixedTemperature::id())
          {
@@ -313,62 +302,7 @@ void IRTCBackend::stencil(SparseMatrix& mat, const SpectralFieldId& fieldId,
    }
 }
 
-void IRTCBackend::applyGalerkinStencil(SparseMatrix& mat,
-   const SpectralFieldId& rowId, const SpectralFieldId& colId, const int lr,
-   const int lc, std::shared_ptr<details::BlockOptions> opts,
-   const int nNr, const int nNc, const BcMap& bcs,
-   const NonDimensional::NdMap& nds) const
-{
-   auto a = Polynomial::Worland::worland_default_t::ALPHA;
-   auto b = Polynomial::Worland::worland_default_t::DBETA;
-
-   auto S = mat;
-   this->stencil(S, colId, lc, nNc, false, bcs, nds);
-
-   auto s = this->nBc(rowId);
-   SparseSM::Worland::Id qId(nNr - s, nNr, a, b, lr, 0, s);
-   mat = qId.mat() * (mat * S);
-}
-
-void IRTCBackend::operatorInfo(OperatorInfo& info, const SpectralFieldId& fId,
-   const Resolution& res, const Equations::Tools::ICoupling& coupling,
-   const BcMap& bcs) const
-{
-   // Loop overall matrices/eigs
-   for (int idx = 0; idx < info.tauN.size(); ++idx)
-   {
-      auto eigs = coupling.getIndexes(res, idx);
-
-      int tN, gN, rhs;
-      ArrayI shift(3);
-
-      auto nTauLines = this->nBc(fId);
-      auto nN = this->baseNn(eigs.at(0), res);
-      this->blockInfo(tN, gN, shift, rhs, nTauLines, nN, this->useGalerkin());
-
-      info.tauN(idx) = tN;
-      info.galN(idx) = gN;
-      info.galShift.row(idx) = shift;
-      info.rhsCols(idx) = rhs;
-
-      // Compute system size
-      int sN = 0;
-      for (auto f: this->implicitFields(fId))
-      {
-         nTauLines = this->nBc(f);
-         this->blockInfo(tN, gN, shift, rhs, nTauLines, nN, this->useGalerkin());
-         sN += gN;
-      }
-
-      if (sN == 0)
-      {
-         sN = info.galN(idx);
-      }
-
-      info.sysN(idx) = sN;
-   }
-}
-
+} // namespace Exponential
 } // namespace RTC
 } // namespace Sphere
 } // namespace Boussinesq

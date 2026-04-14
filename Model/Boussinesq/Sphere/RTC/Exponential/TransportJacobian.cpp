@@ -9,8 +9,8 @@
 
 // Project includes
 //
-#include "Model/Boussinesq/Sphere/RTC/TransportJacobian.hpp"
-#include "Model/Boussinesq/Sphere/RTC/TransportJacobianKernel.hpp"
+#include "Model/Boussinesq/Sphere/RTC/Exponential/TransportJacobian.hpp"
+#include "Model/Boussinesq/Sphere/RTC/Exponential/TransportJacobianKernel.hpp"
 #include "QuICC/PhysicalNames/JacobianTemperature.hpp"
 #include "QuICC/PhysicalNames/JacobianVelocity.hpp"
 #include "QuICC/PhysicalNames/Temperature.hpp"
@@ -27,6 +27,8 @@ namespace Boussinesq {
 namespace Sphere {
 
 namespace RTC {
+
+namespace Exponential {
 
 TransportJacobian::TransportJacobian(SharedEquationParameters spEqParams,
    SpatialScheme::SharedCISpatialScheme spScheme,
@@ -66,7 +68,12 @@ void TransportJacobian::initNLKernel(const bool force)
          this->spVector(PhysicalNames::JacobianVelocity::id()));
       spNLKernel->setVector(PhysicalNames::Velocity::id(),
          this->spVector(PhysicalNames::Velocity::id()));
-      spNLKernel->init(-1.0);
+      MHDFloat sgn = 1;
+      if(!this->options().nonlinearIsLhs)
+      {
+         sgn = -1;
+      }
+      spNLKernel->init(1.0 * sgn);
       this->mspNLKernel = spNLKernel;
    }
 }
@@ -116,6 +123,7 @@ void TransportJacobian::setRequirements()
    velReq.enablePhysical();
 }
 
+} // namespace Exponential
 } // namespace RTC
 } // namespace Sphere
 } // namespace Boussinesq

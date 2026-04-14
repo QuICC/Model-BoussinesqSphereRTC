@@ -9,7 +9,7 @@
 
 // Project includes
 //
-#include "Model/Boussinesq/Sphere/RTC/Explicit/ModelBackend.hpp"
+#include "Model/Boussinesq/Sphere/RTC/Exponential/ModelBackend.hpp"
 #include "QuICC/Bc/Name/QuasiInverseOnly.hpp"
 #include "QuICC/Enums/FieldIds.hpp"
 #include "QuICC/Equations/CouplingIndexType.hpp"
@@ -24,9 +24,13 @@
 #include "QuICC/ModelOperator/SplitQuasiInverse.hpp"
 #include "QuICC/ModelOperator/QuasiInverse.hpp"
 #include "QuICC/ModelOperator/Time.hpp"
+#include "QuICC/ModelOperatorBoundary/SolverNoBc.hpp"
+#include "QuICC/ModelOperatorBoundary/SolverNoTau.hpp"
 #include "QuICC/NonDimensional/Prandtl.hpp"
 #include "QuICC/PhysicalNames/Temperature.hpp"
 #include "QuICC/PhysicalNames/Velocity.hpp"
+#include "QuICC/PhysicalNames/JacobianTemperature.hpp"
+#include "QuICC/PhysicalNames/JacobianVelocity.hpp"
 #include "QuICC/Polynomial/Worland/WorlandTypes.hpp"
 #include "QuICC/Resolutions/Tools/IndexCounter.hpp"
 #include "QuICC/SparseSM/Worland/I2.hpp"
@@ -46,7 +50,7 @@ namespace Sphere {
 
 namespace RTC {
 
-namespace Explicit {
+namespace Exponential {
 
 namespace implDetails {
 
@@ -83,7 +87,7 @@ struct BlockOptionsImpl : public details::BlockOptions
 } // namespace implDetails
 
 ModelBackend::ModelBackend() :
-    IRTCBackend(),
+    IExponentialRTCBackend(),
     mcTruncateQI(true)
 {}
 
@@ -93,6 +97,14 @@ bool ModelBackend::isComplex(const SpectralFieldId& fId) const
 }
 
 ModelBackend::SpectralFieldIds ModelBackend::implicitFields(
+   const SpectralFieldId& fId) const
+{
+   SpectralFieldIds fields = {fId};
+
+   return fields;
+}
+
+ModelBackend::SpectralFieldIds ModelBackend::explicitFields(
    const SpectralFieldId& fId) const
 {
    SpectralFieldIds fields = {fId};
@@ -121,7 +133,7 @@ void ModelBackend::equationInfo(EquationInfo& info, const SpectralFieldId& fId,
    info.im = this->implicitFields(fId);
 
    // Explicit linear terms
-   info.exL.clear();
+   info.exL = this->explicitFields(fId);
 
    // Explicit nonlinear terms
    info.exNL.clear();
@@ -576,6 +588,143 @@ details::BlockDefinition ModelBackend::qiBlockBuilder(
    return blkDef;
 }
 
+details::BlockDefinition ModelBackend::explicitLinearBlockBuilder(
+   const SpectralFieldId& rowId, const SpectralFieldId& colId,
+   const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs,
+   const NonDimensional::NdMap& nds) const
+{
+   assert(rowId == colId);
+   auto fieldId = rowId;
+
+   details::BlockDefinition blkDef;
+   blkDef.rowId = rowId;
+   blkDef.colId = colId;
+   blkDef.isComplex = this->isComplex(rowId);
+   blkDef.isGalerkin = false;
+
+   // Create description with common options
+   auto getDescription = [&]() -> details::BlockDescription&
+   {
+      blkDef.descr.push_back({});
+      auto& d = blkDef.descr.back();
+      auto opts = std::make_shared<implDetails::BlockOptionsImpl>();
+      opts->a = Polynomial::Worland::worland_default_t::ALPHA;
+      opts->b = Polynomial::Worland::worland_default_t::DBETA;
+      opts->l = eigs.at(0);
+      opts->bcId = bcs.find(colId.first)->second;
+      opts->truncateQI = this->mcTruncateQI;
+      opts->isSplitOperator = false;
+      opts->useSplitEquation = false;
+      d.opts = opts;
+
+      return d;
+   };
+
+   auto vel_tor = std::make_pair(PhysicalNames::Velocity::id(),
+                   FieldComponents::Spectral::TOR);
+   auto jvel_tor = std::make_pair(PhysicalNames::JacobianVelocity::id(),
+                   FieldComponents::Spectral::TOR);
+   auto vel_pol = std::make_pair(PhysicalNames::Velocity::id(),
+                   FieldComponents::Spectral::POL);
+   auto jvel_pol = std::make_pair(PhysicalNames::JacobianVelocity::id(),
+                   FieldComponents::Spectral::POL);
+   auto temp = std::make_pair(PhysicalNames::Temperature::id(),
+                   FieldComponents::Spectral::SCALAR);
+   auto jtemp = std::make_pair(PhysicalNames::JacobianTemperature::id(),
+                   FieldComponents::Spectral::SCALAR);
+
+   if (fieldId == vel_tor || fieldId == jvel_tor)
+   {
+      // Real part of operator
+      auto realOp = [](const int nNr, const int nNc, const int l,
+                       std::shared_ptr<details::BlockOptions> opts,
+                       const NonDimensional::NdMap& nds)
+      {
+         SparseMatrix bMat(nNr, nNc);
+
+         if (l > 0)
+         {
+            auto& o =
+               *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
+            SparseSM::Worland::I2Lapl i2lapl(nNr, nNc, o.a, o.b, l,
+               1 * o.truncateQI);
+            bMat = i2lapl.mat();
+         }
+
+         return bMat;
+      };
+
+      // Create block diagonal operator
+      auto& d = getDescription();
+      d.nRowShift = 0;
+      d.nColShift = 0;
+      d.realOp = realOp;
+      d.imagOp = nullptr;
+   }
+   else if (fieldId == vel_pol || fieldId == jvel_pol)
+   {
+      // Real part of operator
+      auto realOp = [](const int nNr, const int nNc, const int l,
+                       std::shared_ptr<details::BlockOptions> opts,
+                       const NonDimensional::NdMap& nds)
+      {
+         SparseMatrix bMat(nNr, nNc);
+
+         if (l > 0)
+         {
+            auto& o =
+               *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
+
+            SparseSM::Worland::I4Lapl2 i4lapl2(nNr, nNc, o.a, o.b, l,
+                 2 * o.truncateQI);
+            bMat = i4lapl2.mat();
+         }
+
+         return bMat;
+      };
+
+      // Create block diagonal operator
+      auto& d = getDescription();
+      d.nRowShift = 0;
+      d.nColShift = 0;
+      d.realOp = realOp;
+      d.imagOp = nullptr;
+   }
+   else if (fieldId == temp || fieldId == jtemp)
+   {
+      // Real part of operator
+      auto realOp = [](const int nNr, const int nNc, const int l,
+                       std::shared_ptr<details::BlockOptions> opts,
+                       const NonDimensional::NdMap& nds)
+      {
+         auto& o =
+            *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
+
+         const auto Pr =
+            nds.find(NonDimensional::Prandtl::id())->second->value();
+
+         SparseSM::Worland::I2Lapl i2lapl(nNr, nNc, o.a, o.b, l,
+            1 * o.truncateQI);
+         SparseMatrix bMat = (1.0 / Pr) * i2lapl.mat();
+
+         return bMat;
+      };
+
+      // Create block diagonal operator
+      auto& d = getDescription();
+      d.nRowShift = 0;
+      d.nColShift = 0;
+      d.realOp = realOp;
+      d.imagOp = nullptr;
+   }
+   else
+   {
+      throw std::logic_error("Explicit linear block not properly defined");
+   }
+
+   return blkDef;
+}
+
 details::BlockDefinition ModelBackend::boundaryBlockBuilder(
    const SpectralFieldId& rowId, const SpectralFieldId& colId,
    const Resolution& res, const std::vector<MHDFloat>& eigs, const BcMap& bcs,
@@ -795,9 +944,16 @@ void ModelBackend::modelMatrix(DecoupledZSparse& rModelMatrix,
       bool isSplit = (opId == ModelOperator::SplitQuasiInverse::id());
 
       BcMap qiBcs;
-      for(auto& [k,v]: bcs)
+      if(bcType == ModelOperatorBoundary::SolverNoBc::id())
       {
-         qiBcs.emplace(k, Bc::Name::QuasiInverseOnly::id());
+         for(auto& [k,v]: bcs)
+         {
+            qiBcs.emplace(k, Bc::Name::QuasiInverseOnly::id());
+         }
+      }
+      else
+      {
+         qiBcs = bcs;
       }
 
       for (auto pRowId = imRange.first; pRowId != imRange.second; pRowId++)
@@ -834,11 +990,32 @@ void ModelBackend::explicitBlock(DecoupledZSparse& mat,
    const std::vector<MHDFloat>& eigs, const BcMap& bcs,
    const NonDimensional::NdMap& nds) const
 {
+   assert(eigs.size() == 1);
+   int l = eigs.at(0);
+
+   auto getNns = [&](const SpectralFieldId& rowId, const SpectralFieldId& colId, const int j0, const int maxJ)
+   {
+      // Store 1D sizes
+      std::vector<int> ns;
+      for (int j = j0; j <= maxJ; j++)
+      {
+         auto nN = this->baseNn(j, res);
+         ns.emplace_back(nN);
+      }
+
+      return ns;
+   };
+
    // Explicit linear operator
    if (opId == ModelOperator::ExplicitLinear::id())
    {
-      // Nothing to be done
-      throw std::logic_error("There are no explicit linear operators");
+      const auto& fields = this->explicitFields(fId);
+      auto bcType = ModelOperatorBoundary::SolverNoTau::id();
+      auto descr =
+         explicitLinearBlockBuilder(fId, fieldId, res, eigs, bcs, nds);
+      auto nNs = getNns(fId, fieldId, l, l);
+      buildBlock(mat, descr, fields, matIdx,
+            bcType, l, l, nNs, bcs, nds, false, -1);
    }
    // Explicit nonlinear operator
    else if (opId == ModelOperator::ExplicitNonlinear::id())
@@ -852,7 +1029,7 @@ void ModelBackend::explicitBlock(DecoupledZSparse& mat,
    }
 }
 
-} // namespace Explicit
+} // namespace Exponential
 } // namespace RTC
 } // namespace Sphere
 } // namespace Boussinesq

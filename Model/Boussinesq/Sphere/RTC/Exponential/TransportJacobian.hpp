@@ -4,8 +4,8 @@
  * thermal convection in a sphere
  */
 
-#ifndef QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_TRANSPORTJACOBIAN_HPP
-#define QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_TRANSPORTJACOBIAN_HPP
+#ifndef QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_EXPONENTIAL_TRANSPORTJACOBIAN_HPP
+#define QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_EXPONENTIAL_TRANSPORTJACOBIAN_HPP
 
 // System includes
 //
@@ -24,6 +24,8 @@ namespace Boussinesq {
 namespace Sphere {
 
 namespace RTC {
+
+namespace Exponential {
 
 /**
  * @brief Implementation of the transport equation for the Boussinesq rotating
@@ -71,10 +73,11 @@ protected:
 private:
 };
 
+} // namespace Exponential
 } // namespace RTC
 } // namespace Sphere
 } // namespace Boussinesq
 } // namespace Equations
 } // namespace QuICC
 
-#endif // QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_TRANSPORTJACOBIAN_HPP
+#endif // QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_EXPONENTIAL_TRANSPORTJACOBIAN_HPP
