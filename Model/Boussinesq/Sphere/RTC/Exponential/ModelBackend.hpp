@@ -15,7 +15,7 @@
 
 // Project includes
 //
-#include "Model/Boussinesq/Sphere/RTC/IRTCBackend.hpp"
+#include "Model/Boussinesq/Sphere/RTC/Exponential/IExponentialRTCBackend.hpp"
 
 namespace QuICC {
 
@@ -32,7 +32,7 @@ namespace Exponential {
 /**
  * @brief Interface for model backend
  */
-class ModelBackend : public IRTCBackend
+class ModelBackend : public IExponentialRTCBackend
 {
 public:
    /**

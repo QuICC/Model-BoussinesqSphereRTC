@@ -15,23 +15,8 @@
 #include "Model/Boussinesq/Sphere/RTC/Exponential/MomentumJacobian.hpp"
 #include "Model/Boussinesq/Sphere/RTC/Exponential/TransportJacobian.hpp"
 #include "Model/Boussinesq/Sphere/RTC/gitHash.hpp"
-#include "QuICC/Io/Variable/FieldProbeWriter.hpp"
-#include "QuICC/Io/Variable/SphereAngularMomentumWriter.hpp"
-#include "QuICC/Io/Variable/SphereNusseltWriter.hpp"
-#include "QuICC/Io/Variable/SphereScalarEnergyWriter.hpp"
-#include "QuICC/Io/Variable/SphereScalarLSpectrumWriter.hpp"
-#include "QuICC/Io/Variable/SphereScalarMSpectrumWriter.hpp"
-#include "QuICC/Io/Variable/SphereScalarNSpectrumWriter.hpp"
-#include "QuICC/Io/Variable/SphereTorPolEnergyWriter.hpp"
-#include "QuICC/Io/Variable/SphereTorPolLSpectrumWriter.hpp"
-#include "QuICC/Io/Variable/SphereTorPolMSpectrumWriter.hpp"
-#include "QuICC/Io/Variable/SphereTorPolNSpectrumWriter.hpp"
 #include "QuICC/PhysicalNames/JacobianTemperature.hpp"
 #include "QuICC/PhysicalNames/JacobianVelocity.hpp"
-#include "QuICC/PhysicalNames/Temperature.hpp"
-#include "QuICC/PhysicalNames/Velocity.hpp"
-#include "QuICC/NonDimensional/Ekman.hpp"
-#include "QuICC/NonDimensional/Rayleigh.hpp"
 
 namespace QuICC {
 
@@ -71,11 +56,11 @@ void IExponentialRTCModel::addEquations(SharedSimulation spSim)
    auto optOne = std::make_shared<Equations::EquationOptions>(1, false);
 
    // Add transport jacobian equation
-   spSim->addEquation<Equations::Boussinesq::Sphere::RTC::TransportJacobian>(
+   spSim->addEquation<Equations::Boussinesq::Sphere::RTC::Exponential::TransportJacobian>(
       this->spBackend(), optOne);
 
    // Add Navier-Stokes jacobian equation
-   spSim->addEquation<Equations::Boussinesq::Sphere::RTC::MomentumJacobian>(
+   spSim->addEquation<Equations::Boussinesq::Sphere::RTC::Exponential::MomentumJacobian>(
       this->spBackend(), optOne);
 #endif
 

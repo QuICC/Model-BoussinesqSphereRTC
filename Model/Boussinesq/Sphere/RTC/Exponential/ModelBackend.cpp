@@ -87,7 +87,7 @@ struct BlockOptionsImpl : public details::BlockOptions
 } // namespace implDetails
 
 ModelBackend::ModelBackend() :
-    IRTCBackend(),
+    IExponentialRTCBackend(),
     mcTruncateQI(true)
 {}
 
