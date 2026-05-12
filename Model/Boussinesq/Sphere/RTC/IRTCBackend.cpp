@@ -35,7 +35,6 @@
 #include "QuICC/SparseSM/Worland/Stencil/Value.hpp"
 #include "QuICC/SparseSM/Worland/Stencil/ValueD1.hpp"
 #include "QuICC/SparseSM/Worland/Stencil/ValueD2.hpp"
-#include "QuICC/Tools/IdToHuman.hpp"
 
 namespace QuICC {
 
