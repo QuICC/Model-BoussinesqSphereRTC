@@ -37,7 +37,7 @@
 #include "DenseSM/Worland/Stencil/OrthogonalValueD1.hpp"
 #include "DenseSM/Worland/Stencil/OrthogonalValueD2.hpp"
 
-#define QUICC_USE_ORTHOGONAL_STENCIL
+//#define QUICC_USE_ORTHOGONAL_STENCIL
 
 namespace QuICC {
 
