@@ -51,6 +51,21 @@ namespace RTC {
 
 namespace Exponential {
 
+namespace {
+   const auto vel_tor = std::make_pair(PhysicalNames::Velocity::id(),
+                   FieldComponents::Spectral::TOR);
+   const auto jvel_tor = std::make_pair(PhysicalNames::JacobianVelocity::id(),
+                   FieldComponents::Spectral::TOR);
+   const auto vel_pol = std::make_pair(PhysicalNames::Velocity::id(),
+                   FieldComponents::Spectral::POL);
+   const auto jvel_pol = std::make_pair(PhysicalNames::JacobianVelocity::id(),
+                   FieldComponents::Spectral::POL);
+   const auto temp = std::make_pair(PhysicalNames::Temperature::id(),
+                   FieldComponents::Spectral::SCALAR);
+   const auto jtemp = std::make_pair(PhysicalNames::JacobianTemperature::id(),
+                   FieldComponents::Spectral::SCALAR);
+}
+
 std::vector<std::string> IExponentialRTCBackend::fieldNames() const
 {
    std::vector<std::string> names = {
@@ -65,19 +80,6 @@ std::vector<std::string> IExponentialRTCBackend::fieldNames() const
 int IExponentialRTCBackend::nBc(const SpectralFieldId& fId) const
 {
    int nBc = 0;
-
-   auto vel_tor = std::make_pair(PhysicalNames::Velocity::id(),
-                   FieldComponents::Spectral::TOR);
-   auto jvel_tor = std::make_pair(PhysicalNames::JacobianVelocity::id(),
-                   FieldComponents::Spectral::TOR);
-   auto vel_pol = std::make_pair(PhysicalNames::Velocity::id(),
-                   FieldComponents::Spectral::POL);
-   auto jvel_pol = std::make_pair(PhysicalNames::JacobianVelocity::id(),
-                   FieldComponents::Spectral::POL);
-   auto temp = std::make_pair(PhysicalNames::Temperature::id(),
-                   FieldComponents::Spectral::SCALAR);
-   auto jtemp = std::make_pair(PhysicalNames::JacobianTemperature::id(),
-                   FieldComponents::Spectral::SCALAR);
 
    if (fId == vel_tor ||
        fId == jvel_tor ||
@@ -111,19 +113,6 @@ void IExponentialRTCBackend::applyTau(SparseMatrix& mat, const SpectralFieldId& 
    auto bcId = bcs.find(rowId.first)->second;
 
    SparseSM::Worland::Boundary::Operator bcOp(nN, nN, a, b, l);
-
-   auto vel_tor = std::make_pair(PhysicalNames::Velocity::id(),
-                   FieldComponents::Spectral::TOR);
-   auto jvel_tor = std::make_pair(PhysicalNames::JacobianVelocity::id(),
-                   FieldComponents::Spectral::TOR);
-   auto vel_pol = std::make_pair(PhysicalNames::Velocity::id(),
-                   FieldComponents::Spectral::POL);
-   auto jvel_pol = std::make_pair(PhysicalNames::JacobianVelocity::id(),
-                   FieldComponents::Spectral::POL);
-   auto temp = std::make_pair(PhysicalNames::Temperature::id(),
-                   FieldComponents::Spectral::SCALAR);
-   auto jtemp = std::make_pair(PhysicalNames::JacobianTemperature::id(),
-                   FieldComponents::Spectral::SCALAR);
 
    if ((rowId == vel_tor || rowId == jvel_tor) &&
        rowId == colId)
@@ -222,19 +211,6 @@ void IExponentialRTCBackend::stencil(SparseMatrix& mat, const SpectralFieldId& f
    auto b = Polynomial::Worland::worland_default_t::DBETA;
 
    auto bcId = bcs.find(fieldId.first)->second;
-
-   auto vel_tor = std::make_pair(PhysicalNames::Velocity::id(),
-                   FieldComponents::Spectral::TOR);
-   auto jvel_tor = std::make_pair(PhysicalNames::JacobianVelocity::id(),
-                   FieldComponents::Spectral::TOR);
-   auto vel_pol = std::make_pair(PhysicalNames::Velocity::id(),
-                   FieldComponents::Spectral::POL);
-   auto jvel_pol = std::make_pair(PhysicalNames::JacobianVelocity::id(),
-                   FieldComponents::Spectral::POL);
-   auto temp = std::make_pair(PhysicalNames::Temperature::id(),
-                   FieldComponents::Spectral::SCALAR);
-   auto jtemp = std::make_pair(PhysicalNames::JacobianTemperature::id(),
-                   FieldComponents::Spectral::SCALAR);
 
    int s = this->nBc(fieldId);
    if(bcId == Bc::Name::QuasiInverseOnly::id())

@@ -42,7 +42,7 @@ std::vector<std::size_t> IExponentialRTCModel::excludedFieldIds() const
 
 void IExponentialRTCModel::addEquations(SharedSimulation spSim)
 {
-   auto optZero = std::make_shared<Equations::EquationOptions>(0, false);
+   auto optZero = std::make_shared<Equations::EquationOptions>(0, false, false);
 
    // Add transport equation
    spSim->addEquation<Equations::Boussinesq::Sphere::RTC::Transport>(
@@ -53,7 +53,7 @@ void IExponentialRTCModel::addEquations(SharedSimulation spSim)
       this->spBackend(), optZero);
 
 #if 1
-   auto optOne = std::make_shared<Equations::EquationOptions>(1, false);
+   auto optOne = std::make_shared<Equations::EquationOptions>(1, false, false);
 
    // Add transport jacobian equation
    spSim->addEquation<Equations::Boussinesq::Sphere::RTC::Exponential::TransportJacobian>(

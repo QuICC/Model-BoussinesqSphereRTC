@@ -84,6 +84,15 @@ struct BlockOptionsImpl : public details::BlockOptions
 };
 } // namespace implDetails
 
+namespace {
+   const auto vel_tor = std::make_pair(PhysicalNames::Velocity::id(),
+                   FieldComponents::Spectral::TOR);
+   const auto vel_pol = std::make_pair(PhysicalNames::Velocity::id(),
+                   FieldComponents::Spectral::POL);
+   const auto temp = std::make_pair(PhysicalNames::Temperature::id(),
+                   FieldComponents::Spectral::SCALAR);
+}
+
 ModelBackend::ModelBackend() :
     IRTCBackend(),
     mcTruncateQI(true)
@@ -110,13 +119,6 @@ bool ModelBackend::isComplex(const SpectralFieldId& fId) const
 ModelBackend::SpectralFieldIds ModelBackend::implicitFields(
    const SpectralFieldId& fId) const
 {
-   auto vel_tor = std::make_pair(PhysicalNames::Velocity::id(),
-                   FieldComponents::Spectral::TOR);
-   auto vel_pol = std::make_pair(PhysicalNames::Velocity::id(),
-                   FieldComponents::Spectral::POL);
-   auto temp = std::make_pair(PhysicalNames::Temperature::id(),
-                   FieldComponents::Spectral::SCALAR);
-
    SpectralFieldIds fields = {vel_tor, vel_pol, temp};
 
    // sort the fields
@@ -131,8 +133,7 @@ void ModelBackend::equationInfo(EquationInfo& info, const SpectralFieldId& fId,
    info.isComplex = this->isComplex(fId);
 
    // Splitting 4th poloidal equation into two systems
-   if (fId == std::make_pair(PhysicalNames::Velocity::id(),
-                 FieldComponents::Spectral::POL))
+   if (fId == vel_pol)
    {
       info.isSplitEquation = this->useSplitEquation();
    }
@@ -187,8 +188,7 @@ details::BlockDefinition ModelBackend::implicitBlockBuilder(
       return d;
    };
 
-   if (rowId == std::make_pair(PhysicalNames::Velocity::id(),
-                   FieldComponents::Spectral::TOR))
+   if (rowId == vel_tor)
    {
       if (rowId == colId)
       {
@@ -245,8 +245,7 @@ details::BlockDefinition ModelBackend::implicitBlockBuilder(
          d.realOp = realOp;
          d.imagOp = imagOp;
       }
-      else if (colId == std::make_pair(PhysicalNames::Velocity::id(),
-                           FieldComponents::Spectral::POL))
+      else if (colId == vel_pol)
       {
          // Real part of first lower diagonal
          auto realOpLower = [](const int nNr, const int nNc, const int l,
@@ -334,8 +333,7 @@ details::BlockDefinition ModelBackend::implicitBlockBuilder(
          dUp.imagOp = nullptr;
       }
    }
-   else if (rowId == std::make_pair(PhysicalNames::Velocity::id(),
-                        FieldComponents::Spectral::POL))
+   else if (rowId == vel_pol)
    {
       if (rowId == colId)
       {
@@ -401,8 +399,7 @@ details::BlockDefinition ModelBackend::implicitBlockBuilder(
          d.realOp = realOp;
          d.imagOp = imagOp;
       }
-      else if (colId == std::make_pair(PhysicalNames::Velocity::id(),
-                           FieldComponents::Spectral::TOR))
+      else if (colId == vel_tor)
       {
          // Create real part of block
          auto realOpLower = [](const int nNr, const int nNc, const int l,
@@ -491,8 +488,7 @@ details::BlockDefinition ModelBackend::implicitBlockBuilder(
          dUp.imagOp = nullptr;
       }
       else if (this->useLinearized() &&
-               colId == std::make_pair(PhysicalNames::Temperature::id(),
-                           FieldComponents::Spectral::SCALAR))
+               colId == temp)
       {
 
          auto realOp = [](const int nNr, const int nNc, const int l,
@@ -529,8 +525,7 @@ details::BlockDefinition ModelBackend::implicitBlockBuilder(
          d.imagOp = nullptr;
       }
    }
-   else if (rowId == std::make_pair(PhysicalNames::Temperature::id(),
-                        FieldComponents::Spectral::SCALAR))
+   else if (rowId == temp)
    {
       if (rowId == colId)
       {
@@ -560,8 +555,7 @@ details::BlockDefinition ModelBackend::implicitBlockBuilder(
          d.imagOp = nullptr;
       }
       else if (this->useLinearized() &&
-               colId == std::make_pair(PhysicalNames::Velocity::id(),
-                           FieldComponents::Spectral::POL))
+               colId == vel_pol)
       {
          // Create part of block
          auto realOp = [](const int nNr, const int nNc, const int l,
@@ -626,8 +620,7 @@ details::BlockDefinition ModelBackend::timeBlockBuilder(
       return d;
    };
 
-   if (fieldId == std::make_pair(PhysicalNames::Velocity::id(),
-                     FieldComponents::Spectral::TOR))
+   if (fieldId == vel_tor)
    {
       // Real part of operator
       auto realOp = [](const int nNr, const int nNc, const int l,
@@ -662,8 +655,7 @@ details::BlockDefinition ModelBackend::timeBlockBuilder(
       d.realOp = realOp;
       d.imagOp = nullptr;
    }
-   else if (fieldId == std::make_pair(PhysicalNames::Velocity::id(),
-                          FieldComponents::Spectral::POL))
+   else if (fieldId == vel_pol)
    {
       // Real part of operator
       auto realOp = [](const int nNr, const int nNc, const int l,
@@ -706,8 +698,7 @@ details::BlockDefinition ModelBackend::timeBlockBuilder(
       d.realOp = realOp;
       d.imagOp = nullptr;
    }
-   else if (fieldId == std::make_pair(PhysicalNames::Temperature::id(),
-                          FieldComponents::Spectral::SCALAR))
+   else if (fieldId == temp)
    {
       // Real part of operator
       auto realOp = [](const int nNr, const int nNc, const int l,
@@ -765,8 +756,7 @@ details::BlockDefinition ModelBackend::qiBlockBuilder(
       return d;
    };
 
-   if (fieldId == std::make_pair(PhysicalNames::Velocity::id(),
-                     FieldComponents::Spectral::TOR))
+   if (fieldId == vel_tor)
    {
       // Real part of operator
       auto realOp = [](const int nNr, const int nNc, const int l,
@@ -801,8 +791,7 @@ details::BlockDefinition ModelBackend::qiBlockBuilder(
       d.realOp = realOp;
       d.imagOp = nullptr;
    }
-   else if (fieldId == std::make_pair(PhysicalNames::Velocity::id(),
-                          FieldComponents::Spectral::POL))
+   else if (fieldId == vel_pol)
    {
       // Real part of operator
       auto realOp = [](const int nNr, const int nNc, const int l,
@@ -837,8 +826,7 @@ details::BlockDefinition ModelBackend::qiBlockBuilder(
       d.realOp = realOp;
       d.imagOp = nullptr;
    }
-   else if (fieldId == std::make_pair(PhysicalNames::Temperature::id(),
-                          FieldComponents::Spectral::SCALAR))
+   else if (fieldId == temp)
    {
       // Real part of operator
       auto realOp = [](const int nNr, const int nNc, const int l,

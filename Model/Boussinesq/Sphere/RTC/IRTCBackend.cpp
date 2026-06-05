@@ -46,6 +46,16 @@ namespace Sphere {
 
 namespace RTC {
 
+namespace {
+
+   const auto vel_tor = std::make_pair(PhysicalNames::Velocity::id(),
+                   FieldComponents::Spectral::TOR);
+   const auto vel_pol = std::make_pair(PhysicalNames::Velocity::id(),
+                   FieldComponents::Spectral::POL);
+   const auto temp = std::make_pair(PhysicalNames::Temperature::id(),
+                   FieldComponents::Spectral::SCALAR);
+}
+
 std::vector<std::string> IRTCBackend::fieldNames() const
 {
    std::vector<std::string> names = {
@@ -85,13 +95,6 @@ int IRTCBackend::nBc(const SpectralFieldId& fId) const
 {
    int nBc = 0;
 
-   auto vel_tor = std::make_pair(PhysicalNames::Velocity::id(),
-                   FieldComponents::Spectral::TOR);
-   auto vel_pol = std::make_pair(PhysicalNames::Velocity::id(),
-                   FieldComponents::Spectral::POL);
-   auto temp = std::make_pair(PhysicalNames::Temperature::id(),
-                   FieldComponents::Spectral::SCALAR);
-
    if (fId == vel_tor ||
        fId == temp)
    {
@@ -128,13 +131,6 @@ void IRTCBackend::applyTau(SparseMatrix& mat, const SpectralFieldId& rowId,
    auto bcId = bcs.find(rowId.first)->second;
 
    SparseSM::Worland::Boundary::Operator bcOp(nN, nN, a, b, l);
-
-   auto vel_tor = std::make_pair(PhysicalNames::Velocity::id(),
-                   FieldComponents::Spectral::TOR);
-   auto vel_pol = std::make_pair(PhysicalNames::Velocity::id(),
-                   FieldComponents::Spectral::POL);
-   auto temp = std::make_pair(PhysicalNames::Temperature::id(),
-                   FieldComponents::Spectral::SCALAR);
 
    if ((rowId == vel_tor) &&
        rowId == colId)
@@ -233,13 +229,6 @@ void IRTCBackend::stencil(SparseMatrix& mat, const SpectralFieldId& fieldId,
    auto b = Polynomial::Worland::worland_default_t::DBETA;
 
    auto bcId = bcs.find(fieldId.first)->second;
-
-   auto vel_tor = std::make_pair(PhysicalNames::Velocity::id(),
-                   FieldComponents::Spectral::TOR);
-   auto vel_pol = std::make_pair(PhysicalNames::Velocity::id(),
-                   FieldComponents::Spectral::POL);
-   auto temp = std::make_pair(PhysicalNames::Temperature::id(),
-                   FieldComponents::Spectral::SCALAR);
 
    int s = this->nBc(fieldId);
    if(bcId == Bc::Name::QuasiInverseOnly::id())
