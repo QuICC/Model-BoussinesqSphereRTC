@@ -224,3 +224,37 @@ if(TARGET QuICC::Stability)
     MPIRANKS 1
   )
 endif()
+
+quicc_add_benchmark(Exponential
+  MODEL "BoussinesqSphereRTC"
+  TYPE "Config"
+  WORKDIR "${CMAKE_BINARY_DIR}/${QUICC_CURRENT_MODEL_DIR}/TestSuite/Benchmarks"
+  ARCHIVEDIR "${CMAKE_BINARY_DIR}/Models/_refdata"
+  )
+
+quicc_add_benchmark(Exponential
+  MODEL "BoussinesqSphereRTC"
+  TYPE "State"
+  WORKDIR "${CMAKE_BINARY_DIR}/${QUICC_CURRENT_MODEL_DIR}/TestSuite/Benchmarks"
+  ARCHIVEDIR "${CMAKE_BINARY_DIR}/Models/_refdata"
+  )
+
+quicc_add_benchmark(Exponential
+  MODEL "BoussinesqSphereRTC"
+  TYPE "Visualization"
+  WORKDIR "${CMAKE_BINARY_DIR}/${QUICC_CURRENT_MODEL_DIR}/TestSuite/Benchmarks"
+  ARCHIVEDIR "${CMAKE_BINARY_DIR}/Models/_refdata"
+  )
+
+if(NOT QUICC_USE_MPI)
+  quicc_add_benchmark(Exponential
+    MODEL "BoussinesqSphereRTC"
+    TYPE "Model"
+    WORKDIR "${CMAKE_BINARY_DIR}/${QUICC_CURRENT_MODEL_DIR}/TestSuite/Benchmarks"
+    ARCHIVEDIR "${CMAKE_BINARY_DIR}/Models/_refdata"
+    VARIANTS "framework/parallel/algorithm:serial" "framework/timestepping/scheme:Exp_Euler"
+    FILTER "algorithm" "scheme"
+    DATAFILTER "timestepping/scheme"
+    )
+else()
+endif()

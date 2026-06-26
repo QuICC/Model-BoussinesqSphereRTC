@@ -1,11 +1,11 @@
 /**
- * @file Transport.hpp
+ * @file TransportJacobian.hpp
  * @brief Implementation of the transport equation for the Boussinesq rotating
  * thermal convection in a sphere
  */
 
-#ifndef QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_TRANSPORT_HPP
-#define QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_TRANSPORT_HPP
+#ifndef QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_EXPONENTIAL_TRANSPORTJACOBIAN_HPP
+#define QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_EXPONENTIAL_TRANSPORTJACOBIAN_HPP
 
 // System includes
 //
@@ -25,11 +25,13 @@ namespace Sphere {
 
 namespace RTC {
 
+namespace Exponential {
+
 /**
  * @brief Implementation of the transport equation for the Boussinesq rotating
  * thermal convection in a sphere
  */
-class Transport : public IScalarEquation
+class TransportJacobian : public IScalarEquation
 {
 public:
    /**
@@ -37,7 +39,7 @@ public:
     *
     * @param spEqParams  Shared equation parameters
     */
-   Transport(SharedEquationParameters spEqParams,
+   TransportJacobian(SharedEquationParameters spEqParams,
       SpatialScheme::SharedCISpatialScheme spScheme,
       std::shared_ptr<Model::IModelBackend> spBackend,
       std::shared_ptr<EquationOptions> spOptions);
@@ -45,7 +47,7 @@ public:
    /**
     * @brief Simple empty destructor
     */
-   ~Transport() = default;
+   ~TransportJacobian() = default;
 
    /**
     * @brief Initialize nonlinear interaction kernel
@@ -71,10 +73,11 @@ protected:
 private:
 };
 
+} // namespace Exponential
 } // namespace RTC
 } // namespace Sphere
 } // namespace Boussinesq
 } // namespace Equations
 } // namespace QuICC
 
-#endif // QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_TRANSPORT_HPP
+#endif // QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_EXPONENTIAL_TRANSPORTJACOBIAN_HPP

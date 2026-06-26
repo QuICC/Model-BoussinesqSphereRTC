@@ -1,5 +1,5 @@
 /**
- * @file Momentum.cpp
+ * @file MomentumJacobian.cpp
  * @brief Source of the implementation of the vector Navier-Stokes equation in
  * the Boussinesq rotating thermal convection in a sphere model
  */
@@ -9,19 +9,18 @@
 
 // Project includes
 //
-#include "Model/Boussinesq/Sphere/RTC/Momentum.hpp"
-#include "Model/Boussinesq/Sphere/RTC/MomentumKernel.hpp"
+#include "Model/Boussinesq/Sphere/RTC/Exponential/MomentumJacobian.hpp"
+#include "Model/Boussinesq/Sphere/RTC/Exponential/MomentumJacobianKernel.hpp"
 #include "QuICC/Bc/Name/StressFree.hpp"
 #include "QuICC/NonDimensional/Ekman.hpp"
 #include "QuICC/NonDimensional/Rayleigh.hpp"
+#include "QuICC/PhysicalNames/JacobianTemperature.hpp"
+#include "QuICC/PhysicalNames/JacobianVelocity.hpp"
 #include "QuICC/PhysicalNames/Temperature.hpp"
 #include "QuICC/PhysicalNames/Velocity.hpp"
 #include "QuICC/SolveTiming/Prognostic.hpp"
 #include "QuICC/SpatialScheme/ISpatialScheme.hpp"
 #include "QuICC/SpectralKernels/Sphere/ConserveAngularMomentum.hpp"
-#include "QuICC/Transform/Path/I2CurlNl.hpp"
-#include "QuICC/Transform/Path/NegI2CurlCurlNl.hpp"
-#include "QuICC/Transform/Path/NegI4CurlCurlNl.hpp"
 #include "QuICC/Transform/Path/CurlNl.hpp"
 #include "QuICC/Transform/Path/NegCurlCurlNl.hpp"
 
@@ -35,7 +34,9 @@ namespace Sphere {
 
 namespace RTC {
 
-Momentum::Momentum(SharedEquationParameters spEqParams,
+namespace Exponential {
+
+MomentumJacobian::MomentumJacobian(SharedEquationParameters spEqParams,
    SpatialScheme::SharedCISpatialScheme spScheme,
    std::shared_ptr<Model::IModelBackend> spBackend,
       std::shared_ptr<EquationOptions> spOptions) :
@@ -45,7 +46,7 @@ Momentum::Momentum(SharedEquationParameters spEqParams,
    this->setRequirements();
 }
 
-void Momentum::setCoupling()
+void MomentumJacobian::setCoupling()
 {
    int start;
    if (this->ss().has(SpatialScheme::Feature::SpectralOrdering132))
@@ -72,23 +73,11 @@ void Momentum::setCoupling()
       CouplingInformation::PROGNOSTIC, start, features);
 }
 
-void Momentum::setNLComponents()
+void MomentumJacobian::setNLComponents()
 {
    if(this->options().transformHasQi)
    {
-      this->addNLComponent(FieldComponents::Spectral::TOR,
-         Transform::Path::I2CurlNl::id());
-
-      if (this->couplingInfo(FieldComponents::Spectral::POL).isSplitEquation())
-      {
-         this->addNLComponent(FieldComponents::Spectral::POL,
-               Transform::Path::NegI2CurlCurlNl::id());
-      }
-      else
-      {
-         this->addNLComponent(FieldComponents::Spectral::POL,
-               Transform::Path::NegI4CurlCurlNl::id());
-      }
+      throw std::logic_error("Equation not setup with QI in transform stage");
    }
    else
    {
@@ -100,14 +89,17 @@ void Momentum::setNLComponents()
    }
 }
 
-void Momentum::initNLKernel(const bool force)
+void MomentumJacobian::initNLKernel(const bool force)
 {
    // Initialize if empty or forced
    if (force || !this->mspNLKernel)
    {
       // Initialize the physical kernel
-      auto spNLKernel = std::make_shared<Physical::Kernel::MomentumKernel>();
-      spNLKernel->setVelocity(this->name(), this->spUnknown());
+      auto spNLKernel = std::make_shared<Physical::Kernel::MomentumJacobianKernel>();
+      spNLKernel->setJacobianVelocity(this->name(), this->spUnknown());
+      spNLKernel->setVelocity(PhysicalNames::Velocity::id(), this->spVector(PhysicalNames::Velocity::id()));
+      spNLKernel->setJacobianTemperature(PhysicalNames::JacobianTemperature::id(),
+         this->spScalar(PhysicalNames::JacobianTemperature::id()));
       spNLKernel->setTemperature(PhysicalNames::Temperature::id(),
          this->spScalar(PhysicalNames::Temperature::id()));
       auto T = 1.0 / this->eqParams().nd(NonDimensional::Ekman::id());
@@ -117,12 +109,12 @@ void Momentum::initNLKernel(const bool force)
       {
          sgn = -1;
       }
-      spNLKernel->init(1.0*sgn, T*sgn, Ra * T * sgn);
+      spNLKernel->init(1.0 * sgn, T * sgn, Ra * T * sgn);
       this->mspNLKernel = spNLKernel;
    }
 }
 
-void Momentum::initConstraintKernel(const std::shared_ptr<std::vector<Array>>)
+void MomentumJacobian::initConstraintKernel(const std::shared_ptr<std::vector<Array>>)
 {
    if (this->bcIds().bcId(this->name()) == Bc::Name::StressFree::id())
    {
@@ -138,10 +130,10 @@ void Momentum::initConstraintKernel(const std::shared_ptr<std::vector<Array>>)
    }
 }
 
-void Momentum::setRequirements()
+void MomentumJacobian::setRequirements()
 {
    // Set velocity as equation unknown
-   this->setName(PhysicalNames::Velocity::id());
+   this->setName(PhysicalNames::JacobianVelocity::id());
 
    // Set solver timing
    this->setSolveTiming(SolveTiming::Prognostic::id());
@@ -153,11 +145,25 @@ void Momentum::setRequirements()
    const auto& ss = this->ss();
 
    // Add velocity to requirements: is scalar?
+   auto& jvelReq = this->mRequirements.addField(PhysicalNames::JacobianVelocity::id(),
+      FieldRequirement(false, ss.spectral(), ss.physical()));
+   jvelReq.enableSpectral();
+   jvelReq.enablePhysical();
+   jvelReq.enableCurl();
+
+   // Add velocity to requirements: is scalar?
    auto& velReq = this->mRequirements.addField(PhysicalNames::Velocity::id(),
       FieldRequirement(false, ss.spectral(), ss.physical()));
    velReq.enableSpectral();
    velReq.enablePhysical();
    velReq.enableCurl();
+
+   // Add temperature to requirements: is scalar?
+   auto& jtempReq =
+      this->mRequirements.addField(PhysicalNames::JacobianTemperature::id(),
+         FieldRequirement(true, ss.spectral(), ss.physical()));
+   jtempReq.enableSpectral();
+   jtempReq.enablePhysical();
 
    // Add temperature to requirements: is scalar?
    auto& tempReq =
@@ -167,6 +173,7 @@ void Momentum::setRequirements()
    tempReq.enablePhysical();
 }
 
+} // namespace Exponential
 } // namespace RTC
 } // namespace Sphere
 } // namespace Boussinesq

@@ -51,13 +51,15 @@ std::string IRTCModel::version() const
 
 void IRTCModel::addEquations(SharedSimulation spSim)
 {
+   auto optZero = std::make_shared<Equations::EquationOptions>(0);
+
    // Add transport equation
    spSim->addEquation<Equations::Boussinesq::Sphere::RTC::Transport>(
-      this->spBackend());
+      this->spBackend(), optZero);
 
    // Add Navier-Stokes equation
    spSim->addEquation<Equations::Boussinesq::Sphere::RTC::Momentum>(
-      this->spBackend());
+      this->spBackend(), optZero);
 
    #ifdef QUICC_USE_MLIR_GRAPH
    // Add Graph
