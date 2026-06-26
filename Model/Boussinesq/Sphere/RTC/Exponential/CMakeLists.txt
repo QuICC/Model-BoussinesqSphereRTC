@@ -4,6 +4,6 @@ target_sources(${QUICC_CURRENT_MODEL_LIB}_exponential ${QUICC_CMAKE_SRC_VISIBILI
   MomentumJacobianKernel.cpp
   TransportJacobian.cpp
   TransportJacobianKernel.cpp
-  IExponentialRTCModel.cpp
-  IExponentialRTCBackend.cpp
+  IExponentialModel.cpp
+  IExponentialBackend.cpp
   )

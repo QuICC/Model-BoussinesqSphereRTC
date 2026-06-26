@@ -1,11 +1,11 @@
 /**
- * @file IExponentialRTCModel.hpp
+ * @file IExponentialModel.hpp
  * @brief Implementation of the Boussinesq rotating thermal convection in a
  * sphere (Toroidal/Poloidal formulation)
  */
 
-#ifndef QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_EXPONENTIAL_IEXPONENTIALRTCMODEL_HPP
-#define QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_EXPONENTIAL_IEXPONENTIALRTCMODEL_HPP
+#ifndef QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_EXPONENTIAL_IEXPONENTIALMODEL_HPP
+#define QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_EXPONENTIAL_IEXPONENTIALMODEL_HPP
 
 // System includes
 //
@@ -32,18 +32,18 @@ namespace Exponential {
  * @brief Implementation of the Boussinesq rotating thermal convection sphere
  * model (Toroidal/Poloidal formulation)
  */
-class IExponentialRTCModel : public IRTCModel
+class IExponentialModel : public IRTCModel
 {
 public:
    /**
     * @brief Constructor
     */
-   IExponentialRTCModel() = default;
+   IExponentialModel() = default;
 
    /**
     * @brief Destructor
     */
-   virtual ~IExponentialRTCModel() = default;
+   virtual ~IExponentialModel() = default;
 
    /**
     * @brief Exclude fields from initial state
@@ -68,4 +68,4 @@ private:
 } // namespace Model
 } // namespace QuICC
 
-#endif // QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_EXPONENTIAL_IEXPONENTIALRTCMODEL_HPP
+#endif // QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_EXPONENTIAL_IEXPONENTIALMODEL_HPP

@@ -1,10 +1,10 @@
 /**
- * @file IExponentialRTCBackend.hpp
+ * @file IExponentialBackend.hpp
  * @brief Base model backend for RTC model
  */
 
-#ifndef QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_EXPONENTIAL_IEXPONENTIALRTCBACKEND_HPP
-#define QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_EXPONENTIAL_IEXPONENTIALRTCBACKEND_HPP
+#ifndef QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_EXPONENTIAL_IEXPONENTIALBACKEND_HPP
+#define QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_EXPONENTIAL_IEXPONENTIALBACKEND_HPP
 
 // System includes
 //
@@ -31,18 +31,18 @@ namespace Exponential {
 /**
  * @brief Base model backend for RTC model
  */
-class IExponentialRTCBackend : public IRTCBackend
+class IExponentialBackend : public IRTCBackend
 {
 public:
    /**
     * @brief Constructor
     */
-   IExponentialRTCBackend() = default;
+   IExponentialBackend() = default;
 
    /**
     * @brief Destructor
     */
-   virtual ~IExponentialRTCBackend() = default;
+   virtual ~IExponentialBackend() = default;
 
    /**
     * @brief Get vector of names for the physical fields
@@ -101,4 +101,4 @@ private:
 } // namespace Model
 } // namespace QuICC
 
-#endif // QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_EXPONENTIAL_IEXPONENTIALRTCBACKEND_HPP
+#endif // QUICC_MODEL_BOUSSINESQ_SPHERE_RTC_EXPONENTIAL_IEXPONENTIALBACKEND_HPP

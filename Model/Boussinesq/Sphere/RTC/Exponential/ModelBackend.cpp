@@ -102,7 +102,7 @@ namespace {
 }
 
 ModelBackend::ModelBackend() :
-    IExponentialRTCBackend(),
+    IExponentialBackend(),
     mcTruncateQI(true)
 {}
 

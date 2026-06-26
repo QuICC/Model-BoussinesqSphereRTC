@@ -1,5 +1,5 @@
 /**
- * @file IExponentialRTCBackend.cpp
+ * @file IExponentialBackend.cpp
  * @brief Source of the interface for model backend
  */
 
@@ -9,7 +9,7 @@
 
 // Project includes
 //
-#include "Model/Boussinesq/Sphere/RTC/Exponential/IExponentialRTCBackend.hpp"
+#include "Model/Boussinesq/Sphere/RTC/Exponential/IExponentialBackend.hpp"
 #include "QuICC/Bc/Name/FixedFlux.hpp"
 #include "QuICC/Bc/Name/FixedTemperature.hpp"
 #include "QuICC/Bc/Name/NoSlip.hpp"
@@ -66,7 +66,7 @@ namespace {
                    FieldComponents::Spectral::SCALAR);
 }
 
-std::vector<std::string> IExponentialRTCBackend::fieldNames() const
+std::vector<std::string> IExponentialBackend::fieldNames() const
 {
    std::vector<std::string> names = {
       PhysicalNames::Velocity().tag(),
@@ -77,7 +77,7 @@ std::vector<std::string> IExponentialRTCBackend::fieldNames() const
    return names;
 }
 
-int IExponentialRTCBackend::nBc(const SpectralFieldId& fId) const
+int IExponentialBackend::nBc(const SpectralFieldId& fId) const
 {
    int nBc = 0;
 
@@ -101,7 +101,7 @@ int IExponentialRTCBackend::nBc(const SpectralFieldId& fId) const
    return nBc;
 }
 
-void IExponentialRTCBackend::applyTau(SparseMatrix& mat, const SpectralFieldId& rowId,
+void IExponentialBackend::applyTau(SparseMatrix& mat, const SpectralFieldId& rowId,
    const SpectralFieldId& colId, const int l,
    std::shared_ptr<details::BlockOptions> opts, const int nN,
    const BcMap& bcs, const NonDimensional::NdMap& nds,
@@ -203,7 +203,7 @@ void IExponentialRTCBackend::applyTau(SparseMatrix& mat, const SpectralFieldId& 
    mat.real() += bcOp.mat();
 }
 
-void IExponentialRTCBackend::stencil(SparseMatrix& mat, const SpectralFieldId& fieldId,
+void IExponentialBackend::stencil(SparseMatrix& mat, const SpectralFieldId& fieldId,
    const int l, const int nN, const bool makeSquare, const BcMap& bcs,
    const NonDimensional::NdMap& nds) const
 {

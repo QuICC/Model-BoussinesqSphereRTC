@@ -320,7 +320,7 @@ void IRTCBackend::applyGalerkinStencil(SparseMatrix& mat,
 
 void IRTCBackend::operatorInfo(OperatorInfo& info, const SpectralFieldId& fId,
    const Resolution& res, const Equations::Tools::ICoupling& coupling,
-   const BcMap& bcs) const
+   const BcMap& bcs, const bool allowGalerkin) const
 {
    // Loop overall matrices/eigs
    for (int idx = 0; idx < info.tauN.size(); ++idx)
@@ -332,7 +332,7 @@ void IRTCBackend::operatorInfo(OperatorInfo& info, const SpectralFieldId& fId,
 
       auto nTauLines = this->nBc(fId);
       auto nN = this->baseNn(eigs.at(0), res);
-      this->blockInfo(tN, gN, shift, rhs, nTauLines, nN, this->useGalerkin());
+      this->blockInfo(tN, gN, shift, rhs, nTauLines, nN, allowGalerkin && this->useGalerkin());
 
       info.tauN(idx) = tN;
       info.galN(idx) = gN;
@@ -344,7 +344,7 @@ void IRTCBackend::operatorInfo(OperatorInfo& info, const SpectralFieldId& fId,
       for (auto f: this->implicitFields(fId))
       {
          nTauLines = this->nBc(f);
-         this->blockInfo(tN, gN, shift, rhs, nTauLines, nN, this->useGalerkin());
+         this->blockInfo(tN, gN, shift, rhs, nTauLines, nN, allowGalerkin && this->useGalerkin());
          sN += gN;
       }
 

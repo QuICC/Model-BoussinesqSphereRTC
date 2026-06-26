@@ -143,8 +143,8 @@ set(ClassPhysicalModel "QuICC::Model::Boussinesq::Sphere::RTC::Exponential::Phys
 set(Exe "Config")
 set(Factory "QuICC/Model/ConfigFactory.hpp")
 set(ClassFactory "QuICC::ConfigFactory")
-set(Builder "Model/Boussinesq/Sphere/RTC/Exponential/IExponentialRTCModel.hpp")
-set(ClassBuilder "QuICC::Model::Boussinesq::Sphere::RTC::Exponential::IExponentialRTCModel")
+set(Builder "Model/Boussinesq/Sphere/RTC/Exponential/IExponentialModel.hpp")
+set(ClassBuilder "QuICC::Model::Boussinesq::Sphere::RTC::Exponential::IExponentialModel")
 set(source_ "${CMAKE_CURRENT_BINARY_DIR}/${Type}/Run${Exe}.cpp")
 configure_file(RunExe.cpp.in ${source_} @ONLY)
 
@@ -171,8 +171,8 @@ quicc_setup_exe(${ModelId}
 set(Exe "Model")
 set(Factory "QuICC/Model/ModelFactory.hpp")
 set(ClassFactory "QuICC::ModelFactory")
-set(Builder "Model/Boussinesq/Sphere/RTC/Exponential/IExponentialRTCModel.hpp")
-set(ClassBuilder "QuICC::Model::Boussinesq::Sphere::RTC::Exponential::IExponentialRTCModel")
+set(Builder "Model/Boussinesq/Sphere/RTC/Exponential/IExponentialModel.hpp")
+set(ClassBuilder "QuICC::Model::Boussinesq::Sphere::RTC::Exponential::IExponentialModel")
 set(source_ "${CMAKE_CURRENT_BINARY_DIR}/${Type}/Run${Exe}.cpp")
 configure_file(RunExe.cpp.in ${source_} @ONLY)
 
