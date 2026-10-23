@@ -166,140 +166,6 @@ details::BlockDefinition ModelBackend::implicitBlockBuilder(
    const NonDimensional::NdMap& nds, const bool isSplitOperator) const
 {
    throw std::logic_error("implicitBlock should no be called");
-   details::BlockDefinition blkDef;
-   blkDef.rowId = rowId;
-   blkDef.colId = colId;
-   blkDef.isComplex = this->isComplex(rowId);
-   blkDef.isGalerkin = this->useGalerkin();
-
-   // Create description with common options
-   auto getDescription = [&]() -> details::BlockDescription&
-   {
-      blkDef.descr.push_back({});
-      auto& d = blkDef.descr.back();
-      auto opts = std::make_shared<implDetails::BlockOptionsImpl>();
-      opts->a = Polynomial::Worland::worland_default_t::ALPHA;
-      opts->b = Polynomial::Worland::worland_default_t::DBETA;
-      opts->l = eigs.at(0);
-      opts->bcId = bcs.find(colId.first)->second;
-      opts->truncateQI = this->mcTruncateQI;
-      opts->isSplitOperator = isSplitOperator;
-      opts->useSplitEquation = this->useSplitEquation();
-      d.opts = opts;
-
-      return d;
-   };
-
-   if (rowId == vel_tor &&
-       rowId == colId)
-   {
-      // Real part of operator
-      auto realOp = [](const int nNr, const int nNc, const int l,
-                       std::shared_ptr<details::BlockOptions> opts,
-                       const NonDimensional::NdMap& nds)
-      {
-         SparseMatrix bMat(nNr, nNc);
-
-         if (l > 0)
-         {
-            auto& o =
-               *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
-            SparseSM::Worland::I2Lapl i2lapl(nNr, nNc, o.a, o.b, l,
-               1 * o.truncateQI);
-            bMat = i2lapl.mat();
-         }
-
-         return bMat;
-      };
-
-      // Create block diagonal operator
-      auto& d = getDescription();
-      d.nRowShift = 0;
-      d.nColShift = 0;
-      d.realOp = realOp;
-      d.imagOp = nullptr;
-   }
-   else if (rowId == vel_pol &&
-            rowId == colId)
-   {
-      // Real part of block
-      auto realOp = [](const int nNr, const int nNc, const int l,
-                       std::shared_ptr<details::BlockOptions> opts,
-                       const NonDimensional::NdMap& nds)
-      {
-         SparseMatrix bMat(nNr, nNc);
-
-         if (l > 0)
-         {
-            auto& o =
-               *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
-            if (o.useSplitEquation)
-            {
-               if (o.isSplitOperator)
-               {
-                  SparseSM::Worland::I2Lapl i2lapl(nNr, nNc, o.a, o.b, l,
-                     1 * o.truncateQI);
-                  bMat = i2lapl.mat();
-               }
-               else
-               {
-                  SparseSM::Worland::I2Lapl i2lapl(nNr, nNc, o.a, o.b, l,
-                     1 * o.truncateQI);
-                  bMat = i2lapl.mat();
-               }
-            }
-            else
-            {
-               SparseSM::Worland::I4Lapl2 i4lapl2(nNr, nNc, o.a, o.b, l,
-                  2 * o.truncateQI);
-               bMat = i4lapl2.mat();
-            }
-         }
-
-         return bMat;
-      };
-
-      // Create diagonal block
-      auto& d = getDescription();
-      d.nRowShift = 0;
-      d.nColShift = 0;
-      d.realOp = realOp;
-      d.imagOp = nullptr;
-   }
-   else if (rowId == temp &&
-            rowId == colId)
-   {
-      // Creat real part of block
-      auto realOp = [](const int nNr, const int nNc, const int l,
-                       std::shared_ptr<details::BlockOptions> opts,
-                       const NonDimensional::NdMap& nds)
-      {
-         auto& o =
-            *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
-
-         const auto Pr =
-            nds.find(NonDimensional::Prandtl::id())->second->value();
-
-         SparseSM::Worland::I2Lapl i2lapl(nNr, nNc, o.a, o.b, l,
-            1 * o.truncateQI);
-         SparseMatrix bMat = (1.0 / Pr) * i2lapl.mat();
-
-         return bMat;
-      };
-
-      // Create diagonal block
-      auto& d = getDescription();
-      d.nRowShift = 0;
-      d.nColShift = 0;
-      d.realOp = realOp;
-      d.imagOp = nullptr;
-   }
-   else
-   {
-      throw std::logic_error("Equations are not setup properly");
-   }
-
-   return blkDef;
 }
 
 details::BlockDefinition ModelBackend::timeBlockBuilder(
@@ -386,9 +252,7 @@ details::BlockDefinition ModelBackend::timeBlockBuilder(
          {
             if (o.useSplitEquation)
             {
-               SparseSM::Worland::I2 spasm(nNr, nNc, o.a, o.b, l,
-                  1 * o.truncateQI);
-               bMat = spasm.mat();
+               throw std::logic_error("Split equation not possible");
             }
             else
             {
@@ -532,17 +396,7 @@ details::BlockDefinition ModelBackend::qiBlockBuilder(
          {
             if (o.useSplitEquation)
             {
-               SparseSM::Worland::I2 spasm(nNr, nNc, o.a, o.b, l,
-                  1 * o.truncateQI);
-               if(o.isSplitOperator)
-               {
-                  SparseSM::Worland::Id qid(nNr, nNc, o.a, o.b, l, -2);
-                  bMat = spasm.mat() * qid.mat();
-               }
-               else
-               {
-                  bMat = spasm.mat();
-               }
+               throw std::logic_error("Split equation not possible");
             }
             else
             {

@@ -35,9 +35,8 @@
 #include "QuICC/SparseSM/Worland/Stencil/ValueD2.hpp"
 #include "DenseSM/Worland/Stencil/OrthogonalValue.hpp"
 #include "DenseSM/Worland/Stencil/OrthogonalValueD1.hpp"
-#include "DenseSM/Worland/Stencil/OrthogonalValueD2.hpp"
 
-//#define QUICC_USE_ORTHOGONAL_STENCIL
+#define QUICC_USE_ORTHOGONAL_STENCIL
 
 namespace QuICC {
 
@@ -225,7 +224,7 @@ void IExponentialBackend::stencil(SparseMatrix& mat, const SpectralFieldId& fiel
          if (bcId == Bc::Name::NoSlip::id())
          {
 #ifdef QUICC_USE_ORTHOGONAL_STENCIL
-            DenseSM::Worland::Stencil::OrthogonalValue bc(nN, nN - s, a, b, l);
+            DenseSM::Worland::Stencil::OrthogonalValue bc(nN, nN - s, a, b, l, 0);
             mat = bc.spmat();
 #else
             SparseSM::Worland::Stencil::Value bc(nN, nN - s, a, b, l);
@@ -252,7 +251,7 @@ void IExponentialBackend::stencil(SparseMatrix& mat, const SpectralFieldId& fiel
          if (bcId == Bc::Name::NoSlip::id())
          {
 #ifdef QUICC_USE_ORTHOGONAL_STENCIL
-            DenseSM::Worland::Stencil::OrthogonalValueD1 bc(nN, nN - s, a, b, l);
+            DenseSM::Worland::Stencil::OrthogonalValueD1 bc(nN, nN - s, a, b, l, 1);
             mat = bc.spmat();
 #else
             SparseSM::Worland::Stencil::ValueD1 bc(nN, nN - s, a, b, l);
@@ -262,8 +261,7 @@ void IExponentialBackend::stencil(SparseMatrix& mat, const SpectralFieldId& fiel
          else if (bcId == Bc::Name::StressFree::id())
          {
 #ifdef QUICC_USE_ORTHOGONAL_STENCIL
-            DenseSM::Worland::Stencil::OrthogonalValueD2 bc(nN, nN - s, a, b, l);
-            mat = bc.spmat();
+            throw std::logic_error("Orthogonal stencil for poloidal stress-free boundary not yet implemented");
 #else
             SparseSM::Worland::Stencil::ValueD2 bc(nN, nN - s, a, b, l);
             mat = bc.mat();
@@ -280,7 +278,7 @@ void IExponentialBackend::stencil(SparseMatrix& mat, const SpectralFieldId& fiel
          if (bcId == Bc::Name::FixedTemperature::id())
          {
 #ifdef QUICC_USE_ORTHOGONAL_STENCIL
-            DenseSM::Worland::Stencil::OrthogonalValue bc(nN, nN - s, a, b, l);
+            DenseSM::Worland::Stencil::OrthogonalValue bc(nN, nN - s, a, b, l, 2);
             mat = bc.spmat();
 #else
             SparseSM::Worland::Stencil::Value bc(nN, nN - s, a, b, l);
@@ -309,6 +307,24 @@ void IExponentialBackend::stencil(SparseMatrix& mat, const SpectralFieldId& fiel
       SparseSM::Worland::Id qId(nN - s, nN, a, b, l);
       mat = qId.mat() * mat;
    }
+}
+
+void IExponentialBackend::applyGalerkinStencil(SparseMatrix& mat,
+   const SpectralFieldId& rowId, const SpectralFieldId& colId, const int lr,
+   const int lc, std::shared_ptr<details::BlockOptions> opts,
+   const int nNr, const int nNc, const BcMap& bcs,
+   const NonDimensional::NdMap& nds) const
+{
+   auto a = Polynomial::Worland::worland_default_t::ALPHA;
+   auto b = Polynomial::Worland::worland_default_t::DBETA;
+
+   auto S = mat;
+   this->stencil(S, colId, lc, nNc, false, bcs, nds);
+
+   auto s = this->nBc(rowId);
+   // Extract nNr-s rows ignoring first s rows
+   SparseSM::Worland::Id qId(nNr - s, nNr, a, b, lr, 0, s);
+   mat = qId.mat() * (mat * S);
 }
 
 } // namespace Exponential

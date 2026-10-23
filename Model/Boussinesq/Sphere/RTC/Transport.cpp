@@ -75,7 +75,7 @@ void Transport::initNLKernel(const bool force)
       {
          sgn = -1;
       }
-      spNLKernel->init(1.0*sgn);
+      spNLKernel->init(1.0 * sgn);
       this->mspNLKernel = spNLKernel;
    }
 }
