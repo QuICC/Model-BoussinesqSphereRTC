@@ -45,9 +45,10 @@ void TransportKernel::setVector(std::size_t name,
    this->setField(name, spField);
 }
 
-void TransportKernel::init(const MHDFloat transport)
+void TransportKernel::init(const MHDFloat transport, const MHDFloat background)
 {
    this->mTransport = transport;
+   this->mBackground = background;
 }
 
 void TransportKernel::setMesh(std::shared_ptr<std::vector<Array>> spMesh)
@@ -74,7 +75,7 @@ void TransportKernel::compute(Framework::Selector::PhysicalScalarField& rNLComp,
             FieldComponents::Physical::THETA,
             FieldComponents::Physical::PHI>::set(rNLComp, v->dom(0).res(),
             this->mRadius, v->dom(0).phys(), t->dom(0).grad(),
-            this->mTransport);
+            this->mTransport, this->mBackground);
       },
       this->vector(this->mVName), this->scalar(this->name()));
 }

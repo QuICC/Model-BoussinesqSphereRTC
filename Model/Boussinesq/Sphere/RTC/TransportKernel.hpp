@@ -62,7 +62,7 @@ public:
    /**
     * @brief Initialize kernel
     */
-   void init(const MHDFloat transport);
+   void init(const MHDFloat transportt, const MHDFloat background);
 
    /**
     * @brief Compute the physical kernel
@@ -95,6 +95,11 @@ private:
     * @brief Scaling constant for transport term
     */
    MHDFloat mTransport;
+
+   /**
+    * @brief Scaling constant for transport background term
+    */
+   MHDFloat mBackground;
 
    /**
     * @brief Storage for the radial grid values

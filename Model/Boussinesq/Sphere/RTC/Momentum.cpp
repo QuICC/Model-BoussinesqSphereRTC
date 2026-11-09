@@ -117,7 +117,8 @@ void Momentum::initNLKernel(const bool force)
       {
          sgn = -1;
       }
-      spNLKernel->init(1.0 * sgn, T * sgn, Ra * T * sgn);
+      //spNLKernel->init(1.0 * sgn, T * sgn, Ra * T * sgn);
+      spNLKernel->init(1.0 * sgn, T * sgn, T * sgn);
       this->mspNLKernel = spNLKernel;
    }
 }

@@ -15,6 +15,7 @@
 #include "QuICC/PhysicalNames/JacobianVelocity.hpp"
 #include "QuICC/PhysicalNames/Temperature.hpp"
 #include "QuICC/PhysicalNames/Velocity.hpp"
+#include "QuICC/NonDimensional/Rayleigh.hpp"
 #include "QuICC/SolveTiming/Prognostic.hpp"
 #include "QuICC/Transform/Path/ScalarNl.hpp"
 
@@ -75,12 +76,14 @@ void TransportJacobian::initNLKernel(const bool force)
          this->spVector(PhysicalNames::JacobianVelocity::id()));
       spNLKernel->setVector(PhysicalNames::Velocity::id(),
          this->spVector(PhysicalNames::Velocity::id()));
+      auto Ra = this->eqParams().nd(NonDimensional::Rayleigh::id());
       MHDFloat sgn = 1;
       if(!this->options().nonlinearIsLhs)
       {
          sgn = -1;
       }
-      spNLKernel->init(1.0 * sgn, 1.0 * sgn);
+      //spNLKernel->init(1.0 * sgn, 1.0 * sgn);
+      spNLKernel->init(1.0 * sgn, Ra * sgn);
       this->mspNLKernel = spNLKernel;
    }
 }

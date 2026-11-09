@@ -13,6 +13,7 @@
 #include "Model/Boussinesq/Sphere/RTC/TransportKernel.hpp"
 #include "QuICC/PhysicalNames/Temperature.hpp"
 #include "QuICC/PhysicalNames/Velocity.hpp"
+#include "QuICC/NonDimensional/Rayleigh.hpp"
 #include "QuICC/SolveTiming/Prognostic.hpp"
 #include "QuICC/Transform/Path/I2ScalarNl.hpp"
 #include "QuICC/Transform/Path/ScalarNl.hpp"
@@ -70,12 +71,14 @@ void Transport::initNLKernel(const bool force)
       spNLKernel->setScalar(this->name(), this->spUnknown());
       spNLKernel->setVector(PhysicalNames::Velocity::id(),
          this->spVector(PhysicalNames::Velocity::id()));
+      auto Ra = this->eqParams().nd(NonDimensional::Rayleigh::id());
       MHDFloat sgn = 1;
       if(!this->options().nonlinearIsLhs)
       {
          sgn = -1;
       }
-      spNLKernel->init(1.0 * sgn);
+      //spNLKernel->init(1.0 * sgn, 1.0 * sgn);
+      spNLKernel->init(1.0 * sgn, Ra * sgn);
       this->mspNLKernel = spNLKernel;
    }
 }
