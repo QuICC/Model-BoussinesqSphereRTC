@@ -33,12 +33,9 @@
 #include "QuICC/PhysicalNames/JacobianVelocity.hpp"
 #include "QuICC/Polynomial/Worland/WorlandTypes.hpp"
 #include "QuICC/Resolutions/Tools/IndexCounter.hpp"
-#include "QuICC/SparseSM/Worland/I2.hpp"
-#include "QuICC/SparseSM/Worland/I2Lapl.hpp"
-#include "QuICC/SparseSM/Worland/I4.hpp"
-#include "QuICC/SparseSM/Worland/I4Lapl.hpp"
-#include "QuICC/SparseSM/Worland/I4Lapl2.hpp"
 #include "QuICC/SparseSM/Worland/Id.hpp"
+#include "DenseSM/Worland/Id.hpp"
+#include "DenseSM/Worland/SLapl.hpp"
 
 namespace QuICC {
 
@@ -215,9 +212,9 @@ details::BlockDefinition ModelBackend::timeBlockBuilder(
 
          if (l > 0)
          {
-            SparseSM::Worland::I2 spasm(nNr, nNc, o.a, o.b, l,
-               1 * o.truncateQI);
-            bMat = spasm.mat();
+            DenseSM::Worland::Id spasm(nNr, nNc, o.a, o.b, l, 2);
+            SparseSM::Worland::Id qid(nNr, nNc, o.a, o.b, l, 0, -1);
+            bMat = qid.mat()*spasm.spmat();
          }
          else
          {
@@ -256,17 +253,10 @@ details::BlockDefinition ModelBackend::timeBlockBuilder(
             }
             else
             {
-               SparseSM::Worland::I4Lapl spasm(nNr, nNc, o.a, o.b, l,
-                  2 * o.truncateQI);
+               DenseSM::Worland::Id spasm(nNr, nNc, o.a, o.b, l, 3);
+               SparseSM::Worland::Id qid(nNr, nNc, o.a, o.b, l, 0, -2);
 
-               // Correct Laplacian for 4th order system according to:
-               // McFadden,Murray,Boisvert,
-               // Elimination of Spurious Eigenvalues in the
-               // Chebyshev Tau Spectral Method,
-               // JCP 91, 228-239 (1990)
-               // We simply drop the last column
-               SparseSM::Worland::Id qid(nNr, nNc, o.a, o.b, l, -1);
-               bMat = spasm.mat() * qid.mat();
+               bMat = qid.mat()*spasm.spmat();
             }
          }
          else
@@ -295,8 +285,9 @@ details::BlockDefinition ModelBackend::timeBlockBuilder(
          auto& o =
             *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
 
-         SparseSM::Worland::I2 spasm(nNr, nNc, o.a, o.b, l, 1 * o.truncateQI);
-         SparseMatrix bMat = spasm.mat();
+         DenseSM::Worland::Id spasm(nNr, nNc, o.a, o.b, l, 1);
+         SparseSM::Worland::Id qid(nNr, nNc, o.a, o.b, l, 0, -1);
+         SparseMatrix bMat = qid.mat()*spasm.spmat();
 
          return bMat;
       };
@@ -324,7 +315,7 @@ details::BlockDefinition ModelBackend::qiBlockBuilder(
    blkDef.rowId = rowId;
    blkDef.colId = colId;
    blkDef.isComplex = this->isComplex(rowId);
-   blkDef.isGalerkin = this->useGalerkin();
+   blkDef.isGalerkin = false;
 
    // Create description with common options
    auto getDescription = [&]() -> details::BlockDescription&
@@ -359,9 +350,8 @@ details::BlockDefinition ModelBackend::qiBlockBuilder(
 
          if (l > 0)
          {
-            SparseSM::Worland::I2 spasm(nNr, nNc, o.a, o.b, l,
-               1 * o.truncateQI);
-            bMat = spasm.mat();
+            DenseSM::Worland::Id spasm(nNr, nNc, o.a, o.b, l, 2);
+            bMat = spasm.spmat();
          }
          else
          {
@@ -400,9 +390,8 @@ details::BlockDefinition ModelBackend::qiBlockBuilder(
             }
             else
             {
-               SparseSM::Worland::I4 spasm(nNr, nNc, o.a, o.b, l,
-                  2 * o.truncateQI);
-               bMat = spasm.mat();
+               DenseSM::Worland::Id spasm(nNr, nNc, o.a, o.b, l, 5);
+               bMat = spasm.spmat();
             }
          }
          else
@@ -431,8 +420,8 @@ details::BlockDefinition ModelBackend::qiBlockBuilder(
          auto& o =
             *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
 
-         SparseSM::Worland::I2 spasm(nNr, nNc, o.a, o.b, l, 1 * o.truncateQI);
-         SparseMatrix bMat = spasm.mat();
+         DenseSM::Worland::Id spasm(nNr, nNc, o.a, o.b, l, 1);
+         SparseMatrix bMat = spasm.spmat();
 
          return bMat;
       };
@@ -493,9 +482,9 @@ details::BlockDefinition ModelBackend::explicitLinearBlockBuilder(
          {
             auto& o =
                *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
-            SparseSM::Worland::I2Lapl i2lapl(nNr, nNc, o.a, o.b, l,
-               1 * o.truncateQI);
-            bMat = i2lapl.mat();
+            DenseSM::Worland::SLapl diff(nNr, nNc, o.a, o.b, l, 2);
+            SparseSM::Worland::Id qid(nNr, nNc, o.a, o.b, l, 0, -1);
+            bMat = qid.mat() * diff.spmat();
          }
 
          return bMat;
@@ -522,9 +511,9 @@ details::BlockDefinition ModelBackend::explicitLinearBlockBuilder(
             auto& o =
                *std::dynamic_pointer_cast<implDetails::BlockOptionsImpl>(opts);
 
-            SparseSM::Worland::I4Lapl2 i4lapl2(nNr, nNc, o.a, o.b, l,
-                 2 * o.truncateQI);
-            bMat = i4lapl2.mat();
+            DenseSM::Worland::SLapl diff(nNr, nNc, o.a, o.b, l, 3);
+            SparseSM::Worland::Id qid(nNr, nNc, o.a, o.b, l, 0, -2);
+            bMat = qid.mat() * diff.spmat();
          }
 
          return bMat;
@@ -550,9 +539,9 @@ details::BlockDefinition ModelBackend::explicitLinearBlockBuilder(
          const auto Pr =
             nds.find(NonDimensional::Prandtl::id())->second->value();
 
-         SparseSM::Worland::I2Lapl i2lapl(nNr, nNc, o.a, o.b, l,
-            1 * o.truncateQI);
-         SparseMatrix bMat = (1.0 / Pr) * i2lapl.mat();
+         DenseSM::Worland::SLapl diff(nNr, nNc, o.a, o.b, l, 1);
+            SparseSM::Worland::Id qid(nNr, nNc, o.a, o.b, l, 0, -1);
+         SparseMatrix bMat = (1.0 / Pr) * qid.mat() * diff.spmat();
 
          return bMat;
       };
