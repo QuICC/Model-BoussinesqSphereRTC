@@ -47,7 +47,7 @@ public:
    /**
     * @brief Simple empty destructor
     */
-   ~TransportJacobian() = default;
+   virtual ~TransportJacobian() = default;
 
    /**
     * @brief Initialize nonlinear interaction kernel

@@ -63,7 +63,7 @@ void IExponentialModel::addEquations(SharedSimulation spSim)
       this->spBackend(), optOne);
 
    #ifdef QUICC_USE_MLIR_GRAPH
-      #error "MLIR Graph setup not implemented for InertialessDynamo"
+      #error "MLIR Graph setup not implemented for exponential RTC model"
    #endif
 }
 

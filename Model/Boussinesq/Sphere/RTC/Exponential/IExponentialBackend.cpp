@@ -309,24 +309,6 @@ void IExponentialBackend::stencil(SparseMatrix& mat, const SpectralFieldId& fiel
    }
 }
 
-void IExponentialBackend::applyGalerkinStencil(SparseMatrix& mat,
-   const SpectralFieldId& rowId, const SpectralFieldId& colId, const int lr,
-   const int lc, std::shared_ptr<details::BlockOptions> opts,
-   const int nNr, const int nNc, const BcMap& bcs,
-   const NonDimensional::NdMap& nds) const
-{
-   auto a = Polynomial::Worland::worland_default_t::ALPHA;
-   auto b = Polynomial::Worland::worland_default_t::DBETA;
-
-   auto S = mat;
-   this->stencil(S, colId, lc, nNc, false, bcs, nds);
-
-   auto s = this->nBc(rowId);
-   // Extract nNr-s rows ignoring first s rows
-   SparseSM::Worland::Id qId(nNr - s, nNr, a, b, lr, 0, s);
-   mat = qId.mat() * (mat * S);
-}
-
 } // namespace Exponential
 } // namespace RTC
 } // namespace Sphere
