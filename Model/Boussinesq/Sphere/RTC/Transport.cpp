@@ -15,7 +15,7 @@
 #include "QuICC/PhysicalNames/Velocity.hpp"
 #include "QuICC/SolveTiming/Prognostic.hpp"
 #include "QuICC/Transform/Path/I2ScalarNl.hpp"
-#include "QuICC/Transform/Path/Scalar.hpp"
+#include "QuICC/Transform/Path/ScalarNl.hpp"
 
 namespace QuICC {
 
@@ -29,8 +29,9 @@ namespace RTC {
 
 Transport::Transport(SharedEquationParameters spEqParams,
    SpatialScheme::SharedCISpatialScheme spScheme,
-   std::shared_ptr<Model::IModelBackend> spBackend) :
-    IScalarEquation(spEqParams, spScheme, spBackend)
+   std::shared_ptr<Model::IModelBackend> spBackend,
+      std::shared_ptr<EquationOptions> spOptions) :
+    IScalarEquation(spEqParams, spScheme, spBackend, spOptions)
 {
    // Set the variable requirements
    this->setRequirements();
@@ -47,8 +48,16 @@ void Transport::setCoupling()
 
 void Transport::setNLComponents()
 {
-   this->addNLComponent(FieldComponents::Spectral::SCALAR,
-      Transform::Path::I2ScalarNl::id());
+   if(this->options().transformHasQi)
+   {
+      this->addNLComponent(FieldComponents::Spectral::SCALAR,
+         Transform::Path::I2ScalarNl::id());
+   }
+   else
+   {
+      this->addNLComponent(FieldComponents::Spectral::SCALAR,
+         Transform::Path::ScalarNl::id());
+   }
 }
 
 void Transport::initNLKernel(const bool force)
@@ -61,7 +70,12 @@ void Transport::initNLKernel(const bool force)
       spNLKernel->setScalar(this->name(), this->spUnknown());
       spNLKernel->setVector(PhysicalNames::Velocity::id(),
          this->spVector(PhysicalNames::Velocity::id()));
-      spNLKernel->init(1.0);
+      MHDFloat sgn = 1;
+      if(!this->options().nonlinearIsLhs)
+      {
+         sgn = -1;
+      }
+      spNLKernel->init(1.0 * sgn, 1.0 * sgn);
       this->mspNLKernel = spNLKernel;
    }
 }

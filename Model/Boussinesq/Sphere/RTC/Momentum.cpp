@@ -22,6 +22,8 @@
 #include "QuICC/Transform/Path/I2CurlNl.hpp"
 #include "QuICC/Transform/Path/NegI2CurlCurlNl.hpp"
 #include "QuICC/Transform/Path/NegI4CurlCurlNl.hpp"
+#include "QuICC/Transform/Path/CurlNl.hpp"
+#include "QuICC/Transform/Path/NegCurlCurlNl.hpp"
 
 namespace QuICC {
 
@@ -35,8 +37,9 @@ namespace RTC {
 
 Momentum::Momentum(SharedEquationParameters spEqParams,
    SpatialScheme::SharedCISpatialScheme spScheme,
-   std::shared_ptr<Model::IModelBackend> spBackend) :
-    IVectorEquation(spEqParams, spScheme, spBackend)
+   std::shared_ptr<Model::IModelBackend> spBackend,
+      std::shared_ptr<EquationOptions> spOptions) :
+    IVectorEquation(spEqParams, spScheme, spBackend, spOptions)
 {
    // Set the variable requirements
    this->setRequirements();
@@ -71,18 +74,29 @@ void Momentum::setCoupling()
 
 void Momentum::setNLComponents()
 {
-   this->addNLComponent(FieldComponents::Spectral::TOR,
-      Transform::Path::I2CurlNl::id());
-
-   if (this->couplingInfo(FieldComponents::Spectral::POL).isSplitEquation())
+   if(this->options().transformHasQi)
    {
-      this->addNLComponent(FieldComponents::Spectral::POL,
-         Transform::Path::NegI2CurlCurlNl::id());
+      this->addNLComponent(FieldComponents::Spectral::TOR,
+         Transform::Path::I2CurlNl::id());
+
+      if (this->couplingInfo(FieldComponents::Spectral::POL).isSplitEquation())
+      {
+         this->addNLComponent(FieldComponents::Spectral::POL,
+               Transform::Path::NegI2CurlCurlNl::id());
+      }
+      else
+      {
+         this->addNLComponent(FieldComponents::Spectral::POL,
+               Transform::Path::NegI4CurlCurlNl::id());
+      }
    }
    else
    {
+      this->addNLComponent(FieldComponents::Spectral::TOR,
+         Transform::Path::CurlNl::id());
+
       this->addNLComponent(FieldComponents::Spectral::POL,
-         Transform::Path::NegI4CurlCurlNl::id());
+            Transform::Path::NegCurlCurlNl::id());
    }
 }
 
@@ -98,7 +112,12 @@ void Momentum::initNLKernel(const bool force)
          this->spScalar(PhysicalNames::Temperature::id()));
       auto T = 1.0 / this->eqParams().nd(NonDimensional::Ekman::id());
       auto Ra = this->eqParams().nd(NonDimensional::Rayleigh::id());
-      spNLKernel->init(1.0, T, Ra * T);
+      MHDFloat sgn = 1;
+      if(!this->options().nonlinearIsLhs)
+      {
+         sgn = -1;
+      }
+      spNLKernel->init(1.0 * sgn, T * sgn, Ra * T * sgn);
       this->mspNLKernel = spNLKernel;
    }
 }
