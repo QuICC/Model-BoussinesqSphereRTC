@@ -51,7 +51,7 @@ std::string IRTCModel::version() const
 
 void IRTCModel::addEquations(SharedSimulation spSim)
 {
-   auto optZero = std::make_shared<Equations::EquationOptions>(0);
+   auto optZero = std::make_shared<Equations::EquationOptions>(0, true, false);
 
    // Add transport equation
    spSim->addEquation<Equations::Boussinesq::Sphere::RTC::Transport>(
